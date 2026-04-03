@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Gacha System - 卡池规则配置</title>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .setup-container { max-width: 900px; margin: 0 auto; padding-bottom: 50px; }
+        .setup-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .setup-title { color: var(--primary); margin-top: 0; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-size: 13px; color: #aaa; font-weight: bold; }
+        
+        .input-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 6px; outline: none; transition: 0.2s; }
+        .input-box:focus { border-color: var(--primary); }
+        
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .toggle-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+        .hint-text { font-size: 12px; color: #666; margin-top: 4px; }
+        
+        .spark-rule-row, .gift-rule-row { display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border); }
+        .spark-rule-row input, .gift-rule-row input { flex: 1; }
+        .spark-rule-row select, .gift-rule-row select { width: 100px; }
+
+        /* --- 全新：全局星级引入样式 --- */
+        .tier-row { 
+            display:flex; gap:15px; align-items:center; margin-bottom:12px; padding:12px 15px; 
+            background:rgba(0,0,0,0.2); border-radius:8px; border: 1px solid var(--border); transition: 0.2s;
+        }
+        .tier-row.disabled { opacity: 0.4; filter: grayscale(1); border-color: transparent; }
+        .tier-row.disabled:hover { opacity: 0.6; }
+        
+        .tier-badge {
+            padding: 4px 12px; border-radius: 4px; font-weight: bold; color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); font-size: 14px; text-align: center; min-width: 40px;
+        }
+
+        /* 自定义开关样式 */
+        .switch-container { display: flex; align-items: center; cursor: pointer; }
+        .switch-input { display: none; }
+        .switch-slider {
+            width: 40px; height: 20px; background-color: #555; border-radius: 20px;
+            position: relative; transition: 0.3s;
+        }
+        .switch-slider::before {
+            content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+            background-color: white; top: 2px; left: 2px; transition: 0.3s;
+        }
+        .switch-input:checked + .switch-slider { background-color: #2ecc71; }
+        .switch-input:checked + .switch-slider::before { transform: translateX(20px); }
+
+        input[type="radio"].toggle-checkbox, input[type="checkbox"].toggle-checkbox {
+            appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border: 2px solid #777; 
+            border-radius: 50%; background-color: rgba(0, 0, 0, 0.3); position: relative; cursor: pointer; outline: none; transition: 0.2s;
+        }
+        input[type="checkbox"].toggle-checkbox { border-radius: 4px; }
+        input[type="radio"].toggle-checkbox:checked, input[type="checkbox"].toggle-checkbox:checked { border-color: #3498db; background-color: #fff; }
+        input[type="radio"].toggle-checkbox:checked::after, input[type="checkbox"].toggle-checkbox:checked::after {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: #000; 
+        }
+        input[type="radio"].toggle-checkbox:checked::after { width: 10px; height: 10px; border-radius: 50%; }
+        input[type="checkbox"].toggle-checkbox:checked::after { width: 10px; height: 10px; border-radius: 2px; }
+        input[type="radio"].toggle-checkbox:disabled, input[type="checkbox"].toggle-checkbox:disabled { border-color: #444; background-color: #222; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="sidebar"></div>
+
+    <div class="main-content">
+        <div class="setup-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <div>
+                    <h1 style="margin-bottom: 5px;" data-i18n="cp_main_title">⚙️ 卡池规则独立配置</h1>
+                    <p style="color: #888; margin: 0;"><span data-i18n="cp_main_desc_1">正在为 </span><strong id="display-pool-name" style="color: var(--primary);">...</strong><span data-i18n="cp_main_desc_2"> 配置专属概率机制</span></p>
+                </div>
+                <button class="btn btn-action-gray" onclick="navigateToDashboard()" data-i18n="cp_btn_back">← 返回看板</button>
+            </div>
+
+            <div class="setup-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 20px;">
+                    <h2 class="setup-title" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec1_title">🌟 1. 稀有度启用与概率分配</h2>
+                    <div style="color: #aaa; font-size: 14px; font-weight: bold;"><span data-i18n="cp_sec1_total">当前总概率: </span><span id="display-total-prob">0</span>%</div>
+                </div>
+                <p class="hint-text" style="margin-bottom: 15px;" data-i18n="cp_sec1_desc">以下星级来源于全局游戏设定。请选择要在当前卡池启用的星级，并设定其出货概率。</p>
+                
+                <div id="tiers-container"></div>
+                
+                <div style="text-align: right; margin-top: 10px; font-size: 12px; color: #888;">
+                    <span data-i18n="cp_sec1_goto_1">修改名称或颜色请前往 </span><a href="#" style="color: var(--primary);" onclick="window.location.href='custom_setup.html?gameId=' + gameId" data-i18n="cp_sec1_goto_2">全量构建中心</a>
+                </div>
+            </div>
+
+            <div class="setup-card" style="border-color: #f1c40f;">
+                <h2 class="setup-title" style="color: #f1c40f;" data-i18n="cp_sec2_title">🎯 2. 目标高稀有度 (出金) 设定</h2>
+                <p class="hint-text" style="margin-bottom: 15px;" data-i18n="cp_sec2_desc">勾选在数据统计中被视为“出金 / 重置保底”的稀有度层级。</p>
+                <div id="target-gold-container" style="display: flex; gap: 20px; flex-wrap: wrap; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px;"></div>
+            </div>
+
+             <div class="setup-card" style="border-color: #3498db; margin-top: 15px;">
+                <h2 class="setup-title" style="color: #3498db;" data-i18n="cp_sec3_title">🎁 3. 多重副产物保底 (低金/低星保底)</h2>
+                <p class="hint-text" style="margin-bottom: 15px;"><span data-i18n="cp_sec3_desc">你可以自由设置多个保底规则 (如: 每10抽保底紫，每5抽保底蓝)。</span><br><span style="color:#e74c3c;" data-i18n="cp_sec3_note">注：已被设为「目标金」的层级不可选，请在下方单独设置金保底。</span></p>
+                <div id="minor-pities-container"></div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                    <button class="btn btn-blue" onclick="appendMinorPityRow()" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1;">+</button>
+                </div>
+            </div>
+
+            <div class="setup-card" style="margin-top: 20px;">
+                <h2 class="setup-title" data-i18n="cp_sec4_title">📈 4. 保底与动态概率 (分段软保底)</h2>
+                <div class="form-grid" style="margin-bottom: 15px;">
+                    <div class="input-group">
+                        <label data-i18n="cp_sec4_hard">硬保底阈值 (必定出金)</label>
+                        <input type="number" id="input-hard-pity" class="input-box" data-i18n="cp_sec4_hard_ph" placeholder="如: 90" value="90">
+                    </div>
+                    <div class="input-group" id="up-rate-group">
+                        <label data-i18n="cp_sec4_up">UP 基础概率 (不歪率 %)</label>
+                        <input type="number" id="input-up-rate" class="input-box" data-i18n="cp_sec4_up_ph" placeholder="如: 50" value="50">
+                    </div>
+                </div>
+                
+                <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <label class="toggle-label" style="font-weight: bold; margin-bottom: 15px; color: var(--primary);">
+                        <input type="checkbox" id="input-enable-soft-pity" class="toggle-checkbox" onchange="toggleSoftPityPanel()"> 
+                        <span data-i18n="cp_sec4_soft_toggle">开启分段式软保底 (动态增幅)</span>
+                    </label>
+                    <div id="soft-pity-settings" style="display: none;">
+                        <p class="hint-text" data-i18n="cp_sec4_soft_desc">可以设置多个区间。例如：63-73抽每次增加7%，74-80抽每次增加3.5%。</p>
+                        <div id="soft-rules-container"></div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                            <button class="btn btn-blue" onclick="appendSoftPityRuleRow()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setup-card" id="guarantee-section" style="border-color: #9b59b6;">
+                <h2 class="setup-title" style="color: #9b59b6;" data-i18n="cp_sec5_title">🛡️ 5. 大保底(命定值) 与“井”设定</h2>
+                
+                <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
+                    <label class="toggle-label" style="margin-bottom: 10px;">
+                        <input type="checkbox" id="input-use-guarantee" class="toggle-checkbox" checked> 
+                        <strong style="color: #9b59b6;" data-i18n="cp_sec5_gua_toggle">开启大保底 / 命定值机制</strong>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 10px; padding-left: 28px;">
+                        <span style="color: #aaa; font-size: 14px;" data-i18n="cp_sec5_gua_1">在未命中 UP (歪了) 累计</span>
+                        <input type="number" id="input-guarantee-limit" class="input-box" style="width: 70px; text-align: center; padding: 6px;" value="1">
+                        <span style="color: #aaa; font-size: 14px;"><span data-i18n="cp_sec5_gua_2">次后，下一次金必定出 UP。</span><br><span style="font-size: 12px; color:#888;" data-i18n="cp_sec5_gua_note">(注：填1就是标准的歪一次后必中；填2就是原神武器池的神铸定轨)</span></span>
+                    </div>
+                </div>
+
+                <div id="spark-rules-container">
+                    </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                    <button class="btn btn-green" onclick="appendSparkRuleRow()" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1;">+</button>
+                </div>
+            </div>
+
+            <div class="setup-card" style="border-color: #2ecc71;">
+                <h2 class="setup-title" style="color: #2ecc71;" data-i18n="cp_sec6_title">🎁 6. 赠送抽机制</h2>
+                <div id="gift-rules-container"></div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                    <button class="btn btn-green" onclick="appendGiftRuleRow()" style="border-radius: 50%; width: 36px; height: 36px;">+</button>
+                </div>
+            </div>
+
+            <div class="setup-card" id="card-preselect" style="border-color: #e67e22;">
+                <h2 class="setup-title" style="color: #e67e22;" data-i18n="cp_sec7_title">📌 7. 模拟器预选数量限制设定</h2>
+                <div class="toggle-row" style="margin-bottom: 15px;">
+                    <label class="toggle-label" style="font-weight: bold; color: #e67e22;">
+                        <input type="checkbox" id="input-preselect-enable" class="toggle-checkbox" onchange="togglePreselectPanel()"> 
+                        <span data-i18n="cp_sec7_toggle">开启模拟器自动预选/限制数量</span>
+                    </label>
+                </div>
+                <div id="preselect-settings-panel" style="display: none; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <div class="form-grid">
+                        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; border-left: 3px solid #f1c40f;">
+                            <label style="font-size: 13px; color: #f1c40f; font-weight: bold; margin-bottom: 10px; display: block;" data-i18n="cp_sec7_up_title">🏆 限定 UP 预选配置</label>
+                            <div style="display: flex; gap: 10px;">
+                                <div class="input-group" style="flex: 1;"><label data-i18n="cp_sec7_min">最少勾选</label><input type="number" id="input-pre-up-min" class="input-box" value="1" min="0"></div>
+                                <div class="input-group" style="flex: 1;"><label data-i18n="cp_sec7_max">最多勾选</label><input type="number" id="input-pre-up-max" class="input-box" min="0" data-i18n="cp_sec7_unlimited" placeholder="不限"></div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; border-left: 3px solid #3498db;">
+                            <label style="font-size: 13px; color: #3498db; font-weight: bold; margin-bottom: 10px; display: block;" data-i18n="cp_sec7_std_title">🏠 常驻项目预选配置</label>
+                            <div style="display: flex; gap: 10px;">
+                                <div class="input-group" style="flex: 1;"><label data-i18n="cp_sec7_min">最少勾选</label><input type="number" id="input-pre-std-min" class="input-box" value="0" min="0"></div>
+                                <div class="input-group" style="flex: 1;"><label data-i18n="cp_sec7_max">最多勾选</label><input type="number" id="input-pre-std-max" class="input-box" min="0" data-i18n="cp_sec7_unlimited" placeholder="不限"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setup-card" id="card-spec-rate" style="border-color: #e74c3c;">
+                <h2 class="setup-title" style="color: #e74c3c;" data-i18n="cp_sec8_title">🌟 8. 特限出货干预设定</h2>
+                <div class="toggle-row" style="margin-bottom: 15px;">
+                    <label class="toggle-label" style="font-weight: bold; color: #e74c3c;">
+                        <input type="checkbox" id="input-spec-enable" class="toggle-checkbox" onchange="toggleSpecPanel()"> 
+                        <span data-i18n="cp_sec8_toggle">开启特限出货干预 (模拟器内自选角色)</span>
+                    </label>
+                </div>
+                <div id="spec-settings-panel" style="display: none; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <p class="hint-text" style="color: #ccc;" data-i18n="cp_sec8_desc">开启后，在模拟器中将自动弹出【特限神坛】，允许玩家拖拽想提升概率的常驻角色。</p>
+                    <div class="form-grid" style="margin-top: 15px;">
+                        <div class="input-group">
+                            <label data-i18n="cp_sec8_type">提升算法</label>
+                            <select id="input-spec-type" class="input-box">
+                                <option value="multiplier" data-i18n="cp_sec8_type_1">权值倍数 (如: 5倍)</option>
+                                <option value="percent" data-i18n="cp_sec8_type_2">固定占有率 (如: 50%)</option>
+                            </select>
+                        </div>
+                        <div class="input-group"><label data-i18n="cp_sec8_val">提升数值</label><input type="number" id="input-spec-value" class="input-box" value="5"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem; border-radius: 8px; font-weight: bold;" onclick="savePoolConfig()" data-i18n="cp_btn_save">
+                💾 保存【当前卡池】规则并返回
+            </button>
+        </div>
+    </div>
+
+    <script src="Preset_Data/db_hsr.js"></script>
+    <script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_end.js"></script>
+    <script src="Preset_Data/db_ark.js"></script>
+    <script src="translate.js"></script>
+    <script src="layout.js"></script>
+    
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentPool = urlParams.get('pool') || 'char_up';
+        const gameId = urlParams.get('gameId'); 
+        const STORAGE_KEY = `GM_Rules_${gameId}_${currentPool}`;
+
+        const POOL_NAMES = {
+            'char_all': '角色大池', 'char_up': '角色限定池', 'char_collab': '联动角色池', 'char_std': '角色常驻池',
+            'wep_all': '武器大池', 'wep_up': '武器限定池', 'wep_collab': '联动武器池', 'wep_std': '武器常驻池',
+            'pet_up': '随宠限定池', 'pet_collab': '联动随宠池', 'pet_std': '随宠常驻池', 
+            'mixed_std': '混合常驻池'
+        };
+
+        // 🌟 核心状态管理
+        let globalTiers = []; 
+        let poolTierState = {}; 
+        let selectedGoldIds = []; 
+        let selectedTenPityId = null; 
+
+        window.addEventListener('DOMContentLoaded', initPage);
+
+        function initPage() {
+            if (!currentPool || !gameId) { window.location.href = 'index.html'; return; }
+            
+            const currentLang = localStorage.getItem('GM_Lang') || 'zh';
+            let poolName = currentPool;
+            
+            // 🌟 1. 尝试从本地缓存读取卡池数据
+            let poolsConfig = JSON.parse(localStorage.getItem('GM_RosterPools_' + gameId)) || [];
+            let gameInfo = JSON.parse(localStorage.getItem('GM_Info_' + gameId)) || { mixedPools: [] };
+            
+            // 🌟 2. 如果本地没有（刚进入页面），从官方预设 DB 里读取
+            if (poolsConfig.length === 0) {
+                const gamePrefix = gameId.toUpperCase();
+                const getVar = (varName) => { try { return new Function(`return typeof ${varName} !== 'undefined' ? ${varName} : undefined`)(); } catch(e) { return undefined; } };
+                const presetRules = getVar(`${gamePrefix}_SETUP_RULES`);
+                if (presetRules) {
+                    poolsConfig = presetRules.rosterPools || [];
+                    gameInfo.mixedPools = presetRules.mixedPools || [];
+                }
+            }
+
+            // 🌟 3. 在底层积木池或混合池中寻找当前卡池的配置
+            let targetPool = poolsConfig.find(p => p.id === currentPool) || gameInfo.mixedPools.find(p => p.id === currentPool);
+            
+            if (targetPool) {
+                // 根据当前系统语言，直接拿它自带的属性！
+                poolName = (currentLang === 'en' && targetPool.en) ? targetPool.en : targetPool.name;
+            } else {
+                // 降级方案：如果是极早期的老数据，再去查字典
+                poolName = POOL_NAMES[currentPool] || currentPool;
+                if (typeof getTrans === 'function') {
+                    let transById = getTrans(currentPool);
+                    if (transById && transById !== currentPool) poolName = transById;
+                }
+            }
+
+            document.getElementById('display-pool-name').innerText = poolName;
+            
+            if (typeof renderSidebar === 'function') renderSidebar();
+
+            if (currentPool.includes('std')) {
+                const upGroup = document.getElementById('up-rate-group');
+                const guaranteeSec = document.getElementById('guarantee-section');
+                if (upGroup) upGroup.style.display = 'none';
+                if (guaranteeSec) guaranteeSec.style.display = 'none';
+            }
+
+            // 获取全局基因
+            let savedInfo = JSON.parse(localStorage.getItem('GM_Info_' + gameId)) || {};
+            globalTiers = savedInfo.globalTiers || [];
+            
+            // 🛡️ 将终极探测器提升到外层作用域，防止被 if 大括号困住！
+            const getVar = (varName) => { try { return new Function(`return typeof ${varName} !== 'undefined' ? ${varName} : undefined`)(); } catch(e) { return undefined; } };
+
+            if (globalTiers.length === 0) {
+                const gamePrefix = gameId ? gameId.toUpperCase() : '';
+                const presetGlobalTiers = getVar(`${gamePrefix}_GLOBAL_TIERS`);
+                if (presetGlobalTiers) {
+                    globalTiers = JSON.parse(JSON.stringify(presetGlobalTiers));
+                } else {
+                    globalTiers = [
+                        { id: 'tier_5', name: '5', color: '#f1c40f' },
+                        { id: 'tier_4', name: '4', color: '#9b59b6' },
+                        { id: 'tier_3', name: '3', color: '#3498db' }
+                    ];
+                }
+            }
+
+            globalTiers.forEach(t => { poolTierState[t.id] = { enabled: false, prob: 0 }; });
+
+            // 🛡️ 使用终极探测器穿透跨文件 const 限制，准确抓取预设名单
+            const presetGameIds = getVar('PRESET_GAME_IDS') || [];
+            const isPresetGame = presetGameIds.includes(gameId);
+            if (isPresetGame) {
+                loadPoolConfig();
+                setTimeout(() => {
+                    injectDbRulesToUI(currentPool);
+                    if (typeof applyPresetReadOnlyLock === 'function') applyPresetReadOnlyLock();
+                }, 100);
+            } else {
+                loadPoolConfig();
+            }
+        }
+
+        function navigateToDashboard() { window.location.href = `custom_dashboard.html?gameId=${gameId}&pool=${currentPool}`; }
+
+        function renderTiersUI() {
+            const container = document.getElementById('tiers-container');
+            let html = '';
+            let totalProb = 0;
+
+            globalTiers.forEach((t) => {
+                let state = poolTierState[t.id];
+                if (state.enabled) totalProb += state.prob;
+
+                html += `
+                <div class="tier-row ${!state.enabled ? 'disabled' : ''}">
+                    <label class="switch-container">
+                        <input type="checkbox" class="switch-input" ${state.enabled ? 'checked' : ''} onchange="toggleTierEnabled('${t.id}', this.checked)">
+                        <div class="switch-slider"></div>
+                    </label>
+                    <div class="tier-badge" style="background-color: ${t.color};">${t.name}</div>
+                    <div style="flex:1; display:flex; justify-content: flex-end; align-items:center;">
+                        <span style="color: #888; font-size: 13px; margin-right: 10px;">${getTrans('cp_js_prob')}</span>
+                        <input type="number" class="input-box" value="${state.prob}" ${!state.enabled ? 'disabled' : ''} onchange="updateTierProb('${t.id}', this.value)" style="width: 100px; text-align: right; padding: 8px;">
+                        <span style="color: #888; margin-left: 5px;">%</span>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+            
+            const totalDisplay = document.getElementById('display-total-prob');
+            totalDisplay.innerText = totalProb.toFixed(3);
+            totalDisplay.style.color = Math.abs(totalProb - 100) < 0.01 ? '#2ecc71' : '#e74c3c';
+            syncGoldAndPityUI(); 
+        }
+
+        window.toggleTierEnabled = function(id, isChecked) {
+            poolTierState[id].enabled = isChecked;
+            if (!isChecked) {
+                selectedGoldIds = selectedGoldIds.filter(gid => gid !== id);
+                if (selectedTenPityId === id) selectedTenPityId = null;
+            }
+            renderTiersUI();
+        };
+
+        window.updateTierProb = function(id, value) { poolTierState[id].prob = parseFloat(value) || 0; renderTiersUI(); };
+
+        function syncGoldAndPityUI() {
+            const goldContainer = document.getElementById('target-gold-container');
+            let goldHtml = '';
+            let hasEnabled = false;
+
+            globalTiers.forEach(t => {
+                if (!poolTierState[t.id].enabled) return; 
+                hasEnabled = true;
+                const isGold = selectedGoldIds.includes(t.id);
+                goldHtml += `<label class="toggle-label" style="display: flex; gap: 8px; background: rgba(0,0,0,0.2); padding: 8px 15px; border-radius: 6px; border: 1px solid ${isGold ? t.color : '#444'};"><input type="checkbox" class="toggle-checkbox input-gold-cb" value="${t.id}" ${isGold ? 'checked' : ''} onchange="handleGoldChange('${t.id}', this.checked)"><span style="color: ${t.color}; font-weight:bold; text-shadow: 0 0 5px ${t.color}40;">${t.name}</span></label>`;
+            });
+
+            goldContainer.innerHTML = hasEnabled ? goldHtml : `<span style="color:#666; font-size:12px;">${getTrans('cp_js_no_tier')}</span>`;
+            
+            // 刷新多重保底的下拉框，把金层级剔除
+            document.querySelectorAll('.input-minor-tier').forEach(select => {
+                let currentVal = select.value;
+                let optionsHtml = '';
+                globalTiers.forEach(t => {
+                    if (poolTierState[t.id]?.enabled && !selectedGoldIds.includes(t.id)) {
+                        let selected = (currentVal === t.id) ? 'selected' : '';
+                        optionsHtml += `<option value="${t.id}" ${selected} style="color:${t.color}">${t.name}</option>`;
+                    }
+                });
+                select.innerHTML = optionsHtml || `<option value="">${getTrans('cp_js_no_avail_tier')}</option>`;
+            });
+        }
+
+        window.handleGoldChange = function(id, isChecked) {
+            if (isChecked) {
+                if (!selectedGoldIds.includes(id)) selectedGoldIds.push(id);
+            } else {
+                selectedGoldIds = selectedGoldIds.filter(gid => gid !== id);
+            }
+            syncGoldAndPityUI();
+        };
+
+        // 2️⃣ 新增一个函数用于添加低星保底规则
+        function appendMinorPityRow(tierId = "", pulls = 10, resetOnHit = true) {
+            const container = document.getElementById('minor-pities-container');
+            const row = document.createElement('div');
+            row.className = 'minor-pity-row';
+            row.style = "display:flex; gap:10px; align-items:center; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); flex-wrap:wrap;";
+
+            let optionsHtml = '';
+            globalTiers.forEach(t => {
+                if (poolTierState[t.id]?.enabled && !selectedGoldIds.includes(t.id)) {
+                    let selected = (tierId === t.id) ? 'selected' : '';
+                    optionsHtml += `<option value="${t.id}" ${selected} style="color:${t.color}">${t.name}</option>`;
+                }
+            });
+
+            row.innerHTML = `
+                <span style="color:#aaa; font-size:14px;">${getTrans('cp_js_minor_1')}</span>
+                <input type="number" class="input-minor-pulls input-box" style="width:70px; padding:6px;" value="${pulls}">
+                <span style="color:#aaa; font-size:14px;">${getTrans('cp_js_minor_2')}</span>
+                <select class="input-minor-tier input-box" style="width:100px;">${optionsHtml || `<option value="">${getTrans('cp_js_none')}</option>`}</select>
+                <label style="display:flex; align-items:center; gap:5px; margin-left:15px; color:#aaa; font-size:13px; cursor:pointer;">
+                    <input type="checkbox" class="input-minor-reset" ${resetOnHit ? 'checked' : ''}> ${getTrans('cp_js_minor_reset')}
+                </label>
+                <button class="btn btn-action-gray" style="margin-left:auto; color:#ff4757; padding:4px 8px;" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function togglePreselectPanel() { document.getElementById('preselect-settings-panel').style.display = document.getElementById('input-preselect-enable').checked ? 'block' : 'none'; }
+        function toggleSoftPityPanel() { document.getElementById('soft-pity-settings').style.display = document.getElementById('input-enable-soft-pity').checked ? 'block' : 'none'; }
+        function toggleSpecPanel() { document.getElementById('spec-settings-panel').style.display = document.getElementById('input-spec-enable').checked ? 'block' : 'none'; }
+
+        function loadPoolConfig() {
+            let savedConfig = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            
+            if (savedConfig) {
+                if (savedConfig.tiers && Array.isArray(savedConfig.tiers)) {
+                    savedConfig.tiers.forEach(t => {
+                        if (poolTierState[t.id]) { poolTierState[t.id].enabled = true; poolTierState[t.id].prob = t.prob; }
+                    });
+                    selectedGoldIds = savedConfig.targetGoldTiers || savedConfig.targetGoldIds || [];
+                }
+
+                if (savedConfig.pity) {
+                    document.getElementById('input-hard-pity').value = savedConfig.pity.hard || '';
+                    document.getElementById('input-up-rate').value = savedConfig.pity.upRate || '';
+                    document.getElementById('input-enable-soft-pity').checked = savedConfig.pity.softEnabled;
+                    if (savedConfig.pity.useGuarantee !== undefined) document.getElementById('input-use-guarantee').checked = savedConfig.pity.useGuarantee;
+                    document.getElementById('input-guarantee-limit').value = savedConfig.pity.guaranteeLimit || 1;
+                    
+                    document.getElementById('soft-rules-container').innerHTML = '';
+                    if (savedConfig.pity.softRules) savedConfig.pity.softRules.forEach(r => appendSoftPityRuleRow(r.start, r.end, r.inc));
+                }
+                toggleSoftPityPanel();
+
+                document.getElementById('spark-rules-container').innerHTML = `<label style="font-size: 13px; color: #aaa; font-weight: bold;">${getTrans('cp_sec5_spark')}</label>`;
+                if (savedConfig.sparkRules) savedConfig.sparkRules.forEach(rule => appendSparkRuleRow(rule.limit, rule.type, { cancelOnUp: rule.cancelOnUp, noReset: rule.noReset }));
+                
+                document.getElementById('gift-rules-container').innerHTML = '';
+                if (savedConfig.giftRules) savedConfig.giftRules.forEach(rule => appendGiftRuleRow(rule.trigger, rule.amount, rule.type, { countPity: rule.countPity }));
+
+                if (savedConfig.preSelect) {
+                    const preEnableBox = document.getElementById('input-preselect-enable');
+                    if (preEnableBox) {
+                        preEnableBox.checked = savedConfig.preSelect.enabled !== false;
+                        document.getElementById('input-pre-up-min').value = savedConfig.preSelect.upMin ?? 1; 
+                        document.getElementById('input-pre-up-max').value = (savedConfig.preSelect.upMax === 999 || savedConfig.preSelect.upMax == null) ? '' : savedConfig.preSelect.upMax;
+                        document.getElementById('input-pre-std-min').value = savedConfig.preSelect.stdMin ?? 0; 
+                        document.getElementById('input-pre-std-max').value = (savedConfig.preSelect.stdMax === 999 || savedConfig.preSelect.stdMax == null) ? '' : savedConfig.preSelect.stdMax;
+                        togglePreselectPanel();
+                    }
+                }
+
+                // 🌟 新版：多重副产物保底 回显逻辑
+                document.getElementById('minor-pities-container').innerHTML = '';
+                if (savedConfig.minorPities && savedConfig.minorPities.length > 0) {
+                    savedConfig.minorPities.forEach(r => appendMinorPityRow(r.tierId, r.pulls, r.resetOnHit));
+                } else if (savedConfig.guarantee10 && savedConfig.guarantee10.enabled !== false && savedConfig.guarantee10.tierId) {
+                    appendMinorPityRow(savedConfig.guarantee10.tierId, 10, true); 
+                }
+
+                if (savedConfig.specRate) {
+                    document.getElementById('input-spec-enable').checked = savedConfig.specRate.enabled;
+                    document.getElementById('input-spec-type').value = savedConfig.specRate.type || 'multiplier';
+                    document.getElementById('input-spec-value').value = savedConfig.specRate.value || 5;
+                    toggleSpecPanel();
+                }
+            } else {
+                globalTiers.forEach((t, i) => {
+                    if (i === 0) { poolTierState[t.id] = { enabled: true, prob: 0.6 }; selectedGoldIds = [t.id]; }
+                    if (i === 1) { poolTierState[t.id] = { enabled: true, prob: 5.1 }; }
+                    if (i === 2) { poolTierState[t.id] = { enabled: true, prob: 94.3 }; }
+                });
+            }
+            renderTiersUI();
+        }
+
+        // ==========================================
+        // 🚀 终极版 injectDbRulesToUI
+        // ==========================================
+        function injectDbRulesToUI(poolType) {
+            let rules = null;
+            if (gameId === 'hsr' && typeof HSR_POOL_RULES !== 'undefined') rules = HSR_POOL_RULES[poolType];
+            if (gameId === 'zzz' && typeof ZZZ_POOL_RULES !== 'undefined') rules = ZZZ_POOL_RULES[poolType];
+            if (gameId === 'end' && typeof END_POOL_RULES !== 'undefined') rules = END_POOL_RULES[poolType];
+            if (gameId === 'ark' && typeof ARK_POOL_RULES !== 'undefined') rules = ARK_POOL_RULES[poolType];
+
+            if (!rules) return;
+
+            try {
+                globalTiers.forEach(t => { poolTierState[t.id] = { enabled: false, prob: 0 }; });
+
+                if (rules.tiers && Array.isArray(rules.tiers)) {
+                    rules.tiers.forEach(t => {
+                        let matched = poolTierState[t.id];
+                        if (!matched) { let gMatch = globalTiers.find(gt => gt.name === t.name); if (gMatch) matched = poolTierState[gMatch.id]; }
+                        if (matched) { matched.enabled = true; matched.prob = t.prob; }
+                    });
+                    selectedGoldIds = rules.targetGoldIds || rules.targetGoldTiers || rules.targetGold || [];
+                } else {
+                    let totalProb = 0;
+                    for (let i = 6; i >= 1; i--) {
+                        let probKey = `prob${i}`;
+                        if (rules[probKey] !== undefined) {
+                            let percentValue = parseFloat((rules[probKey] * 100).toFixed(3));
+                            totalProb += percentValue;
+                            let gMatch = globalTiers.find(gt => gt.name === i.toString());
+                            if (gMatch) { poolTierState[gMatch.id] = { enabled: true, prob: percentValue }; }
+                        }
+                    }
+                    if (totalProb > 0 && totalProb < 99.9) {
+                        let gMatch3 = globalTiers.find(gt => gt.name === '3');
+                        if (gMatch3 && !poolTierState[gMatch3.id].enabled) poolTierState[gMatch3.id] = { enabled: true, prob: parseFloat((100 - totalProb).toFixed(3)) };
+                    }
+                    selectedGoldIds = (rules.targetGold || []).map(num => { let gMatch = globalTiers.find(gt => gt.name === num.toString()); return gMatch ? gMatch.id : 'tier_' + num; });
+                }
+                
+                renderTiersUI(); 
+
+                if (rules.hardPity !== undefined || rules.hard5 !== undefined) document.getElementById('input-hard-pity').value = rules.hardPity || rules.hard5;
+                if (rules.upRate !== undefined || rules.rateup5 !== undefined) document.getElementById('input-up-rate').value = parseFloat(((rules.upRate || rules.rateup5) * 100).toFixed(3));
+
+                if (rules.softRule && rules.softRule.length > 0) {
+                    document.getElementById('soft-rules-container').innerHTML = '';
+                    rules.softRule.forEach(rule => appendSoftPityRuleRow(rule.start, rule.end, parseFloat((rule.inc * 100).toFixed(3))));
+                    document.getElementById('input-enable-soft-pity').checked = true;
+                    toggleSoftPityPanel();
+                }
+
+                let hasGuarantee = rules.useGuarantee !== undefined ? rules.useGuarantee : rules.greatPityEnabled;
+                let guaranteeLim = rules.guaranteeLimit !== undefined ? rules.guaranteeLimit : (rules.greatPityMissCount || 1);
+                if (document.getElementById('input-use-guarantee') && hasGuarantee !== undefined) document.getElementById('input-use-guarantee').checked = hasGuarantee;
+                if (document.getElementById('input-guarantee-limit') && guaranteeLim !== undefined) document.getElementById('input-guarantee-limit').value = guaranteeLim;
+
+                // 🌟 新版：多重副产物保底 回显注入
+                document.getElementById('minor-pities-container').innerHTML = '';
+                if (rules.minorPities && rules.minorPities.length > 0) {
+                    rules.minorPities.forEach(r => appendMinorPityRow(r.tierId, r.pulls, r.resetOnHit));
+                } else if (rules.guarantee10 && rules.guarantee10.enabled !== false && rules.guarantee10.tierId) {
+                    // 旧版十连保底降级兼容
+                    appendMinorPityRow(rules.guarantee10.tierId, 10, true);
+                } else if (rules.tenPityStar !== undefined && rules.tenPityEnabled !== false) {
+                    // 更老的格式降级兼容
+                    let tenMatch = globalTiers.find(gt => gt.name === rules.tenPityStar.toString());
+                    if (tenMatch) appendMinorPityRow(tenMatch.id, 10, true);
+                }
+
+                if (savedConfig.preSelect) {
+                    const preEnableBox = document.getElementById('input-preselect-enable');
+                    if (preEnableBox) {
+                        preEnableBox.checked = savedConfig.preSelect.enabled !== false;
+                        document.getElementById('input-pre-up-min').value = savedConfig.preSelect.upMin ?? 1; 
+                        document.getElementById('input-pre-up-max').value = (savedConfig.preSelect.upMax === 999 || savedConfig.preSelect.upMax == null) ? '' : savedConfig.preSelect.upMax;
+                        document.getElementById('input-pre-std-min').value = savedConfig.preSelect.stdMin ?? 0; 
+                        document.getElementById('input-pre-std-max').value = (savedConfig.preSelect.stdMax === 999 || savedConfig.preSelect.stdMax == null) ? '' : savedConfig.preSelect.stdMax;
+                        togglePreselectPanel();
+                    }
+                }
+
+                // 🌟 新版补丁：将 JS 中的“井”和“赠送抽”回显到页面上
+                document.getElementById('spark-rules-container').innerHTML = `<label style="font-size: 13px; color: #aaa; font-weight: bold;">${getTrans('cp_sec5_spark')}</label>`;
+                if (rules.sparkRules && rules.sparkRules.length > 0) {
+                    rules.sparkRules.forEach(rule => appendSparkRuleRow(rule.limit, rule.type, { cancelOnUp: rule.cancelOnUp, noReset: rule.noReset }));
+                }
+                
+                document.getElementById('gift-rules-container').innerHTML = '';
+                if (rules.giftRules && rules.giftRules.length > 0) {
+                    rules.giftRules.forEach(rule => appendGiftRuleRow(rule.trigger, rule.amount, rule.type, { countPity: rule.countPity }));
+                }
+
+                if (rules.specRate) {
+                    const specEnableBox = document.getElementById('input-spec-enable');
+                    if (specEnableBox) {
+                        specEnableBox.checked = rules.specRate.enabled !== false; 
+                        document.getElementById('input-spec-type').value = rules.specRate.type || 'multiplier';
+                        document.getElementById('input-spec-value').value = rules.specRate.value || 5;
+                        toggleSpecPanel();
+                    }
+                }
+            } catch (e) { console.error("❌ 填入官方预设数据时出错：", e); }
+        }
+
+        // ==========================================
+        // 🚀 终极版 savePoolConfig (含云端同步)
+        // ==========================================
+        window.savePoolConfig = async function() {
+            let activeTiers = [];
+            let totalProb = 0;
+            
+            globalTiers.forEach(t => {
+                let state = poolTierState[t.id];
+                if (state.enabled) {
+                    totalProb += state.prob;
+                    activeTiers.push({ id: t.id, prob: state.prob }); 
+                }
+            });
+
+            if (activeTiers.length === 0) return alert(getTrans('cp_js_err_tier'));
+            if (Math.abs(totalProb - 100) > 0.01) return alert(`${getTrans('cp_js_err_prob')}\n(Total: ${totalProb.toFixed(3)}%)`);
+            if (selectedGoldIds.length === 0) return alert(getTrans('cp_js_err_gold'));
+
+            let hardPityValue = parseFloat(document.getElementById('input-hard-pity').value) || 90;
+            let softRulesArr = [];
+            if (document.getElementById('input-enable-soft-pity').checked) {
+                document.querySelectorAll('.soft-rule-row').forEach(row => {
+                    let start = parseInt(row.querySelector('.input-soft-start').value);
+                    let end = parseInt(row.querySelector('.input-soft-end').value);
+                    let inc = parseFloat(row.querySelector('.input-soft-inc').value);
+                    if (start > 0 && end > 0 && inc > 0) softRulesArr.push({start, end, inc});
+                });
+                softRulesArr.sort((a,b) => a.start - b.start);
+            }
+
+            // 🌟 核心：保存多重副产物保底数据
+            let minorPitiesArr = [];
+            document.querySelectorAll('.minor-pity-row').forEach(row => {
+                let pulls = parseInt(row.querySelector('.input-minor-pulls').value);
+                let tierId = row.querySelector('.input-minor-tier').value;
+                let reset = row.querySelector('.input-minor-reset').checked;
+                if (pulls > 0 && tierId) minorPitiesArr.push({ pulls, tierId, resetOnHit: reset });
+            });
+
+            const config = {
+                tiers: activeTiers, 
+                targetGoldTiers: selectedGoldIds, targetGoldIds: selectedGoldIds, 
+                minorPities: minorPitiesArr, // 存入多重保底
+                stars: {}, targetGold: [], 
+                pity: {
+                    hard: hardPityValue, upRate: parseFloat(document.getElementById('input-up-rate').value) || 0,
+                    softEnabled: document.getElementById('input-enable-soft-pity').checked, softRules: softRulesArr,
+                    useGuarantee: document.getElementById('input-use-guarantee').checked, guaranteeLimit: parseInt(document.getElementById('input-guarantee-limit').value) || 1
+                },
+                sparkRules: [], giftRules: []
+            };
+
+            activeTiers.forEach(t => {
+                let matchGlobal = globalTiers.find(g => g.id === t.id);
+                if(matchGlobal) {
+                    let numericName = parseInt(matchGlobal.name);
+                    if (!isNaN(numericName)) {
+                        config.stars[numericName] = t.prob;
+                        if (selectedGoldIds.includes(t.id)) config.targetGold.push(numericName);
+                    }
+                }
+            });
+
+            config.preSelect = {
+                enabled: document.getElementById('input-preselect-enable').checked,
+                upMin: parseInt(document.getElementById('input-pre-up-min').value) || 0, 
+                upMax: document.getElementById('input-pre-up-max').value === '' ? 999 : (parseInt(document.getElementById('input-pre-up-max').value) || 0),
+                stdMin: parseInt(document.getElementById('input-pre-std-min').value) || 0, 
+                stdMax: document.getElementById('input-pre-std-max').value === '' ? 999 : (parseInt(document.getElementById('input-pre-std-max').value) || 0),
+            };
+
+            if (document.getElementById('card-spec-rate') && document.getElementById('card-spec-rate').style.display !== 'none') {
+                config.specRate = {
+                    enabled: document.getElementById('input-spec-enable').checked,
+                    items: [], 
+                    type: document.getElementById('input-spec-type').value,
+                    value: parseFloat(document.getElementById('input-spec-value').value) || 1
+                };
+            }
+
+            document.querySelectorAll('.spark-rule-row').forEach(row => {
+                const limit = parseInt(row.querySelector('.input-spark-limit').value);
+                if (limit > 0) config.sparkRules.push({ limit: limit, type: row.querySelector('.input-spark-type').value, cancelOnUp: row.querySelector('.input-spark-cancel-on-up').checked, noReset: row.querySelector('.input-spark-no-reset').checked });
+            });
+            document.querySelectorAll('.gift-rule-row').forEach(row => {
+                const trigger = parseInt(row.querySelector('.input-gift-trigger').value);
+                const amount = parseInt(row.querySelector('.input-gift-amount').value);
+                if (trigger > 0 && amount > 0) config.giftRules.push({ trigger: trigger, amount: amount, type: row.querySelector('.input-gift-type').value, countPity: row.querySelector('.input-gift-count-pity').checked });
+            });
+
+            // 1. 本地保存
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+            
+            // 2. 🌟 触发 Firebase 同步：将配置挂载到引擎对象的 rules 节点下
+            if (window.syncPoolRuleToFirebase) {
+                document.querySelector('button[onclick="savePoolConfig()"]').innerText = getTrans('cp_js_syncing');
+                await window.syncPoolRuleToFirebase(gameId, currentPool, config);
+            }
+
+            alert(getTrans('cp_js_save_ok'));
+            navigateToDashboard();
+        }
+
+        // ==========================================
+        // 工具函数与保护锁
+        // ==========================================
+        function appendSoftPityRuleRow(start = "", end = "", inc = "") {
+            const container = document.getElementById('soft-rules-container');
+            const row = document.createElement('div');
+            row.className = 'soft-rule-row';
+            row.style = "display:flex; gap:10px; align-items:center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border);";
+            row.innerHTML = `<span style="color:#aaa; font-size:14px;">${getTrans('cp_js_soft_1')}</span><input type="number" class="input-soft-start input-box" style="width:70px; padding:6px;" value="${start}" placeholder="${getTrans('cp_js_soft_start')}"><span style="color:#aaa; font-size:14px;">-</span><input type="number" class="input-soft-end input-box" style="width:70px; padding:6px;" value="${end}" placeholder="${getTrans('cp_js_soft_end')}"><span style="color:#aaa; font-size:14px;">${getTrans('cp_js_soft_2')}</span><input type="number" class="input-soft-inc input-box" style="width:80px; padding:6px;" value="${inc}" placeholder="${getTrans('cp_js_soft_inc')}"><button class="btn btn-action-gray" style="margin-left:auto; color:#ff4757;" onclick="this.parentElement.remove()">✕</button>`;
+            container.appendChild(row);
+        }
+
+        function appendSparkRuleRow(limit = "", type = "once", behavior = {}) {
+            const container = document.getElementById('spark-rules-container');
+            const row = document.createElement('div');
+            row.className = 'spark-rule-row';
+            row.style = "display:flex; flex-direction:column; gap:10px; border-left: 4px solid #9b59b6; padding-left:15px; margin-bottom:15px;";
+            row.innerHTML = `<div style="display:flex; gap:10px; align-items:center;"><input type="number" class="input-spark-limit input-box" style="width:100px;" placeholder="${getTrans('cp_js_spark_ph')}" value="${limit}"><select class="input-spark-type input-box" style="width:80px;"><option value="once" ${type === 'once' ? 'selected' : ''}>${getTrans('cp_js_spark_once')}</option><option value="loop" ${type === 'loop' ? 'selected' : ''}>${getTrans('cp_js_spark_loop')}</option></select><button class="btn btn-action-gray" style="color: #ff4757; border-color: #ff4757;" onclick="this.parentElement.parentElement.remove()">✕ ${getTrans('cs_js_del_btn')}</button></div><div style="display:flex; gap:15px; font-size:12px; color:#aaa;"><label><input type="checkbox" class="input-spark-cancel-on-up" ${behavior.cancelOnUp ? 'checked' : ''}> ${getTrans('cp_js_spark_cancel')}</label><label><input type="checkbox" class="input-spark-no-reset" ${behavior.noReset ? 'checked' : ''}> ${getTrans('cp_js_spark_noreset')}</label></div>`;
+            container.appendChild(row);
+        }
+
+        function appendGiftRuleRow(trigger = 30, amount = 10, type = 'loop', behavior = {}) {
+            const container = document.getElementById('gift-rules-container');
+            const row = document.createElement('div');
+            row.className = 'gift-rule-row'; 
+            row.style = `background: rgba(255, 255, 255, 0.03); border: 1px solid #444; border-radius: 8px; padding: 15px; position: relative; margin-bottom: 10px; border-left: 4px solid #2ecc71;`;
+            row.innerHTML = `<button style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: #ff4757; cursor: pointer; padding: 0;" onclick="this.parentElement.remove()">✕</button><div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding-right: 30px;"><span style="color: #aaa; font-size: 14px;">${getTrans('cp_js_gift_1')}</span><input type="number" class="input-gift-trigger input-box" style="width: 80px;" value="${trigger}"><span style="color: #aaa; font-size: 14px;">${getTrans('cp_js_gift_2')}</span><input type="number" class="input-gift-amount input-box" style="width: 80px;" value="${amount}"><span style="color: #aaa; font-size: 14px;">${getTrans('cp_js_gift_3')}</span><select class="input-gift-type input-box" style="width: 90px;"><option value="loop" ${type === 'loop' ? 'selected' : ''}>${getTrans('cp_js_spark_loop')}</option><option value="once" ${type === 'once' ? 'selected' : ''}>${getTrans('cp_js_spark_once')}</option></select></div><div style="display: flex; gap: 20px; padding-top: 12px; border-top: 1px solid #444;"><label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;"><input type="checkbox" class="input-gift-count-pity toggle-checkbox" ${behavior.countPity ? 'checked' : ''}><span style="color: #aaa; font-size: 13px;">${getTrans('cp_js_gift_count')}</span></label></div>`;
+            container.appendChild(row);
+        }
+
+        // ==========================================
+        // 🔒 预设游戏只读锁定
+        // ==========================================
+        function applyPresetReadOnlyLock() {
+            // 注入顶部黄色警告横幅
+            const container = document.querySelector('.setup-container');
+            if (container && !document.getElementById('preset-warning-banner')) {
+                const warningDiv = document.createElement('div');
+                warningDiv.id = 'preset-warning-banner';
+                warningDiv.style = "background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px;";
+                warningDiv.innerHTML = `<span>⚠️</span> ${getTrans('cp_js_preset_warn')}`;
+                container.insertBefore(warningDiv, container.children[1] || container.firstChild);
+            }
+
+            document.querySelectorAll('.setup-container input[type="number"], .setup-container select').forEach(el => { el.disabled = true; el.style.opacity = '0.5'; el.style.cursor = 'not-allowed'; });
+            document.querySelectorAll('button[onclick^="append"], button[onclick*="remove"]').forEach(btn => btn.style.display = 'none');
+            document.querySelectorAll('.switch-input').forEach(el => { el.disabled = true; el.parentElement.style.pointerEvents = 'none'; el.parentElement.style.opacity = '0.5'; });
+            document.querySelectorAll('.toggle-checkbox').forEach(el => { el.disabled = true; el.parentElement.style.pointerEvents = 'none'; el.parentElement.style.opacity = '0.5'; });
+            const saveBtn = document.querySelector('button[onclick="savePoolConfig()"]');
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.className = "btn btn-action-gray"; saveBtn.innerText = getTrans('cp_js_preset_lock_btn'); saveBtn.style.cursor = "not-allowed"; saveBtn.style.opacity = '1'; }
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBr9xYxp9dQvdf2gkr1ILeEqkn6Bt1CZmI",
+            authDomain: "fyp-gacha-system.firebaseapp.com",
+            projectId: "fyp-gacha-system",
+            databaseURL: "https://fyp-gacha-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+            storageBucket: "fyp-gacha-system.firebasestorage.app",
+            messagingSenderId: "892136562526",
+            appId: "1:892136562526:web:6d2b218ec3f1bc346b79cf"
+        };
+
+        // 🌟 核心修复：防冲突初始化
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUserUid = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUserUid = user.uid;
+            else currentUserUid = null;
+        });
+
+        window.syncPoolRuleToFirebase = async (gameId, poolId, poolConfig) => {
+            if (!currentUserUid || !gameId) return; 
+            
+            try {
+                const ruleRef = doc(db, "users", currentUserUid, "custom_rules", gameId);
+                const updatePayload = {
+                    [poolId]: poolConfig,
+                    lastModified: serverTimestamp() 
+                };
+                
+                await setDoc(ruleRef, updatePayload, { merge: true });
+                console.log(`☁️ [Firebase] 卡池规则 [${poolId}] 已同步到 custom_rules 文件夹！`);
+                
+            } catch (error) {
+                console.error("Firebase 同步失败:", error);
+            }
+        };
+    </script>
+</body>
+</html>
