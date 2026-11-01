@@ -14,6 +14,7 @@
 | `0.0 old/`、`0.1 old/`、`0.2 old/` | 历史版本 |
 | `_redirects` | Cloudflare 的旧网址兼容规则 |
 | `wrangler.jsonc` | Cloudflare 部署配置 |
+| `.assetsignore` | 正式版与测试版共用的 Cloudflare 资源上传规则 |
 
 ## 打开与上传
 
@@ -23,6 +24,8 @@
 - 发布测试网站：双击 `upload_test.bat`。
 
 GitHub 上传与 Cloudflare 网站发布是两个独立操作。重新发布网站后，原来的 `/`、`/index.html`、`/settings.html` 等入口会跳转到 `html/` 中的页面，并保留查询参数。
+
+正式版与测试版部署只上传 `.assetsignore` 中允许的网站资源目录，保留三个历史版本目录。Git 数据、本地缓存、环境变量文件、上传脚本、开发配置与 Markdown 文档不会作为网站资源发布；`_redirects`、`_headers` 仍由 Wrangler 读取并应用。新增根目录资源文件夹时，需要在 `.assetsignore` 中加入允许规则。排除规则缺失时，两份部署脚本都会停止上传。
 
 ## 修改页面引用
 

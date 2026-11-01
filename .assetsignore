@@ -1,0 +1,54 @@
+# Only publish website resource directories. New root folders are excluded
+# until explicitly added here. _redirects/_headers are read as metadata by Wrangler.
+/*
+!/html/
+!/img/
+!/logic/
+!/pages/
+!/Preset_Data/
+!/translate/
+!/ui/
+!/0.0 old/
+!/0.1 old/
+!/0.2 old/
+
+# Also exclude development files nested inside allowed resource directories.
+.git
+.hg
+.svn
+.wrangler
+.codex
+.agents
+.aws
+.github
+.vscode
+.idea
+node_modules
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+.DS_Store
+Thumbs.db
+desktop.ini
+.gitignore
+.gitattributes
+.assetsignore
+hide.assetsignore
+wrangler.json
+wrangler.jsonc
+wrangler.toml
+package.json
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+pnpm-lock.yaml
+*.bat
+*.cmd
+*.ps1
+*.sh
+*.md
+*.log
+*.tmp
+*.bak
+*.map
