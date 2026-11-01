@@ -1,0 +1,11 @@
+.dashboard-account-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;color:var(--text);font-size:13px}
+.dashboard-account-bar[hidden]{display:none}
+.dashboard-account-bar label{display:flex;align-items:center;gap:8px}
+.dashboard-account-bar select{min-width:180px;max-width:300px;padding:8px;background:var(--bg-dark,#181b1e);color:var(--text,#fff);border:1px solid var(--border,#444);border-radius:6px}
+.dashboard-heading{min-width:0}
+.dashboard-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dashboard-pool-badge{background:rgba(255,255,255,.05);padding:4px 12px;border-radius:6px;color:#aaa;font-size:13px;border:1px solid var(--border)}
+#dashboard-account-bar{padding:8px 0 0;width:220px;max-width:100%}
+#dashboard-account-bar label{width:100%;min-width:0}
+#dashboard-account-bar .custom-select-ui{width:100%!important;min-width:0}
+@media(max-width:600px){.dashboard-account-bar label,.dashboard-account-bar select{width:100%;max-width:none}.dashboard-account-bar select{min-width:0;flex:1}}

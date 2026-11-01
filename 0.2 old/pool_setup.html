@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
+    <script src="../logic/version_storage.js"></script>
+    <title>Gacha System - 卡池规则配置</title>
+    <!-- 页面加载前执行的主题初始化脚本，防止页面闪烁 -->
+    <!--
+        卡池规则编辑器：编辑 GM_Rules_{gameId}_{pool}。页面将概率、保底、歪出、
+        井、赠送抽和换期继承整理为同一份规则对象，供仪表盘和模拟器共同读取。
+    -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const alignment = localStorage.getItem('GM_Pool_Layout') || 'center';
+            document.documentElement.setAttribute('data-setup-layout', ['center', 'left', 'right', 'full'].includes(alignment) ? alignment : 'center');
+        })();
+    </script>
+    <link rel="stylesheet" href="ui/style.css">
+    <link rel="stylesheet" href="ui/select_ui.css">
+    <style>
+        /* ==========================================
+           1. 基础布局与卡片样式
+           ========================================== */
+        .setup-container { max-width: 900px; margin: 0 auto; padding-bottom: 50px; }
+        .setup-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .setup-title { color: var(--primary); margin-top: 0; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-size: 13px; color: #aaa; font-weight: bold; }
+        
+        .input-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 6px; outline: none; transition: 0.2s; }
+        .input-box:focus { border-color: var(--primary); }
+        
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .toggle-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+        .hint-text { font-size: 12px; color: #666; margin-top: 4px; }
+        
+        .spark-rule-row, .gift-rule-row { display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border); }
+        .spark-rule-row input, .gift-rule-row input { flex: 1; }
+        .spark-rule-row select, .gift-rule-row select { width: 100px; }
+
+        /* ==========================================
+           2. 稀有度列表行样式
+           ========================================== */
+        .tier-row { 
+            display:flex; gap:15px; align-items:center; margin-bottom:12px; padding:12px 15px; 
+            background:rgba(0,0,0,0.2); border-radius:8px; border: 1px solid var(--border); transition: 0.2s;
+        }
+        .tier-row.disabled { opacity: 0.4; filter: grayscale(1); border-color: transparent; }
+        .tier-row.disabled:hover { opacity: 0.6; }
+        
+        .tier-badge {
+            padding: 4px 12px; border-radius: 4px; font-weight: bold; color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); font-size: 14px; text-align: center; min-width: 40px;
+        }
+
+        /* ==========================================
+           3. 开关与复选框样式
+           ========================================== */
+        .switch-container { display: flex; align-items: center; cursor: pointer; }
+        .switch-input { display: none; }
+        .switch-slider {
+            width: 40px; height: 20px; background-color: #555; border-radius: 20px;
+            position: relative; transition: 0.3s;
+        }
+        .switch-slider::before {
+            content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+            background-color: white; top: 2px; left: 2px; transition: 0.3s;
+        }
+        .switch-input:checked + .switch-slider { background-color: #2ecc71; }
+        .switch-input:checked + .switch-slider::before { transform: translateX(20px); }
+
+        input[type="radio"].toggle-checkbox, input[type="checkbox"].toggle-checkbox {
+            appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border: 2px solid #777; 
+            border-radius: 50%; background-color: rgba(0, 0, 0, 0.3); position: relative; cursor: pointer; outline: none; transition: 0.2s;
+        }
+        input[type="checkbox"].toggle-checkbox { border-radius: 4px; }
+        input[type="radio"].toggle-checkbox:checked, input[type="checkbox"].toggle-checkbox:checked { border-color: #3498db; background-color: #fff; }
+        input[type="radio"].toggle-checkbox:checked::after, input[type="checkbox"].toggle-checkbox:checked::after {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: #000; 
+        }
+        input[type="radio"].toggle-checkbox:checked::after { width: 10px; height: 10px; border-radius: 50%; }
+        input[type="checkbox"].toggle-checkbox:checked::after { width: 10px; height: 10px; border-radius: 2px; }
+
+        /* ==========================================
+           4. 🌟 卡片 0：图鉴装配专属样式
+           ========================================== */
+        .assembly-box { background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+        .assembly-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 6px; }
+        .item-select-chip { 
+            position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            background: #252830; border: 1.5px solid #444; border-radius: 6px; padding: 6px 2px; cursor: pointer; user-select: none; transition: 0.15s; 
+        }
+        .item-select-chip:hover { border-color: var(--primary); }
+        .item-select-chip.active { border-color: var(--gold); background: rgba(241, 196, 15, 0.15); box-shadow: 0 0 8px rgba(241, 196, 15, 0.4); }
+        .item-select-chip img { width: 34px; height: 34px; border-radius: 4px; object-fit: cover; margin-bottom: 4px; }
+        .item-select-chip .chip-name { font-size: 11px; color: #eee; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .tag-select-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+        /* ==========================================
+           5. 🌟 锁定预览模式 (Preview Mode) & 预设卡池锁定
+           ========================================== */
+        /* 1. 添加按钮沿用原标记；删除/清除按钮明确标记，不按颜色判断用途。
+           退出弹窗的“不保存离开”不属于编辑按钮，预览时仍可正常使用。 */
+        body.preview-mode button[onclick*="append"],
+        body.preview-mode .preview-edit-action,
+        body.preview-mode .btn-add-soft-segment,
+        body.preview-mode .btn-cat-toggle {
+            display: none !important;
+            pointer-events: none !important;
+        }
+
+        /* 2. 编辑输入只读；快捷设定仅修改本地界面偏好，预览时仍可操作。 */
+        body.preview-mode .input-box:not(#quick-settings-popover *),
+        body.preview-mode select:not(#quick-settings-popover *) {
+            pointer-events: none !important;
+            border-color: transparent !important;
+            background: transparent !important;
+            cursor: default !important;
+            user-select: text !important;
+            box-shadow: none !important;
+        }
+
+        /* 3. 禁用单选框、复选框、滑动开关 */
+        body.preview-mode input[type="checkbox"]:not(#quick-settings-popover *),
+        body.preview-mode input[type="radio"]:not(#quick-settings-popover *),
+        body.preview-mode .switch-container:not(#quick-settings-popover *),
+        body.preview-mode .gold-tier-toggle-label:not(#quick-settings-popover *),
+        body.preview-mode .tag-cb-label:not(#quick-settings-popover *),
+        body.preview-mode label:not(#quick-settings-popover *) {
+            pointer-events: none !important;
+            cursor: default !important;
+        }
+
+        /* 4. 底层主保存按钮在预览态下彻底失效变灰 */
+        body.preview-mode #btn-save-pool {
+            pointer-events: none !important;
+            cursor: default !important;
+            opacity: 0.45 !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* 🌟 5. 系统官方预设专属强力静默样式 */
+        body.is-preset-game #btn-preview-toggle {
+            pointer-events: none !important;
+            cursor: default !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #888 !important;
+        }
+
+        body.is-preset-game #btn-save-pool {
+            display: none !important;
+        }
+
+        body.preview-mode .sub-prob-drawer.no-sub-data {
+            display: none !important;
+        }
+
+        body.preview-mode .btn-sub-prob-toggle.no-sub-data {
+            pointer-events: none !important;
+            cursor: default !important;
+            opacity: 0.35 !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #777 !important;
+            box-shadow: none !important;
+        }
+
+        /* 有数据的细分按钮，在预览模式下只作为展开/收起查看，不响应编辑 */
+        body.preview-mode .btn-sub-prob-toggle:not(.no-sub-data) {
+            opacity: 0.85;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+        }
+        /* 规则拖拽手柄统一位于框内左上侧，独立留出位置，不挤压原有输入/删除按钮。 */
+        .pool-rule-sortable { position: relative; padding-left: 34px !important; }
+        .pool-rule-drag-handle {
+            position: absolute; left: 4px; top: 10px; width: 24px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            color: #888; cursor: grab; user-select: none; border-radius: 4px;
+        }
+        .pool-rule-drag-handle:hover { color: var(--primary); background: rgba(255,255,255,0.08); }
+        .pool-rule-drag-handle:active { cursor: grabbing; }
+        .pool-rule-sortable.is-dragging { opacity: 0.4; }
+        .pool-rule-sortable.drag-over-top { box-shadow: inset 0 3px 0 var(--primary); }
+        .pool-rule-sortable.drag-over-bottom { box-shadow: inset 0 -3px 0 var(--primary); }
+        body.preview-mode .pool-rule-drag-handle, body.is-preset-game .pool-rule-drag-handle { display: none; }
+        [data-setup-layout="left"] .setup-container { margin-left:0; margin-right:auto; }
+        [data-setup-layout="right"] .setup-container { margin-left:auto; margin-right:0; }
+        [data-setup-layout="full"] .setup-container { max-width:none; width:100%; margin-left:0; margin-right:0; box-sizing:border-box; }
+    </style>
+</head>
+<body>
+    <div class="sidebar"></div>
+
+    <div class="main-content">
+
+        <!-- 全局轻量 Toast 提示框 (1.5秒自动消失) -->
+        <div id="toast-notification" style="
+            display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(30, 33, 40, 0.95); border: 1px solid var(--border); color: #fff;
+            padding: 10px 22px; border-radius: 8px; font-size: 13px; z-index: 99999;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5); pointer-events: none; transition: opacity 0.3s ease;
+        "></div>
+
+        <!-- 优雅的通用确认操作对话框 -->
+        <div id="confirmModalOverlay" style="
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 99998; justify-content: center; align-items: center;
+        ">
+            <div style="
+                background: var(--card-bg, #1a1c23); border: 1px solid var(--border, #444);
+                padding: 22px; border-radius: 10px; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            ">
+                <h4 style="margin: 0 0 10px 0; color: #ff4757; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+                    <span>⚠️</span> <span data-i18n="cp_confirm_title">操作确认</span>
+                </h4>
+                <p id="confirm-modal-text" style="color: #ddd; font-size: 13px; margin-bottom: 20px; line-height: 1.5;"></p>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="btn btn-action-gray" id="btn-confirm-cancel" style="padding: 5px 14px; font-size: 12px;" data-i18n="cancel">取消</button>
+                    <button class="btn btn-primary" id="btn-confirm-ok" style="padding: 5px 16px; font-size: 12px; background: #ff4757; border-color: #ff4757;" data-i18n="confirm_delete">确认删除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🌟 三选一退出保存确认弹窗 -->
+        <div id="unsavedModalOverlay" style="
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 99999; justify-content: center; align-items: center;
+        ">
+            <div style="
+                background: var(--card-bg, #1a1c23); border: 1px solid var(--border, #444);
+                padding: 24px; border-radius: 12px; width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            ">
+                <h4 style="margin: 0 0 10px 0; color: #f1c40f; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                    <span>⚠️</span> <span data-i18n="cp_unsaved_title">未保存的修改</span>
+                </h4>
+                <p style="color: #ccc; font-size: 13px; margin-bottom: 22px; line-height: 1.6;" data-i18n="cp_unsaved_desc">
+                    检测到你对当前卡池的规则进行了修改，尚未保存！请选择接下来的操作：
+                </p>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-action-gray" id="btn-unsaved-stay" style="padding: 6px 12px; font-size: 12px;" data-i18n="cp_btn_unsaved_stay">留在此页</button>
+                    <button type="button" class="btn btn-action-gray" id="btn-unsaved-discard" style="padding: 6px 12px; font-size: 12px; color: #ff4757; border-color: rgba(255,71,87,0.3);" data-i18n="discard_and_leave">不保存离开</button>
+                    <button type="button" class="btn btn-primary" id="btn-unsaved-save" style="padding: 6px 14px; font-size: 12px;" data-i18n="save_and_leave">保存并离开</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="setup-container">
+            <!-- 头部标题与返回按钮 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin-bottom: 5px;" data-i18n="cp_main_title">⚙️ 卡池规则独立配置</h1>
+                    <p style="color: #888; margin: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span data-i18n="cp_main_desc_1">正在为 </span>
+    
+                        <!-- 正常展示区 -->
+                        <span id="pool-name-view-wrap" style="display: inline-flex; align-items: center; gap: 6px;">
+                            <strong id="display-pool-name" style="color: var(--primary); font-size: 15px;">...</strong>
+                        </span>
+
+                        <span data-i18n="cp_main_desc_2">配置专属概率机制</span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-action-gray" id="btn-preview-toggle" onclick="togglePreviewMode()" data-i18n="lock_preview">👁️ 锁定预览</button>
+                    <button class="btn btn-action-gray" onclick="navigateToDashboard()" data-i18n="cp_btn_back">← 返回看板</button>
+                </div>
+            </div>
+
+            <!-- 卡片 0: 动态星级卡池装配中心 -->
+            <div class="setup-card" id="card-section-0" style="border-color: #2ecc71;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(0)">
+                    <h2 class="setup-title" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0; color: #2ecc71;" data-i18n="cp_sec0_title">
+                        📦 1. 卡池图鉴与标签装配 (关联纯仓库)
+                    </h2>
+                    <span id="card-0-arrow" style="color: #2ecc71; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+    
+                <div id="card-0-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                   <p class="hint-text" style="color: #bbb; margin-top: 0; margin-bottom: 15px;" data-i18n="cp_sec0_desc">
+                        系统根据当前游戏星级动态装配。可为任意星级指定是否区分 UP / 可歪，或全部平分概率。
+                    </p>
+                    <div id="dynamic-tier-assembly-container"></div>
+                </div>
+            </div>
+
+            <!-- 卡片 1: 稀有度概率分配与细分绝对概率 -->
+            <div class="setup-card" id="card-section-1">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(1)">
+                    <h2 class="setup-title" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec1_title">
+                        🌟 2. 稀有度启用与概率分配
+                    </h2>
+                    <span id="card-1-arrow" style="color: var(--primary); font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+
+                <div id="card-1-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <p class="hint-text" style="margin: 0;" data-i18n="cp_sec1_desc">以下星级来源于全局游戏设定。请选择要在当前卡池启用的星级，并设定其出货概率。</p>
+                        <div style="color: #aaa; font-size: 14px; font-weight: bold; background: rgba(0,0,0,0.25); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);">
+                            <span data-i18n="cp_sec1_total">当前总概率: </span><span id="display-total-prob">0</span>%
+                        </div>
+                    </div>
+        
+                    <div id="tiers-container"></div>
+        
+                    <div style="text-align: right; margin-top: 10px; font-size: 12px; color: #888;">
+                        <span data-i18n="cp_sec1_goto_1">修改名称或颜色请前往 </span><a href="#" style="color: var(--primary);" onclick="window.location.href='gallery_setup.html?gameId=' + gameId" data-i18n="cp_sec1_goto_2">全量构建中心</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 2: 全星级保底与动态概率中心 (原卡片 3) -->
+            <div class="setup-card" id="card-section-2" style="border-color: #3498db; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(2)">
+                    <h2 class="setup-title" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0; color: #3498db;" data-i18n="cp_sec2_title_unified">
+                        📈 3. 全星级保底与动态概率 (软保底 / 大保底机制)
+                    </h2>
+                    <span id="card-2-arrow" style="color: #3498db; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+
+                <div id="card-2-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <p class="hint-text" style="margin: 0; flex: 1; min-width: 250px;" data-i18n="cp_sec2_desc_unified">
+                            可针对任意星级（如 S 级 90 抽必出、A 级 10 抽必出）自由配置保底阈值、UP 不歪率、连歪大保底以及分段动态软保底。
+                        </p>
+                        <button type="button" class="btn btn-blue" onclick="appendPityRuleRow()" style="padding: 5px 14px; font-size: 12px; border-radius: 6px;" data-i18n="cp_sec2_btn_add_pity">
+                            ➕ 添加保底规则
+                        </button>
+                    </div>
+
+                    <div id="unified-pities-container"></div>
+                </div>
+            </div>
+
+            <!-- 卡片 3: 歪出挽救机制 (原卡片 6) -->
+            <div class="setup-card" id="card-section-3" style="border-color: #e056fd; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(3)">
+                    <h2 class="setup-title" style="color: #e056fd; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec6_title">
+                        ✨ 4. 开启歪出挽救机制 (原神“捕获明光”/二次保底逆转)
+                    </h2>
+                    <span id="card-3-arrow" style="color: #e056fd; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+
+                <div id="card-3-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #e056fd; font-size: 1rem;">
+                            <input type="checkbox" id="input-enable-rescue" class="toggle-checkbox" onchange="toggleRescuePanel()"> 
+                            <span data-i18n="cp_sec6_enable">开启歪出挽救机制 (二次判定保护)</span>
+                        </label>
+                    </div>
+
+                    <div id="rescue-settings-panel" style="display: none; background: rgba(0,0,0,0.18); padding: 18px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                            <div class="input-group">
+                                <label style="color: #e056fd; font-size: 13px;" data-i18n="cp_sec3_rate_label">常态挽救概率 (二次判定 %)</label>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input type="number" id="input-rescue-rate" class="input-box" value="10" style="width: 100%;">
+                                    <span style="color: #888; font-size: 13px;">%</span>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label style="color: #e056fd; font-size: 13px;" data-i18n="cp_sec3_hard_loss_label">防连歪硬保底阈值</label>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input type="number" id="input-rescue-hard-loss" class="input-box" value="1" min="1" style="width: 100%;">
+                                    <span style="color: #888; font-size: 13px; white-space: nowrap;" data-i18n="cp_sec3_must_rescue_suffix">次必救</span>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label style="color: #aaa; font-size: 13px;" data-i18n="cp_sec3_tag_label">救回专属显示标签</label>
+                                <input type="text" id="input-rescue-tag" class="input-box" value="明光" style="width: 100%;">
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 6px; padding: 12px 14px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 14px;">🎯</span>
+                                    <span style="color: #e056fd; font-weight: bold; font-size: 13px;" data-i18n="cp_sec3_strategy_label">命中 UP 时累计层数处置：</span>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 460px; justify-content: flex-end;">
+                                    <select id="input-rescue-up-strategy" class="input-box" style="width: 220px; min-width: 220px;" onchange="toggleRescueStrategyInputs()">
+                                        <option value="reset" data-i18n="cp_sec3_strat_reset">重置为 0 (清零)</option>
+                                        <option value="decay" data-i18n="cp_sec3_strat_decay">减少固定层数 (衰减)</option>
+                                        <option value="set_to" data-i18n="cp_sec3_strat_set_to">设为指定数值 (赋值)</option>
+                                        <option value="keep" data-i18n="cp_sec3_strat_keep">保留不变 (不衰减)</option>
+                                    </select>
+
+                                    <div id="rescue-value-input-wrap" style="display: none; align-items: center; gap: 6px;">
+                                        <span style="color: #888; font-size: 12px;" id="rescue-value-prefix"></span>
+                                        <input type="number" id="input-rescue-strategy-value" class="input-box" value="1" min="0" style="width: 70px; text-align: center; padding: 6px 4px;">
+                                        <span style="color: #888; font-size: 12px;" data-i18n="cp_sec3_unit_stack">层</span>
+                                    </div>
+                                    </div>
+                                    </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 4: 前 N 金胜率特权序列 (原卡片 8) -->
+            <div class="setup-card" id="card-section-4" style="border-color: #f1c40f; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(4)">
+                    <h2 class="setup-title" style="color: #f1c40f; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec8_early_title">
+                        🎯 5. 前 N 金胜率特权序列 (独家重映 / 首出金福利)
+                    </h2>
+                    <span id="card-4-arrow" style="color: #f1c40f; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-4-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #f1c40f; font-size: 1rem;">
+                            <input type="checkbox" id="input-enable-early-up" class="toggle-checkbox" onchange="toggleEarlyUpPanel()"> 
+                            <span data-i18n="cp_sec8_early_enable">开启前 N 金胜率特权序列</span>
+                        </label>
+                    </div>
+                    <div id="early-up-settings-panel" style="display: none; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div id="early-up-rules-container"></div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                            <button type="button" class="btn btn-green" onclick="appendEarlyUpRow()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0; font-size: 18px;">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 5: 前 N 金类型定向序列 (原卡片 9) -->
+            <div class="setup-card" id="card-section-5" style="border-color: #3498db; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(5)">
+                    <h2 class="setup-title" style="color: #3498db; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec9_cat_title">
+                        🎁 6. 前 N 金类型定向序列 (新手首金必出角色/轮替福利)
+                    </h2>
+                    <span id="card-5-arrow" style="color: #3498db; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-5-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #3498db; font-size: 1rem;">
+                            <input type="checkbox" id="input-enable-cat-seq" class="toggle-checkbox" onchange="toggleCatSeqPanel()"> 
+                            <span data-i18n="cp_sec9_cat_enable">开启前 N 金类型定向序列</span>
+                        </label>
+                    </div>
+                    <div id="cat-seq-settings-panel" style="display: none; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div id="cat-seq-rules-container"></div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                            <button type="button" class="btn btn-blue" onclick="appendCatSeqRow()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0; font-size: 18px;">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 6: 特限出货干预 (原卡片 11) -->
+            <div class="setup-card" id="card-section-6" style="border-color: #e74c3c; margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(6)">
+                    <h2 class="setup-title" style="color: #e74c3c; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec11_title">
+                        🌟 7. 特限出货干预设定
+                    </h2>
+                    <span id="card-6-arrow" style="color: #e74c3c; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-6-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #e74c3c; font-size: 1rem;">
+                            <input type="checkbox" id="input-spec-enable" class="toggle-checkbox" onchange="toggleSpecPanel()"> 
+                            <span data-i18n="cp_sec11_toggle">开启特限出货干预</span>
+                        </label>
+                    </div>
+                    <div id="spec-settings-panel" style="display: none; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <p class="hint-text" style="color: #bbb; margin-top: 0; margin-bottom: 12px;" data-i18n="cp_sec11_desc">
+                            可对特定星级内的一件或多件物品单独设置权重倍数（如 5 倍权值）或指定在该星级出货中的总占有率（如占 50%）。
+                        </p>
+                        <div id="spec-rules-container"></div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                            <button type="button" class="btn btn-green" onclick="appendSpecRuleRow()" style="border-radius: 50%; width: 34px; height: 34px; padding: 0; font-size: 18px;">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 7: 井与抽数里程碑 (原卡片 7) -->
+            <div class="setup-card" id="card-section-7" style="border-color: #8e44ad; margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(7)">
+                    <h2 class="setup-title" style="color: #8e44ad; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec7_title">
+                        🎁 8. 「井」与抽数里程碑保底设定
+                    </h2>
+                    <span id="card-7-arrow" style="color: #8e44ad; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-7-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #8e44ad; font-size: 1rem;">
+                            <input type="checkbox" id="input-enable-spark" class="toggle-checkbox" onchange="toggleSparkPanel()"> 
+                            <span data-i18n="cp_sec7_enable">开启「井」与抽数里程碑机制</span>
+                        </label>
+                    </div>
+                    <div id="spark-settings-panel" style="display: none;">
+                        <div id="spark-rules-container"></div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                            <button class="btn btn-green" onclick="appendSparkRuleRow()" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1;">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 8: 赠送抽机制 (原卡片 10) -->
+            <div class="setup-card" id="card-section-8" style="border-color: #2ecc71; margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(8)">
+                    <h2 class="setup-title" style="color: #2ecc71; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec9_title">
+                        🎟️ 9. 赠送抽机制
+                    </h2>
+                    <span id="card-8-arrow" style="color: #2ecc71; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-8-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #2ecc71; font-size: 1rem;">
+                            <input type="checkbox" id="input-enable-gift" class="toggle-checkbox" onchange="toggleGiftPanel()"> 
+                            <span data-i18n="cp_sec9_enable">开启赠送抽机制</span>
+                        </label>
+                    </div>
+                    <div id="gift-settings-panel" style="display: none;">
+                        <div id="gift-rules-container"></div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                            <button class="btn btn-green" onclick="appendGiftRuleRow()" style="border-radius: 50%; width: 36px; height: 36px;">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 9: 模拟器预选数量限制设定 (原卡片 12) -->
+            <div class="setup-card" id="card-section-9" style="border-color: #e67e22; margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(9)">
+                    <h2 class="setup-title" style="color: #e67e22; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec12_title">
+                        📌 10. 模拟器预选数量限制设定
+                    </h2>
+                    <span id="card-9-arrow" style="color: #e67e22; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-9-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
+                        <label class="toggle-label" style="font-weight: bold; color: #e67e22; font-size: 1rem;">
+                            <input type="checkbox" id="input-preselect-enable" class="toggle-checkbox" onchange="togglePreselectPanel()"> 
+                            <span data-i18n="cp_sec12_toggle">开启模拟器自动预选 / 限制数量</span>
+                        </label>
+                    </div>
+                    <div id="preselect-settings-panel" style="display: none; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <p class="hint-text" style="color: #bbb; margin-top: 0; margin-bottom: 14px;">
+                            <span data-i18n="cp_sec12_desc_p1">控制玩家在抽卡模拟器界面中，对各类产物进行打勾选择的数量约束。</span><br>
+                            <span style="color: #e67e22;" data-i18n="cp_sec12_desc_hint">💡 提示：最少填 0 或留空表示“不限制最低”；最多留空表示“不设上限（可任意多选）”。</span>
+                        </p>
+
+                        <!-- 1. 全星级常规预选规则容器 -->
+                        <div id="dynamic-tier-preselect-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+
+                        <!-- 2. 特限干预专属限制 (与卡片 6 联动) -->
+                        <div id="spec-preselect-block" style="margin-top: 12px; background: rgba(231, 76, 60, 0.08); border: 1px dashed rgba(231, 76, 60, 0.35); border-left: 4px solid #e74c3c; border-radius: 6px; padding: 12px 14px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #e74c3c; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;" data-i18n="cp_sec12_spec_title">
+                                🔥 特限出货干预预选限制
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #aaa; font-size: 12px;" data-i18n="cp_sec12_min">最少:</span>
+                                    <input type="number" id="input-pre-spec-min" class="input-box" style="width: 70px; padding: 4px; text-align: center;" value="0" min="0" placeholder="不限" data-i18n-placeholder="cp_sec12_unlimited">
+                                    <span style="color: #888; font-size: 12px;" data-i18n="cp_sec12_unit_item">件</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #aaa; font-size: 12px;" data-i18n="cp_sec12_max">最多:</span>
+                                    <input type="number" id="input-pre-spec-max" class="input-box" style="width: 70px; padding: 4px; text-align: center;" min="0" placeholder="不限" data-i18n-placeholder="cp_sec12_unlimited">
+                                    <span style="color: #888; font-size: 12px;" data-i18n="cp_sec12_unit_item">件</span>
+                                </div>
+                                <span style="color: #888; font-size: 11px; margin-left: 10px;" data-i18n="cp_sec12_spec_hint">（限制模拟器中允许同时选定几个特限提升角色）</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 10: 卡池生命周期、跨池共享与换期轮替继承规则 (原卡片 13) -->
+            <div class="setup-card" id="card-section-10" style="border-color: #1abc9c; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(10)">
+                    <h2 class="setup-title" style="color: #1abc9c; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec13_title">
+                        🔄 11. 卡池生命周期、跨池共享与换期轮替规则
+                    </h2>
+                    <span id="card-10-arrow" style="color: #1abc9c; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                </div>
+                <div id="card-10-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <!-- 1. 允许换期总开关 -->
+                    <div class="toggle-row" style="padding-bottom: 12px; border-bottom: none;">
+                        <div>
+                            <label class="toggle-label" style="font-weight: bold; color: #1abc9c; font-size: 14px;">
+                                <input type="checkbox" id="input-lifecycle-allow-rotation" class="toggle-checkbox" checked onchange="toggleRotationSettingsPanel()">
+                                <span data-i18n="cp_sec13_allow_rotation">允许本卡池进行版本更新 / 换期轮替操作</span>
+                            </label>
+                            <div class="hint-text" data-i18n="cp_sec13_allow_rotation_desc">限定角色池/复刻池通常允许换期；常驻池或一次性新手福利池建议关闭此项，禁止换期重置。</div>
+                        </div>
+                    </div>
+
+                    <!-- 详情容器 -->
+                    <div id="rotation-details-container" style="display: block;">
+                        <!-- 2. 跨池共享保底母池绑定 -->
+                        <div style="background: rgba(0,0,0,0.18); padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; margin-bottom: 14px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                <div>
+                                    <span style="font-size: 13px; font-weight: bold; color: #eee;" data-i18n="cp_sec13_shared_title">🔗 跨卡池共享保底绑定 (母池继承)</span>
+                                    <div class="hint-text" data-i18n="cp_sec13_shared_desc">如果本卡池与其它卡池共享同一个垫抽与大保底（如复刻池共享角色池保底），在此绑定母池。</div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <select id="input-shared-pity-parent" class="input-box" style="min-width: 170px; padding: 6px 10px; font-size: 12px;">
+                                        <option value="" data-i18n="cp_sec13_shared_none">独立保底 (不与其它池共享)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. 换期轮替继承矩阵 -->
+                        <div id="rotation-matrix-panel" style="background: rgba(26, 188, 156, 0.05); border: 1px dashed rgba(26, 188, 156, 0.3); border-radius: 8px; padding: 16px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #1abc9c; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;" data-i18n="cp_sec13_matrix_title">
+                                <span>⚙️</span> 当看板或模拟器执行【开启新一期 / 换当期UP】时的继承处置：
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; color: #ddd;">
+                                <label id="wrap-inherit-pity-pulls" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-inherit-pity-pulls" class="toggle-checkbox" checked>
+                                    <span data-i18n="cp_sec13_inherit_pity">保留常规已垫抽数 (跨期继承)</span>
+                                </label>
+
+                                <label id="wrap-inherit-guarantee-state" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-inherit-guarantee-state" class="toggle-checkbox" checked>
+                                    <span data-i18n="cp_sec13_inherit_guarantee">保留大保底/连歪状态 (跨期继承)</span>
+                                </label>
+
+                                <label id="wrap-inherit-rescue-losses" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-inherit-rescue-losses" class="toggle-checkbox" checked>
+                                    <span style="color: #e056fd;" data-i18n="cp_sec13_inherit_rescue">保留捕获明光层数 (跨期继承)</span>
+                                </label>
+
+                                <label id="wrap-reset-early-up" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-reset-early-up" class="toggle-checkbox" checked>
+                                    <span style="color: #f1c40f;" data-i18n="cp_sec13_reset_early">重置前 N 金胜率特权 (新期重享)</span>
+                                </label>
+
+                                <label id="wrap-reset-cat-seq" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-reset-cat-seq" class="toggle-checkbox" checked>
+                                    <span style="color: #3498db;" data-i18n="cp_sec13_reset_cat">重置前 N 金类型定向序列</span>
+                                </label>
+
+                                <label id="wrap-reset-spark-pity" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-reset-spark-pity" class="toggle-checkbox" checked>
+                                    <span style="color: #8e44ad;" data-i18n="cp_sec13_reset_spark">重置里程碑/井抽数进度</span>
+                                </label>
+
+                                <label id="wrap-reset-gift-rules" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="input-reset-gift-rules" class="toggle-checkbox" checked>
+                                    <span style="color: #2ecc71;" data-i18n="cp_sec13_reset_gift">重置赠送抽累计抽数</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存与提交按钮 -->
+            <button class="btn btn-primary" id="btn-save-pool" style="width: 100%; padding: 15px; font-size: 1.1rem; border-radius: 8px; font-weight: bold;" onclick="savePoolConfig()" data-i18n="cp_btn_save">
+                💾 保存【当前卡池】规则并返回
+            </button>
+        </div>
+    </div>
+
+    <!-- 外部预设数据与语言包依赖引入 -->
+    <script src="Preset_Data/db_hsr.js"></script>
+    <script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_end.js"></script>
+    <script src="Preset_Data/db_ark.js"></script>
+    <script src="translate/translate_zh.js"></script>
+    <script src="translate/translate_en.js"></script>
+    <script src="translate/translate.js"></script>
+    <script src="logic/catalog_utils.js"></script>
+    <script src="logic/game_data.js"></script>
+    <script src="logic/pool_validation.js"></script>
+    <script src="ui/item_format.js"></script>
+    <script src="ui/toast.js"></script>
+    <script src="ui/drag_sort.js"></script>
+    <script src="ui/layout.js"></script>
+    <script src="ui/quick_settings.js"></script>
+    <script src="ui/select_ui.js"></script>
+    
+    <script src="ui/dialog.js"></script>
+    <script src="ui/unsaved_changes.js"></script>
+    <script src="ui/preview_lock.js"></script>
+    <script src="pages/pool_setup.js"></script>
+    <link rel="stylesheet" href="ui/bilingual_input.css">
+    <script src="ui/bilingual_input.js"></script>
+    <script src="pages/pool_bilingual.js"></script>
+</body>
+</html>

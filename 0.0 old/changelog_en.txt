@@ -1,0 +1,69 @@
+Pinned Teasers:
+Home: enter text
+Gallery: Add missing 4-stars
+External Display: Allow configuring which star ratings are shown on the exterior display
+4-Star Rate-UP
+(Uncertain): Add an extra feature box in the gallery configuration specifically for low-star characters (though it feels similar to the Standard Banner feature)
+Changes to the decimal point in the settings have not been made
+Mobile version interface adaptation
+Change Arknights images to the official wiki rather than Bilibili wiki images
+Simulating card draws, I found that when squeezed into the adjacent interface, it changes to two lines of five displays instead of locking to 10 per row showing one ten-draw. 
+The soft pity's final draw count exceeds the hard pity, and the soft pity draw count repeats (but this feature is mysteriously missing and needs to be restored).
+
+v0.0.1.7 26/05/2026
+Arknights: Violet Mizutsune Orchid(sc), Kal'tsit Esperanta, Closure | wiki img
+Zenless Zone Zero: Velina, Norma, Starlight - Billy | wiki img
+Honkai: Star Rail: Himeko-Nova, Until the Flowers Bloom Again | wiki img
+Arknights: Endfield: Mi Fu, Camille | wiki img
+
+v0.0.1.6 22/05/2026
+Honkai:Star Rail : Himeko·Nova, Tohsaka Rin, Gilgamesh,Reforged in Helldire (sc)
+Zenless Zone Zero : Velina, Norma(sc) Frostrafall Sickle,Promeia | wiki img
+Arknights: Endfield: Mi Fu, Camille, Amaranthine Tassel, Blessing Of Lustrous Carmine (sc)
+
+v0.0.1.5 26/04/2026
+Honkai:Star Rail : Welcome to the Cosmic City | wiki img
+Zenless Zone Zero : Serpentine Seeker. Frostrafall Sickle , Starlight Rider Faceplate (screenshort)
+Arknights: Endfield: Zhuang Fang Yi , Lone Barge | wiki img
+Arknight：Kal'tsit Esperanta，Closure (screenshort)
+
+v0.0.1.4 11/04/2026
+Arknights: Endfield: Zhuang Fang Yi , Lone Barge(screenshort). Special Headhunting : Fest of Brilliance
+
+v0.0.1.3 10/04/2026
+Honkai: Star Rail: Mortenax Blade（wiki img），Welcome to the Cosmic City（screenshort）,Until the Flowers Bloom Again (screenshort), Silver Wolf, Argenti, YunLi join Celestial Invitation Characters
+
+v0.0.1.2 08/04/2026
+Preset Gallery:
+Honkai: Star Rail: Mortenax Blade（screenshort），Mortenax Blade Weapon（no img，no name）
+Arknights:Zima the Raging Tide (with correct en name & img )
+
+v0.0.1.1 04/04/2026
+Fixes:
+Fixed an issue where the sync page would not appear after logging in on the settings page.
+Fixed an issue where the 10-pull guarantee for lower-tier golds (other-stars) was automatically detecting the highest gold besides the target gold, rather than using the configured level.
+Fixed an issue where the "search for gold" mechanic relied on the old code's 5-star logic instead of the target gold.
+Fixed an issue where the Standard Banner display effect incorrectly showed everything as off-banner (lost 50/50).
+Fixed an issue where the title in the display interface is still in Chinese in the English language.
+Fix some untranslated text in the fusion data popup
+Fixed the issue where the ten-draw guarantee mechanism for free draws was not working
+
+Updates:
+Added the option to disable the hard pity threshold.
+Downloading historical update notes (this specific file) will now automatically download either the Chinese or English version based on the user's current language setting.
+
+Preset Gallery:
+Expanded Gallery:
+Zenless Zone Zero: Neon Fantasies, Promeia (non-avatar), Starlight - Billy (non-avatar), and both of their exclusive W-Engines (unnamed, no image).
+Honkai: Star Rail: Welcome to Galaxy City (no image), Evanecia Light Cone (unnamed, no image).
+Arknights: Endfield: Rossi + Lupine Scarlet.
+Arknights: Raging Tide - Frozen Winter (non-avatar), ew img change
+
+Arknights Banners: Separated limited banners.
+Arknights Banners: Past accompanying new standard characters (rate-up companions) have also been added to the rate-up pool.
+
+
+
+
+v0.0.0.0
+Beta release

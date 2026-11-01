@@ -1,0 +1,9 @@
+.sim-batch-gold-ordinal { flex:0 0 auto;margin-left:5px;color:#b4a16e;font:12px ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;visibility:hidden;pointer-events:none; }
+[data-gold-ordinal-mode="show"] .sim-batch-gold-ordinal,
+[data-gold-ordinal-mode="hover"] .sim-pull-row:hover .sim-batch-gold-ordinal,
+[data-gold-ordinal-mode="hover"] .sim-pull-row:focus-visible .sim-batch-gold-ordinal,
+:is([data-gold-ordinal-mode="hover"],[data-gold-ordinal-mode="click"]) .sim-pull-row:is([data-sim-ordinal-selected="true"],.highlight-gold-target) .sim-batch-gold-ordinal { visibility:visible; }
+[data-gold-ordinal-mode="hide"] .sim-batch-gold-ordinal { display:none; }
+:root:not([data-gold-ordinal-mode="hide"]) .sim-has-gold-ordinal .sim-items-wrap { width:auto;min-width:0;flex:0 1 auto!important; }
+.sim-pull-row:focus-visible { outline:1px solid var(--primary);outline-offset:-1px; }
+.sim-batch-gold-ordinal[hidden] { display:none!important; }

@@ -1,0 +1,54 @@
+.user-data-list{display:grid;gap:16px}
+.player-preview-fields{border:0;padding:0;margin:0;min-width:0}
+.user-data-page.preview-mode .player-preview-fields .custom-select-ui{pointer-events:none;opacity:.65}
+.user-data-page.preview-mode .player-preview-fields .player-account-drag{opacity:.35;cursor:default}
+.user-data-page.preview-mode .player-preview-fields input,.user-data-page.preview-mode .player-preview-fields select,.user-data-page.preview-mode .player-preview-fields button{cursor:default}
+.player-merge-dialog>h3{margin:0 0 12px}.player-merge-dialog>.sim-wallet-note{line-height:1.7;margin:0 0 14px}
+.player-merge-dialog>.sim-wallet-footer{position:sticky;bottom:0;background:var(--card-bg);padding:12px 0 2px;border-top:1px solid var(--border);z-index:2}
+.player-merge-dialog .btn-action-gray{background:transparent;color:var(--text);border-color:var(--border)}.player-merge-dialog button:disabled{opacity:.45;cursor:not-allowed}
+.player-merge-controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}.player-merge-controls label{display:grid;gap:8px}.player-merge-controls label:last-child{grid-column:1/-1}
+.player-merge-controls .custom-select-ui{width:100%!important;min-width:0}.player-merge-controls select{width:100%}
+.player-merge-scopes{display:flex;flex-wrap:wrap;gap:16px;border:1px solid var(--border);margin:18px 0;padding:12px}.player-merge-scopes label{display:flex;gap:6px;align-items:center}
+.player-merge-preview{overflow:auto;max-height:38vh}.player-merge-preview table{width:100%;border-collapse:collapse;font-size:12px}.player-merge-preview td,.player-merge-preview th{padding:9px;text-align:left;border-bottom:1px solid var(--border)}
+@media(max-width:600px){.player-merge-controls{grid-template-columns:1fr}.player-merge-preview td,.player-merge-preview th{padding:7px 4px}}
+#sim-profile-picker a,#sim-profile-picker a:visited{color:#74b9ff}
+#sim-profile-picker a:hover,#sim-profile-picker a:focus-visible{color:#b3d9ff}
+.sim-profile-mode{display:flex;align-items:center;gap:8px;margin-top:18px;cursor:pointer}
+.sim-create-flow [data-start-continue]{margin-right:auto;background:transparent;border-color:var(--border);color:var(--text)}
+.sim-create-flow .btn-action-gray{background:transparent;border-color:var(--primary);color:#74b9ff}
+.user-data-empty{padding:45px 20px;text-align:center;border:1px dashed var(--border);border-radius:10px;color:var(--text-muted,#999)}
+.sim-profile-options{display:grid;gap:12px;margin:20px 0}.sim-profile-options label{display:grid;gap:8px}.sim-profile-options select{width:100%}
+.sim-start-dialog [data-start-name]{display:block;width:100%;box-sizing:border-box;margin:8px 0 20px}
+.player-account-card{border:1px solid var(--border);border-radius:10px;background:var(--card-bg);min-width:0;overflow:hidden}
+.player-account-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;list-style:none}
+summary.player-account-head{cursor:pointer}.player-account-head::-webkit-details-marker{display:none}
+.player-account-head h3{margin:0 0 7px}.player-account-head p{margin:0;color:#94a3b8;font-size:12px;line-height:1.6}
+.player-account-title{flex:1;min-width:0}.player-account-title h3{max-width:360px}
+.player-account-heading{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.player-account-heading h3{flex:0 1 340px;width:340px;max-width:100%;margin:0}
+.player-account-title .bilingual-input{width:100% !important;max-width:100%}
+.player-account-name{width:100%;font-size:18px;font-weight:bold;background:transparent;border-color:transparent;padding:5px 7px}
+.player-account-name:hover,.player-account-name:focus{border-color:var(--border)}
+.player-account-name:focus{background:var(--bg-dark)}
+.player-account-toggle{font-size:12px;color:#94a3b8;white-space:nowrap}
+.player-account-default{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer}
+.sim-start-editor .player-account-delete{margin-right:auto;background:var(--danger);color:#fff;border-color:var(--danger)}
+.sim-start-editor{width:100%;max-height:none;overflow:visible;padding:20px;box-sizing:border-box;border:0;border-top:1px solid var(--border);border-radius:0}
+.sim-start-editor .sim-wallet-heading,.sim-start-editor>.sim-wallet-note{display:none}
+.sim-start-editor .sim-start-grid{margin-top:16px}.sim-start-expanded .sim-start-owned{max-height:none;overflow:visible}
+.sim-start-pool-icon{display:inline-block;margin-right:7px;font-weight:normal;cursor:inherit}
+#data-new[hidden],#data-merge[hidden]{display:none}
+@media(max-width:600px){.player-account-head{padding:16px;flex-wrap:wrap}.player-account-title{flex:1 0 100%;width:100%}.sim-start-editor{padding:14px}.sim-start-editor .sim-start-grid,.sim-start-editor .sim-start-owned-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.user-data-page .main-content{padding:20px 14px}.user-data-page .currency-header{flex-direction:column;align-items:stretch}.user-data-page .currency-header h1{font-size:24px}.user-data-page .currency-actions{justify-content:flex-start}}
+
+.player-account-head .player-account-sync-warning{color:#ff6675;margin-top:10px;padding:10px 12px;border:1px solid #ff475766;border-radius:6px;background:#ff47570d;font-size:12px;line-height:1.7}
+.player-account-sync-warning[hidden]{display:none}
+.player-account-card.has-sync-warning{border-color:#ff475780}
+
+.player-account-purpose{display:inline-block;color:#74b9ff;font-size:12px;margin:0}.player-account-purpose-box{padding:16px 20px;border-top:1px solid var(--border)}.player-account-purpose-box .input-box{width:100%;max-width:340px}.player-account-purpose-box p{margin-bottom:0;line-height:1.7}.player-account-card input:disabled{opacity:.8;cursor:default}
+
+.player-account-drag{flex:0 0 auto;align-self:center;cursor:grab;color:var(--text-muted,#94a3b8);appearance:none;background:transparent;border:0;border-radius:2px;box-shadow:none;padding:4px 6px;margin:0;font-size:14px;line-height:1;user-select:none}
+.player-account-drag:hover,.player-account-drag:focus-visible{color:var(--primary);background:transparent;box-shadow:none}
+.player-account-drag:focus-visible{outline:1px solid var(--primary);outline-offset:2px}
+.player-account-drag:active{cursor:grabbing}.player-account-drag:disabled{opacity:.3;cursor:default}.player-account-card.is-dragging{opacity:.5}
+.player-account-card.drag-over-top{box-shadow:inset 0 3px 0 var(--primary)}.player-account-card.drag-over-bottom{box-shadow:inset 0 -3px 0 var(--primary)}

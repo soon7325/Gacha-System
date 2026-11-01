@@ -1,0 +1,149 @@
+/* =========================================================================
+   🌟 全局原生 <select> 美化组件样式
+   ========================================================================= */
+
+/* 1. 隐藏原生 select（保持在 DOM 中以保留表单事件与值传递） */
+.custom-select-original {
+    position: absolute !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 2. 自定义外层容器 */
+.custom-select-ui {
+    position: relative;
+    display: inline-block;
+    user-select: none;
+    font-size: 13px;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+/* 3. 触发器按钮外观 */
+.custom-select-ui-trigger {
+    background: var(--cl-card, #1e2126);
+    border: 1px solid var(--cl-border, #333a44);
+    color: #e5e7eb;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    /* 按外层继承的原生控件宽度显示，文字不能把按钮撑大。 */
+    width: 100%;
+    min-width: 0;
+    font-size: inherit;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.custom-select-ui-trigger:hover {
+    border-color: rgba(0, 123, 255, 0.6);
+    background: rgba(255, 255, 255, 0.04);
+    color: #fff;
+}
+
+.custom-select-ui.open .custom-select-ui-trigger {
+    border-color: var(--cl-primary, #007bff);
+    box-shadow: 0 0 10px var(--cl-primary-glow, rgba(0, 123, 255, 0.25));
+    background: rgba(0, 123, 255, 0.08);
+}
+
+.custom-select-ui-label {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.5;
+}
+
+.custom-select-ui-arrow {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--cl-text-dim, #8b949e);
+    transition: transform 0.2s ease;
+}
+
+.custom-select-ui.open .custom-select-ui-arrow {
+    transform: rotate(180deg);
+    color: var(--cl-primary, #007bff);
+}
+
+/* 4. 下拉浮层菜单 */
+.custom-select-ui-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    min-width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--cl-card, #1e2126);
+    border: 1px solid var(--cl-border, #333a44);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(12px);
+    box-sizing: border-box;
+}
+
+.custom-select-ui.open .custom-select-ui-menu {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* 5. 菜单项 */
+.custom-select-ui-item {
+    padding: 7px 12px;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 12.5px;
+    transition: all 0.15s ease;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+.custom-select-ui-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.custom-select-ui-item.selected {
+    background: var(--cl-primary-glow, rgba(0, 123, 255, 0.25));
+    color: var(--cl-primary, #007bff);
+    font-weight: bold;
+}
+
+/* 自定义细窄滚动条 */
+.custom-select-ui-menu::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-select-ui-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+/* 菜单固定于视口，不参与弹窗滚动布局，也不被弹窗的 overflow 裁切。 */
+.custom-select-ui.open .custom-select-ui-menu { z-index:100030; transition:opacity .15s ease; transform:none; }
+.custom-select-ui.opens-up .custom-select-ui-arrow { transform:rotate(180deg); }
+/* 展开时菜单挂到 body，彻底避开快捷弹窗的滚动裁切。 */
+.custom-select-ui-menu.custom-select-floating { display:block; position:fixed; z-index:100030; opacity:1; visibility:visible; transform:none; transition:opacity .15s ease; min-width:0; }
+.custom-select-with-icon { display:flex;align-items:center;gap:8px; }
+.custom-select-option-icon { display:inline-flex;align-items:center;justify-content:center;width:20px;flex:0 0 20px; }
+.custom-select-option-icon .inline-icon-image { width:20px;height:20px;object-fit:contain; }
+.custom-select-with-icon > span:last-child { min-width:0;overflow-wrap:anywhere; }

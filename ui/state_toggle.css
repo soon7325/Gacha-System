@@ -1,0 +1,14 @@
+.state-toggle-label{display:flex;flex-direction:column;gap:7px;font-size:13px}
+.state-toggle-field{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;height:34px;padding:7px 12px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,.2);cursor:pointer}
+.state-toggle-field>input[type=checkbox]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.state-toggle-status{font-size:12px;color:var(--text-muted,#94a3b8);pointer-events:none}
+.state-toggle-on{display:none}
+.state-toggle-track{display:block;width:30px;height:17px;border-radius:20px;background:#56616f;flex-shrink:0;pointer-events:none;transition:background .15s}
+.state-toggle-track::before{content:'';display:block;width:13px;height:13px;margin:2px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .15s}
+.state-toggle-field:has(input:checked) .state-toggle-track{background:var(--primary)}
+.state-toggle-field:has(input:checked) .state-toggle-track::before{transform:translateX(13px)}
+.state-toggle-field:has(input:checked) .state-toggle-off{display:none}
+.state-toggle-field:has(input:checked) .state-toggle-on{display:inline;color:var(--text)}
+.state-toggle-field:has(input:focus-visible){outline:2px solid var(--primary);outline-offset:2px}
+.state-toggle-field:has(input:disabled){opacity:.6;cursor:default}
+.state-toggle-field>input:disabled{cursor:default!important}

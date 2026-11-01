@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
+    <script src="logic/version_storage.js"></script>
+    <script src="ui/color_style.js"></script>
+    <script src="logic/test_catalog.js?v=preset-visibility"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="ui/select_ui.css">
+    <title>Gacha System - 版本更新详情与历史</title>
+    <script>
+    (function() {
+        // 1. 主题
+        const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // 2. 内容对齐方式 (center, left, right)
+        let savedLayout = localStorage.getItem('GM_Changelog_Layout') || 'center';
+        if (!['center', 'left', 'right', 'full'].includes(savedLayout)) savedLayout = 'center';
+        document.documentElement.setAttribute('data-layout', savedLayout);
+
+        // 3. 顶栏展示方式 (full, follow)
+        const savedHeaderLayout = localStorage.getItem('GM_Changelog_Header_Layout') || 'follow';
+        document.documentElement.setAttribute('data-header-layout', savedHeaderLayout);
+    })();
+    </script>
+    <script>
+    (function () {
+        const VERSION_CHANNELS = {
+            '0.2': { directory: '0.2 old/', labelKey: 'cl_channel_v02_archive', modernShell: true },
+            '0.1': { directory: '0.1 old/', labelKey: 'cl_channel_v02' },
+            '0.0': { directory: '0.0 old/', labelKey: 'cl_channel_v00' }
+        };
+        const params = new URLSearchParams(window.location.search);
+        const requestedVersion = (params.get('channel') || params.get('from') || '')
+            .replace(/^v/, '');
+        const channel = VERSION_CHANNELS[requestedVersion];
+
+        window.GACHA_VERSION_CHANNELS = VERSION_CHANNELS;
+        window.GACHA_LATEST_VERSION = '0.3';
+        window.GACHA_ACTIVE_VERSION = channel ? requestedVersion : window.GACHA_LATEST_VERSION;
+        window.GACHA_CHANNEL_BASE = channel ? channel.directory : '';
+        window.GACHA_IS_LATEST = !channel;
+
+        // document.write keeps these dependencies parser-blocking: translate.js is
+        // ready before layout.js and before the page's own initialization code.
+        // 当前版本使用新目录；旧版本仍沿用其原有样式文件位置。
+        const modernShell = window.GACHA_IS_LATEST || channel?.modernShell;
+        const shellStyle = window.GACHA_CHANNEL_BASE + (modernShell ? 'ui/style.css' : 'style.css');
+        document.write('<link rel="stylesheet" href="' + shellStyle + '">');
+    })();
+    </script>
+    <style>
+        :root {
+            --cl-primary: #007bff;
+            --cl-primary-glow: rgba(0, 123, 255, 0.25);
+            --cl-bg: #121417;
+            --cl-card: #1e2126;
+            --cl-border: #333a44;
+            --cl-text-dim: #8b949e;
+        }
+
+        body {
+            background-color: var(--cl-bg);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+        }
+
+        /* 主内容视口容器 */
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
+            padding: 24px 36px 60px 36px;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        /* 核心包裹盒：响应 data-header-layout 与 data-layout */
+        .changelog-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-sizing: border-box;
+            transition: all 0.25s ease;
+        }
+
+        /* =========================================================================
+           🌟 1. 顶栏展示方式 (data-header-layout) 与对齐方式 (data-layout) 响应规则
+           ========================================================================= */
+
+        /* 顶部操作区独立外壳 */
+        .top-action-bar-wrapper {
+            width: 100%;
+            transition: max-width 0.3s ease, margin 0.3s ease;
+        }
+
+        /* 【模式一：全覆盖 (full)】- 顶栏撑满宽度 100% */
+        [data-header-layout="full"] .top-action-bar-wrapper {
+            max-width: 100%;
+            margin: 0;
+        }
+
+        /* 【模式二：随下方移动 (follow)】- 顶栏宽度同内容区对齐，并随下方对其方向游走 */
+        [data-header-layout="follow"][data-layout="center"] .top-action-bar-wrapper {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        [data-header-layout="follow"][data-layout="left"] .top-action-bar-wrapper {
+            max-width: 980px;
+            margin: 0 auto 0 0;
+        }
+        [data-header-layout="follow"][data-layout="right"] .top-action-bar-wrapper {
+            max-width: 980px;
+            margin: 0 0 0 auto;
+        }
+
+        /* =========================================================================
+           🌟 2. 下方内容对齐方式 (data-layout: center / left / right)
+           ========================================================================= */
+
+        /* 下方时间轴与内容外壳 */
+        .changelog-content-wrapper {
+            width: 100%;
+            max-width: 980px;
+            transition: margin 0.3s ease;
+        }
+
+        /* 居中对齐 */
+        [data-layout="center"] .changelog-content-wrapper {
+            margin: 0 auto;
+        }
+
+        /* 靠左对齐 */
+        [data-layout="left"] .changelog-content-wrapper {
+            margin: 0 auto 0 0;
+        }
+
+        /* 靠右对齐 */
+        [data-layout="right"] .changelog-content-wrapper {
+            margin: 0 0 0 auto;
+        }
+
+        /* 全覆盖时，内容与跟随内容的顶栏都撑满可用宽度。 */
+        [data-layout="full"] .changelog-content-wrapper,
+        [data-header-layout="follow"][data-layout="full"] .top-action-bar-wrapper {
+            max-width:100%; margin:0;
+        }
+
+        /* 顶部导航与控制器 */
+        .top-action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--cl-border);
+        }
+
+        .title-group h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-group p {
+            margin: 6px 0 0 0;
+            font-size: 13px;
+            color: var(--cl-text-dim);
+        }
+
+        .ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 时间轴容器 */
+        .timeline-wrapper {
+            position: relative;
+            padding-left: 28px;
+            margin-top: 10px;
+        }
+
+        /* 左侧贯穿绿轴线 */
+        .timeline-wrapper::before {
+            content: "";
+            position: absolute;
+            left: 9px;
+            top: 14px;
+            bottom: 14px;
+            width: 2px;
+            background: linear-gradient(180deg, var(--cl-primary) 0%, rgba(0, 123, 255, 0.15) 100%);
+        }
+
+        /* 版本卡片 */
+        .log-card {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--cl-card);
+            border: 1px solid var(--cl-border);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .pagination-bar[hidden] { display:none!important; }
+
+        .log-card:hover {
+            border-color: rgba(0, 123, 255, 0.6);
+            box-shadow: 0 4px 20px rgba(0, 123, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* 时间轴圆点 */
+        .log-card::before {
+            content: "";
+            position: absolute;
+            left: -25px;
+            top: 22px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--cl-primary);
+            box-shadow: 0 0 10px var(--cl-primary);
+            border: 2px solid #121417;
+            z-index: 2;
+        }
+
+        .card-header {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            gap: 10px;
+        }
+        /* 标签固定独立一行；只有标题+版本+元信息放不下时才拆开前一行。 */
+        .card-header > .ver-main-title { grid-column: 1; min-width: 0; overflow-wrap: anywhere; }
+        .ver-number { grid-column: 2; white-space: nowrap; }
+        .card-header > .ver-meta { grid-column: 3; justify-self: end; flex-wrap: nowrap; white-space: nowrap; }
+        .ver-tags-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .ver-tags-row:empty { display: none; }
+        .card-header.header-wrapped { grid-template-columns: auto 1fr; }
+        .card-header.header-wrapped > .ver-main-title { grid-column: 1 / -1; }
+        .header-wrapped .ver-number { grid-column: 1; }
+        .card-header.header-wrapped > .ver-meta { grid-column: 2; white-space: normal; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+
+.ver-title-box {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 标签之间保持 8px 间距 */
+    flex-wrap: wrap;
+}
+
+        .ver-badge {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .ver-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: var(--cl-primary-glow);
+            color: var(--cl-primary);
+            border: 1px solid var(--cl-primary);
+            font-weight: 600;
+        }
+
+        .ver-part-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            font-weight: bold;
+        }
+
+        .ver-meta {
+            font-size: 13px;
+            color: var(--cl-text-dim);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .card-body {
+            flex: 1 0 auto;
+            padding: 10px 18px;
+            color: #d1d5db;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .card-text {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 底部操作区 */
+        .card-actions {
+            margin-top: auto;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 16px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        .card-actions-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-actions-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto; /* 当没有左侧回退按钮时，自动靠右 */
+        }
+
+        /* 靠右对齐时镜像翻转 (与全局 layout="right" 保持一致) */
+        [data-layout="right"] .card-actions {
+            flex-direction: row-reverse;
+        }
+        [data-layout="right"] .card-actions-right {
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        .card-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--cl-border);
+            color: var(--cl-text-dim);
+            padding: 6px 14px;
+            font-size: 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .card-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #6b7280;
+        }
+
+        /* 分页器 */
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 25px 0 10px 0;
+            user-select: none;
+        }
+
+        html[data-content-flow="columns"] #pagination-controls-bottom { margin:0;padding-top:10px;box-sizing:border-box; }
+        .page-btn {
+            background: var(--cl-card);
+            border: 1px solid var(--cl-border);
+            color: #d1d5db;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            border-color: var(--cl-primary);
+            color: #fff;
+        }
+
+        .page-btn.active {
+            background: var(--cl-primary);
+            color: #fff;
+            border-color: var(--cl-primary);
+            box-shadow: 0 0 10px var(--cl-primary-glow);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+
+        /* Toast 提示浮窗 */
+        #cl-toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #007bff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 8px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            z-index: 10000;
+        }
+        #cl-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 浅色模式适配 */
+        [data-theme="light"] {
+            --cl-bg: #f3f4f6;
+            --cl-card: #ffffff;
+            --cl-border: #e5e7eb;
+            --cl-text-dim: #6b7280;
+        }
+        [data-theme="light"] .title-group h1 { color: #111827; }
+        [data-theme="light"] .ver-badge { color: #111827; }
+        [data-theme="light"] .card-body { color: #374151; }
+        [data-theme="light"] .card-header { background: #f9fafb; border-bottom-color: #e5e7eb; }
+        [data-theme="light"] .log-card { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        [data-theme="light"] .log-card::before { border-color: #f3f4f6; }
+
+        /* =========================================================================
+           🌟 核心：靠右对齐时的左右镜像倒转 (与 dashboard 对齐逻辑完全一致)
+           ========================================================================= */
+
+        /* 1. 时间轴整体移到右侧，内边距反转 */
+        [data-layout="right"] .timeline-wrapper {
+            padding-left: 0;
+            padding-right: 28px;
+        }
+
+        /* 2. 纵向贯穿的绿轴线：从左侧移到右侧 */
+        [data-layout="right"] .timeline-wrapper::before {
+            left: auto;
+            right: 9px;
+        }
+
+        /* 3. 卡片外层的绿色圆点：从左外侧移到右外侧 */
+        [data-layout="right"] .log-card::before {
+            left: auto;
+            right: -25px;
+        }
+
+        /* 4. 卡片头部信息镜像排版 (版本号在右，发布日期/元数据在左) */
+        [data-layout="right"] .card-header {
+            flex-direction: row-reverse;
+        }
+
+        /* 5. 版本标题与标签徽章倒转 */
+        [data-layout="right"] .ver-title-box {
+            flex-direction: row-reverse;
+        }
+
+        /* 6. 卡片底部操作按钮靠左排版 (原本靠右) */
+        [data-layout="right"] .card-actions {
+            justify-content: flex-start;
+        }
+
+/* =========================================================================
+   🌟 右侧版本目录侧栏 (Version Nav TOC)
+   ========================================================================= */
+.toc-sidebar {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    width: 250px;
+    height: calc(100vh - 48px);
+    background: var(--cl-card);
+    border: 1px solid var(--cl-border);
+    border-radius: 12px;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+    box-sizing: border-box;
+    backdrop-filter: blur(10px);
+}
+
+/* 折叠隐藏状态 */
+.toc-sidebar.collapsed {
+    transform: translateX(calc(100% + 30px));
+    pointer-events: none;
+    opacity: 0;
+}
+
+/* 侧栏顶部的“收起”浮动切换按钮 (当被收起后，显示悬浮唤醒按钮) */
+.toc-float-trigger {
+    position: fixed;
+    top: 84px;
+    right: 24px;
+    height: 36px;
+    padding: 0 12px;
+    background: var(--cl-card);
+    border: 1px solid var(--cl-border);
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    z-index: 999;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+.toc-float-trigger:hover {
+    border-color: var(--cl-primary);
+    color: var(--cl-primary);
+}
+.toc-float-trigger.show {
+    display: flex;
+}
+
+/* 头部搜索与收起按钮 */
+.toc-header {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.toc-search-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--cl-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.toc-search-input:focus {
+    border-color: var(--cl-primary);
+}
+
+.toc-collapse-btn {
+    background: transparent;
+    border: 1px solid var(--cl-border);
+    border-radius: 6px;
+    color: var(--cl-text-dim);
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 15px;
+}
+.toc-collapse-btn:hover {
+    color: #fff;
+    border-color: #6b7280;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* 上部 3/4：版本目录列表 */
+.toc-section-versions {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 8px 10px;
+}
+
+.toc-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--cl-text-dim);
+    margin: 8px 6px 10px 6px;
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.toc-list li {
+    margin-bottom: 4px;
+}
+
+.toc-item-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #e5e7eb;
+    text-decoration: none;
+    font-size: 13px;
+    font-family: monospace, -apple-system;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.toc-item-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+.toc-item-link.active {
+    background: var(--cl-primary-glow);
+    color: var(--cl-primary);
+    font-weight: bold;
+}
+
+/* 下部 1/4：旧版本通道跳转区 */
+.toc-section-channels {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 8px 10px 12px 10px;
+    border-top: 1px solid var(--cl-border);
+    background: rgba(0, 0, 0, 0.12);
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.toc-channel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toc-channel-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #9ca3af;
+    transition: all 0.2s ease;
+}
+.toc-channel-btn:hover {
+    background: rgba(0, 123, 255, 0.12);
+    border-color: var(--cl-primary);
+    color: #fff;
+}
+.toc-channel-btn.current {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10b981;
+    font-weight: 600;
+    pointer-events: none;
+}
+/* 自定义细窄滚动条，避免宽滚动条遮挡文字 */
+.toc-list::-webkit-scrollbar,
+.toc-channel-list::-webkit-scrollbar {
+    width: 4px;
+}
+.toc-list::-webkit-scrollbar-thumb,
+.toc-channel-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+/* 标题与小字版本号排版 */
+.ver-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ver-main-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+}
+
+.ver-sub-badge {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--cl-text-dim);
+    font-family: monospace, -apple-system;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 复合胶囊双标签体系 (大标签 + 小标签) */
+.ver-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 11.5px;
+    line-height: 1.2;
+    border: 1px solid var(--cl-primary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 复合大标签：页面/逻辑 */
+.ver-tag-scope {
+    background: var(--cl-primary-glow);
+    color: #fff;
+    padding: 3px 7px;
+    font-weight: 700;
+}
+
+/* 复合小标签：补丁/修复/更新 */
+.ver-tag-type {
+    background: rgba(0, 0, 0, 0.45);
+    color: var(--cl-primary);
+    padding: 3px 6px;
+    font-weight: 600;
+    font-size: 10.5px;
+    border-left: 1px solid rgba(0, 123, 255, 0.35);
+}
+
+/* 单标签兜底：未填满两者时自动变为中大小标签 */
+.ver-tag-single {
+    display: inline-flex;
+    align-items: center;
+    padding: 2.5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--cl-primary-glow);
+    color: var(--cl-primary);
+    border: 1px solid var(--cl-primary);
+}
+
+/* 靠右对齐 (data-layout="right") 镜像兼容 */
+[data-layout="right"] .ver-title-group {
+    flex-direction: row-reverse;
+}
+[data-layout="right"] .ver-tag-pill {
+    flex-direction: row-reverse;
+}
+[data-layout="right"] .ver-tag-type {
+    border-left: none;
+    border-right: 1px solid rgba(0, 123, 255, 0.35);
+}
+
+/* 胶囊标签外壳 */
+.ver-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 11.5px;
+    line-height: 1.2;
+    border: 1px solid var(--cl-primary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 大标签（页面/逻辑） */
+.ver-tag-scope {
+    background: var(--cl-primary-glow);
+    color: #fff;
+    padding: 3px 7px;
+    font-weight: 700;
+}
+
+/* 小标签（可多个并排，相邻小标签之间有细竖线） */
+.ver-tag-type {
+    background: rgba(0, 0, 0, 0.45);
+    color: var(--cl-primary);
+    padding: 3px 6px;
+    font-weight: 600;
+    font-size: 10.5px;
+    border-left: 1px solid rgba(0, 123, 255, 0.35);
+}
+
+/* 单标签兜底样式 */
+.ver-tag-single {
+    display: inline-flex;
+    align-items: center;
+    padding: 2.5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--cl-primary-glow);
+    color: var(--cl-primary);
+    border: 1px solid var(--cl-primary);
+}
+    </style>
+<script>if(window.GACHA_IS_LATEST)document.write('<script src="ui/page_layout.js"><\/script>');</script>
+<script>if(window.GACHA_IS_LATEST)document.write('<script src="ui/content_columns.js"><\/script><link rel="stylesheet" href="ui/content_columns.css">');</script>
+    <link rel="stylesheet" href="ui/art-direction.css?v=0.3.6.21">
+</head>
+<body>
+    <!-- 侧边栏挂载区 (由 layout.js 驱动) -->
+    <div class="sidebar"></div>
+
+    <div class="main-content">
+        <div class="changelog-container">
+            
+            <!-- 🌟 顶栏外层包裹器：受 data-header-layout 控制 -->
+            <div class="top-action-bar-wrapper">
+                <div class="top-action-bar">
+                    <div class="title-group">
+                        <h1 id="page-title" data-i18n="cl_title">📜 版本更新详情与历史</h1>
+                        <p id="page-subtitle" data-i18n="cl_subtitle">查看所有历史版本的详细改动、测试日志及未来规划</p>
+                    </div>
+                    
+                    <div class="ctrl-group">
+                        <!-- 全量提取并下载 txt -->
+                        <button class="btn btn-action-gray" style="padding:5px 12px; font-size:12px; display:inline-flex; align-items:center; gap:5px;" onclick="downloadFullChangelogTxt()">
+                            <span>💾</span> <span data-i18n="cl_download_full">下载完整日志 (.txt)</span>
+                        </button>
+                        
+                        <button id="back-home-btn" class="btn btn-primary" style="padding:5px 14px; font-size:12px;" onclick="window.location.href='index.html'">
+                            <span data-i18n="cl_back_home">返回首页</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🌟 下方内容外层包裹器：受 data-layout 控制居中/靠左/靠右 -->
+            <div class="changelog-content-wrapper">
+                <!-- 时间轴卡片挂载区 -->
+                <div class="timeline-wrapper" id="timeline-container"></div>
+
+                <!-- 底部翻页控制器 -->
+                <div class="pagination-bar" id="pagination-controls"></div>
+                <div class="pagination-bar" id="pagination-controls-bottom"></div>
+            </div>
+
+        </div>
+    </div>
+
+<!-- 折叠后显示的外部呼出按钮 -->
+<button id="toc-expand-btn" class="toc-float-trigger" onclick="toggleToc(false)" data-i18n-title="cl_toc_btn_open">
+    <span>📑</span> <span data-i18n="cl_toc_btn_open">版本目录</span>
+</button>
+
+<!-- 右侧 TOC 侧边栏 -->
+<aside class="toc-sidebar" id="toc-sidebar">
+    <!-- 头部：搜索栏 + 收起按钮 -->
+    <div class="toc-header">
+        <input 
+            type="text" 
+            id="toc-search-input" 
+            class="toc-search-input" 
+            placeholder="搜索/回车跳转版本..."
+            data-i18n-placeholder="cl_toc_search_ph"
+            oninput="onTocSearch(this.value)"
+            onkeydown="onTocSearchKeydown(event)"
+        />
+        <button class="toc-collapse-btn" onclick="toggleToc(true)" data-i18n-title="cl_toc_collapse_title">
+            ✕
+        </button>
+    </div>
+
+    <!-- 3/4 区域：版本目录列表 -->
+    <div class="toc-section-versions">
+        <div class="toc-section-title">
+            <span data-i18n="cl_toc_title_versions">更新日志定位</span>
+            <span id="toc-ver-count">0</span>
+        </div>
+        <ul class="toc-list" id="toc-version-list">
+            <!-- JS 动态渲染 -->
+        </ul>
+    </div>
+
+    <!-- 1/4 区域：旧版本通道跳转 -->
+    <div class="toc-section-channels">
+        <div class="toc-section-title">
+            <span data-i18n="cl_toc_title_channels">旧版本通道</span>
+            <span>CHANNEL</span>
+        </div>
+        <div class="toc-channel-list" id="toc-channel-list">
+            <!-- JS 动态渲染 -->
+        </div>
+    </div>
+</aside>
+
+    <!-- 复制/提示 Toast -->
+    <div id="cl-toast">已成功复制到剪贴板！</div>
+
+    <!-- 脚本引入：数据文件与布局依赖 -->
+    <script src="translate/changelog_zh.js"></script>
+    <script src="translate/changelog_en.js"></script>
+    <script src="translate/translate_zh.js"></script>
+    <script src="translate/translate_en.js"></script>
+    <script src="translate/translate.js"></script>
+    <script src="ui/toast.js"></script>
+    <script src="ui/icon_render.js"></script>
+    <script src="ui/select_ui.js"></script>
+    <script src="logic/list_order.js"></script>
+    <script src="logic/app_preferences.js"></script>
+    <script>
+    // 保持旧版通道兼容，不能把旧目录里的布局脚本也当作新目录加载。
+    const modernShell = window.GACHA_IS_LATEST || window.GACHA_VERSION_CHANNELS?.[window.GACHA_ACTIVE_VERSION]?.modernShell;
+    const shellBase = window.GACHA_CHANNEL_BASE;
+    const shellLayout = shellBase + (modernShell ? 'ui/layout.js' : 'layout.js');
+    // 新版布局使用公共拖拽组件；旧版通道继续使用它们原有的布局依赖。
+    if (modernShell) {
+        // 侧栏与其他新版页面使用同一份官方卡池数据，避免图标和卡池清单落入通用兜底。
+        ['hsr', 'zzz', 'end', 'ark', ...(window.GACHA_IS_LATEST?['test']:[])].forEach(gameId => {
+            document.write('<script src="'+shellBase+'Preset_Data/db_' + gameId + '.js"><\/script>');
+        });
+        document.write('<script src="'+shellBase+'logic/game_data.js"><\/script>');
+        if(window.GACHA_IS_LATEST)document.write('<script src="logic/preset_storage.js"><\/script>');
+        document.write('<script src="'+shellBase+'ui/drag_sort.js"><\/script>');
+    }
+    document.write('<script src="' + shellLayout + '"><\/script>');
+    </script>
+
+<script>
+    // 旧版侧栏也会初始化布局；此处恢复版本详情页自己的偏好。
+    document.documentElement.setAttribute('data-layout', ['center', 'left', 'right', 'full'].includes(localStorage.getItem('GM_Changelog_Layout')) ? localStorage.getItem('GM_Changelog_Layout') : 'center');
+    document.documentElement.setAttribute('data-header-layout', localStorage.getItem('GM_Changelog_Header_Layout') === 'full' ? 'full' : 'follow');
+</script>
+<script src="ui/quick_settings.js?v=shared-preferences"></script>
+<script src="pages/changelog.js"></script>
+</body>
+</html>

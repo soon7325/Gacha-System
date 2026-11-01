@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
+    <script src="logic/version_storage.js"></script>
+    <script src="ui/color_style.js"></script>
+    <script src="logic/test_catalog.js?v=preset-visibility"></script>
+    <script src="ui/page_layout.js"></script>
+    <script src="ui/panel_defaults.js"></script>
+    <script src="ui/content_columns.js"></script>
+    <link rel="stylesheet" href="ui/content_columns.css">
+    <title>Gacha System - 图鉴与引擎构建中心</title>
+    <!--
+        图鉴编辑器：维护 GM_Catalog_{gameId} 与游戏的星级、分类、标签定义；
+        保存时会同步更新依赖该图鉴的积木池和卡池配置，保证抽卡候选项一致。
+    -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <link rel="stylesheet" href="ui/style.css">
+    <link rel="stylesheet" href="ui/number_input.css">
+    <script src="ui/number_input.js" defer></script>
+    <link rel="stylesheet" href="ui/select_ui.css">
+    <!-- 引入 JSZip 支持打包导出与导入 -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <style>
+        .setup-container { max-width: 1080px; margin: 0 auto; padding-bottom: 80px; }
+        .header-actions { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 1px dashed var(--border); padding-bottom: 15px; }
+        .pool-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .type-header { font-size: 1.4rem; color: var(--text); border-left: 4px solid var(--primary); padding-left: 12px; margin: 35px 0 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 稀有度设置行 */
+        .tier-row, .pool-sort-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; padding: 10px 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border); }
+        .color-picker { -webkit-appearance: none; appearance: none; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; padding: 0; }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.2); border-radius: 6px; }
+
+        /* 图鉴库手风琴卡片 */
+        .category-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+        .category-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: rgba(255,255,255,0.02); cursor: pointer; user-select: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .category-header:hover { background: rgba(255,255,255,0.04); }
+        .category-title { font-size: 1.2rem; font-weight: bold; color: var(--text); display: flex; align-items: center; gap: 10px; }
+        
+        /* 星级内部折叠箱 */
+        .tier-accordion { margin: 12px 16px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15); overflow: hidden; }
+        .tier-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; user-select: none; }
+        .tier-header:hover { background: rgba(255,255,255,0.03); }
+        .tier-badge-label { font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .tier-body { padding: 14px; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 12px; }
+
+        /* 细分标签过滤栏 */
+        .filter-tabs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+        .filter-tab-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #aaa; border-radius: 20px; padding: 3px 12px; font-size: 11px; cursor: pointer; transition: 0.2s; }
+        .filter-tab-btn:hover { color: #fff; border-color: #888; }
+        .filter-tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; }
+
+        /* 图鉴卡片网格 */
+        .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 12px; }
+        .char-card, .add-btn-card { aspect-ratio: 1; border-radius: 8px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid transparent; cursor: pointer; transition: 0.2s; box-sizing: border-box; }
+        .add-btn-card { border: 2px dashed #666; color: #888; background: rgba(0,0,0,0.1); }
+        .add-btn-card:hover { border-color: var(--primary); color: var(--primary); background: rgba(0,123,255,0.1); }
+        .char-card { background: #282a2e; border: 1px solid #444; }
+        .char-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.4); border-color: var(--primary); }
+        .char-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; opacity: 0.85; }
+        .char-info { z-index: 2; position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.92), transparent); padding: 4px 2px; text-align: center; color: white; font-size: 11px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .char-star { position: absolute; top: 4px; left: 5px; z-index: 2; font-weight: bold; text-shadow: 0 0 3px #000; font-size: 11px; }
+        
+        /* 状态微型多标签排布容器 (右上角) */
+        .item-tags-wrap { position: absolute; top: 4px; right: 5px; z-index: 2; display: flex; flex-direction: column; gap: 2px; align-items: flex-end; }
+        .item-tag-badge { font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 3px; text-shadow: 1px 1px 2px #000; line-height: 1.1; }
+
+        .del-badge { position: absolute; top: 4px; right: 4px; z-index: 3; background: #e74c3c; color: white; border-radius: 50%; width: 18px; height: 18px; display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
+        .char-card:hover .del-badge { display: flex; }
+
+        /* 通用输入框与选择框 */
+        .input-box { background: rgba(0,0,0,0.25); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 6px; outline: none; box-sizing: border-box; font-size: 14px; }
+        .input-box:focus { border-color: var(--primary); }
+
+        /* 标签复选组 */
+        .tags-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-top: 4px; }
+        .tag-cb-label { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; user-select: none; color: #ddd; }
+
+        /* 锁定预览模式 / 预设模式 */
+        body.preview-mode .add-btn-card, 
+        body.preview-mode .del-badge, 
+        body.preview-mode .cat-action-btn,
+        body.preview-mode .btn-tier-del,
+        body.preview-mode #btn-add-tier,
+        body.preview-mode #btn-add-cat,
+        body.preview-mode #btn-delete-game,
+        body.preview-mode .btn-pool-del,
+        body.preview-mode button[onclick^="removeCustomTag"],
+        body.preview-mode button[onclick*="addCustomTag"],
+        body.preview-mode button[onclick^="openAddPoolModal"],
+        body.preview-mode button[onclick^="saveAllAndGenerate"] { display: none !important; }
+        
+        body.preview-mode .input-box { pointer-events: none !important; border-color: transparent !important; background: transparent !important; padding: 0 !important; cursor: default !important; user-select: none; }
+        body.preview-mode .color-picker { pointer-events: none !important; opacity: 0.8 !important; cursor: default !important; }
+        body.preview-mode .char-card { cursor: default !important; }
+        body.preview-mode .char-card:hover { transform: none !important; box-shadow: none !important; border-color: #444 !important; }
+        /* 美化下拉与图标按钮是独立节点，也必须遵守只读模式。 */
+        body.preview-mode .setup-container .custom-select-ui,
+        body.is-preset-game .setup-container .custom-select-ui,
+        body.preview-mode .cat-icon-badge,
+        body.is-preset-game .cat-icon-badge { pointer-events: none !important; cursor: default !important; }
+
+        /* 预设游戏静默样式 */
+        body.is-preset-game .add-btn-card,
+        body.is-preset-game .del-badge,
+        body.is-preset-game .cat-action-btn,
+        body.is-preset-game .btn-tier-del,
+        body.is-preset-game #btn-add-tier,
+        body.is-preset-game #btn-add-cat,
+        body.is-preset-game #btn-delete-game,
+        body.is-preset-game #btn-preview-toggle,
+        body.is-preset-game #btn-add-pool-wrap,
+        body.is-preset-game .btn-pool-del { display: none !important; }
+
+        body.is-preset-game .input-box:not(.pool-name-input) {
+            pointer-events: none !important;
+            border-color: transparent !important;
+            background: transparent !important;
+            cursor: default !important;
+            user-select: text;
+        }
+
+        body.is-preset-game .color-picker {
+            pointer-events: none !important;
+            cursor: default !important;
+        }
+
+        body.is-preset-game .char-card {
+            cursor: default !important;
+        }
+        body.is-preset-game .char-card:hover {
+            transform: none !important;
+            box-shadow: none !important;
+            border-color: #444 !important;
+        }
+
+        body.is-preset-game #btn-save-all {
+            pointer-events: none !important;
+            cursor: default !important;
+            opacity: 0.65;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* 拖拽抓手图标 */
+        .drag-handle {
+            cursor: grab;
+            user-select: none;
+            color: #666;
+            font-size: 14px;
+            padding: 0 6px;
+            transition: color 0.2s;
+        }
+        .drag-handle:hover {
+            color: var(--primary);
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .is-dragging {
+            opacity: 0.35;
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .drag-over-top {
+            box-shadow: inset 0 3px 0 var(--primary) !important;
+        }
+        .drag-over-bottom {
+            box-shadow: inset 0 -3px 0 var(--primary) !important;
+        }
+
+/* 图鉴卡片网格拖拽样式 */
+.char-card[draggable="true"] {
+    cursor: grab;
+}
+.char-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+.char-card.is-dragging {
+    opacity: 0.35 !important;
+    transform: none !important; /* 拖动期间保持几何尺寸，落点判断不随缩放跳动。 */
+}
+.char-card.drag-over-left {
+    box-shadow: inset 4px 0 0 var(--primary) !important;
+}
+.char-card.drag-over-right {
+    box-shadow: inset -4px 0 0 var(--primary) !important;
+}
+/* 落点提示不改边框尺寸；悬停缩放也不能改变拖拽目标的命中范围。 */
+.char-card.drag-over-left, .char-card.drag-over-right { transform: none !important; }
+
+        /* 大类名称直接可编辑样式 */
+        .cat-name-input {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text);
+            font-size: 1.15rem;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 2px 6px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .cat-name-input:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .cat-name-input:focus {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--primary);
+        }
+
+        .cat-icon-badge {
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+        .cat-icon-badge:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .game-name-row { display: flex; align-items: center; gap: 10px; }
+        .game-name-row .input-box { flex: 1; min-width: 0; }
+        .game-icon-button { background: transparent; border: 0; color: inherit; flex-shrink: 0; }
+        .game-icon-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    </style>
+<link rel="stylesheet" href="ui/page_layout.css">
+    <link rel="stylesheet" href="ui/art-direction.css?v=0.3.6.21">
+    <link rel="stylesheet" href="ui/color_picker.css?v=0.3.6.21">
+    <script src="ui/color_picker.js"></script>
+</head>
+<body>
+    <div class="sidebar"></div>
+    <div class="main-content">
+        <div class="setup-container">
+            <!-- 头部操作区（左边标题，右边按钮组，在同一个 header-actions 内） -->
+            <div class="header-actions page-layout-header">
+                <div>
+                    <h1 style="margin: 0; color: var(--primary);" data-i18n="cs_hub_title">📚 游戏图鉴总库与引擎配置</h1>
+                    <p style="color: #888; margin: 5px 0 0 0;" data-i18n="cs_hub_desc">纯粹的物品仓库体系，支持多标签复合属性与自由图鉴库扩展</p>
+                </div>
+                <!-- 顶部操作按钮组 -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-action-gray" id="btn-preview-toggle" onclick="togglePreviewMode()" data-i18n="lock_preview">👁️ 锁定预览</button>
+                    <button class="btn btn-action-gray" id="btn-export-config" onclick="exportCurrentEngineConfig()" data-i18n="cs_btn_export_config">📥 导出配置</button>
+                    <input type="file" id="file-import-config" accept=".zip,.json" style="display: none;" onchange="handleEngineConfigImport(event)">
+                    <button class="btn btn-action-gray" id="btn-import-config" onclick="document.getElementById('file-import-config').click()" data-i18n="cs_btn_import_config">📤 导入配置</button>
+                    <button class="btn btn-primary" id="btn-save-all" onclick="saveAllAndGenerate()" style="padding: 10px 22px; font-weight: bold;" data-i18n="cs_btn_save_config">💾 保存图鉴与引擎配置</button>
+                </div>
+            </div>
+
+            <!-- 游戏名称输入框 -->
+            <div class="pool-section" style="border-top: 4px solid var(--primary); margin-bottom: 20px;">
+                <label style="font-size: 14px; color: #ccc; font-weight: bold; margin-bottom: 8px; display: block;" data-i18n="cs_game_name_label">游戏/引擎名称 (必填)</label>
+                <div class="game-name-row">
+                    <button type="button" id="btn-game-icon" class="cat-icon-badge game-icon-button" onclick="changeGameIcon()" data-i18n-title="cs_cat_prompt_icon_change" data-i18n-aria-label="cs_cat_prompt_icon_change" title="点击更换图标" aria-label="点击更换图标">🛠️</button>
+                    <input type="text" id="input-game-name" class="input-box" style="width: 100%; font-size: 1.1rem; font-weight: bold;" data-i18n-placeholder="cs_game_name_placeholder" placeholder="例如：崩坏：星穹铁道 / 绝区零" onchange="gameInfo.gameName = this.value; markPageDirty();">
+                </div>
+            </div>
+
+<!-- 唯一的快速初始化栏 -->
+<div class="pool-section" id="preset-import-bar" style="background: rgba(0,123,255,0.06); border: 1px dashed var(--primary); padding: 12px 18px; margin-bottom: 20px; display: none; align-items: center; justify-content: space-between;">
+    <div>
+        <span style="font-weight: bold; color: var(--primary);" data-i18n="cs_preset_import_title">📦 快速基于已有游戏初始化：</span>
+        <span style="font-size: 12px; color: #aaa;" data-i18n="cs_preset_import_desc">复制已有预设的星级、分类及全套物品图鉴到当前引擎</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <select id="select-preset-template" class="input-box" style="width: 155px; padding: 4px 8px; font-size: 12px;">
+            <option value="test" data-i18n="game_test" selected>测试专用</option>
+            <option value="hsr" data-i18n="game_hsr">崩坏：星穹铁道 (HSR)</option>
+            <option value="zzz" data-i18n="game_zzz">绝区零 (ZZZ)</option>
+            <option value="ark" data-i18n="game_ark">明日方舟 (Arknights)</option>
+            <option value="end" data-i18n="game_end">明日方舟：终末地 (Endfield)</option>
+        </select>
+        <button type="button" class="btn btn-action-gray" onclick="importFromExistingPreset()" style="font-size: 12px; padding: 4px 12px;" data-i18n="cs_btn_load_preset">载入该游戏图鉴</button>
+    </div>
+</div>
+
+            <!-- 卡池管理手风琴卡片 (预设游戏同样展示以供拖拽排序) -->
+            <div class="pool-section" id="custom-pools-section" style="border-top: 4px solid #f1c40f; padding: 0; overflow: hidden; margin-bottom: 25px; background: rgba(0,0,0,0.18);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; cursor: pointer; user-select: none; background: rgba(255,255,255,0.03);"
+                     onclick="togglePoolsAccordion()">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.2rem;">🎯</span>
+                        <div>
+                            <h3 style="margin: 0; color: var(--gold); font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                                <span data-i18n="cs_pools_title">卡池与抽卡频段管理</span>
+                                <span id="custom-pools-count-badge" style="font-size: 11px; background: rgba(241, 196, 15, 0.15); border: 1px solid rgba(241, 196, 15, 0.4); color: var(--gold); padding: 1px 8px; border-radius: 12px; font-weight: normal;">0 个卡池</span>
+                            </h3>
+                            <p style="font-size: 11px; color: #777; margin: 3px 0 0 0;" data-i18n="cs_pools_desc">为该游戏创建卡池（如限定角色池、武器池、常驻池），创建后侧边栏将自动出现对应链接。</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="pools-arrow-indicator" data-i18n="cs_expand_cfg_btn" style="color: var(--gold); font-size: 12px; font-weight: bold; min-width: 65px; text-align: right;">
+                            ▼ 展开配置
+                        </span>
+                    </div>
+                </div>
+
+                <div id="custom-pools-body" style="display: none; padding: 16px 20px; border-top: 1px dashed rgba(255,255,255,0.08); flex-direction: column; gap: 12px;">
+                    <div id="custom-pools-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                    
+                    <div id="btn-add-pool-wrap" style="display: flex; justify-content: flex-end; margin-top: 8px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.06);">
+                        <button type="button" class="btn btn-primary" onclick="openAddPoolModal()" style="background: var(--gold); color: #000; font-weight: bold; padding: 8px 18px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                            <span>➕</span> <span data-i18n="cs_pools_btn_add">新建卡池</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 外层总折叠卡片：游戏底层引擎全局基因库 -->
+            <div class="pool-section" style="border-top: 4px solid #6c5ce7; padding: 0; overflow: hidden; margin-bottom: 25px; background: rgba(0,0,0,0.18);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; cursor: pointer; user-select: none; background: rgba(255,255,255,0.03);"
+                     onclick="toggleMasterSettingsAccordion()">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.2rem;">⚙️</span>
+                        <div>
+                            <h3 style="margin: 0; color: #a29bfe; font-size: 15px; display: flex; align-items: center; gap: 8px;" data-i18n="cs_master_title">
+                                游戏底层引擎全局配置 (星级 / 标签)
+                            </h3>
+                           <p style="font-size: 11px; color: #777; margin: 3px 0 0 0;" data-i18n="cs_master_desc">包含全局稀有度设定与属性标签字典。通常只需配置一次。</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="master-settings-arrow" data-i18n="cs_expand_cfg_btn" style="color: #a29bfe; font-size: 12px; font-weight: bold; min-width: 65px; text-align: right;">
+                            ▼ 展开配置
+                        </span>
+                    </div>
+                </div>
+
+                <div id="master-settings-body" style="display: none; padding: 16px 20px; border-top: 1px dashed rgba(255,255,255,0.08); flex-direction: column; gap: 15px;">
+        
+                    <!-- 1. 全局稀有度 (Tier) 设定 -->
+                    <div class="category-box" style="margin-bottom: 0;">
+                        <div class="category-header" onclick="toggleSectionAccordion('global-tiers-body', 'tier-arrow-indicator')">
+                            <div class="category-title" style="font-size: 14px; color: #9b59b6;">
+                                <span>🌟</span>
+                                <span data-i18n="cs_tier_sec_title">全局稀有度 (Tier) 基因库</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <button class="btn btn-action-gray" id="btn-add-tier" style="font-size: 11px; padding: 3px 8px;" 
+                                        onclick="event.stopPropagation(); addGlobalTier();" data-i18n="cs_btn_add_tier_gene">➕ 添加稀有度</button>
+                                <span id="tier-arrow-indicator" data-i18n="collapse" style="color: #888; font-size: 11px; min-width: 45px; text-align: right;">▲ 收起</span>
+                            </div>
+                        </div>
+                        <div id="global-tiers-body" style="padding: 12px 14px;">
+                            <div id="global-tiers-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 标签与属性字典 (Tags) -->
+                    <div class="category-box" style="margin-bottom: 0;">
+                        <div class="category-header" onclick="toggleSectionAccordion('custom-tags-body', 'tag-arrow-indicator')">
+                            <div class="category-title" style="font-size: 14px; color: #2ecc71;">
+                                <span>🏷️</span>
+                                <span data-i18n="cs_tag_sec_title">标签与属性字典 (Tags)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <button class="btn btn-action-gray" id="btn-add-tag" style="font-size: 11px; padding: 3px 8px;" 
+                                        onclick="event.stopPropagation(); addCustomTag();" data-i18n="cs_btn_add_tag_gene">➕ 新建标签</button>
+                                <span id="tag-arrow-indicator" data-i18n="collapse" style="color: #888; font-size: 11px; min-width: 45px; text-align: right;">▲ 收起</span>
+                            </div>
+                        </div>
+                        <div id="custom-tags-body" style="padding: 12px 14px;">
+                            <div id="custom-tags-container"></div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+            
+            <!-- 纯图鉴库管理核心区 -->
+            <div class="type-header" id="gallery-catalog-heading">
+                <span data-i18n="cs_catalog_sec_title">📚 纯图鉴总库</span>
+                <button class="btn btn-green" id="btn-add-cat" style="font-size: 13px; padding: 6px 14px;" onclick="addNewCategory()" data-i18n="cs_btn_add_cat">➕ 新建图鉴库 (如: 战术饰品/坐骑)</button>
+            </div>
+
+            <div id="categories-container"></div>
+
+            <!-- 危险操作 -->
+            <div style="margin-top: 50px; text-align: center; border-top: 1px dashed var(--border); padding-top: 25px;">
+                <button class="btn btn-action-gray" id="btn-delete-game" style="color: #ff4757; border-color: #ff4757;" onclick="deleteEntireGame()" data-i18n="cs_del_game_btn">🗑️ 销毁当前自定义游戏的所有本地数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图鉴物品 新建/编辑 弹窗 -->
+    <div id="itemModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:var(--card-bg); border:1px solid var(--border); padding:22px; border-radius:12px; width:450px; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+            <h2 id="modal-title" style="margin-top:0; color:var(--primary);" data-i18n="cs_modal_add_item">➕ 添加新图鉴物品</h2>
+            <input type="hidden" id="modal-cat-id">
+            
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 2;">
+                        <label style="color:#aaa; font-size:12px; font-weight:bold;" data-i18n="cs_modal_lbl_name">名称 (全称)</label>
+                        <input type="text" id="input-item-name" class="input-box" style="width: 100%; margin-top: 4px;" data-i18n-placeholder="cs_modal_ph_name" placeholder="如：银狼 / 裁纸刀">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="color:#aaa; font-size:12px; font-weight:bold;" data-i18n="cs_modal_lbl_short">简称 (看板用)</label>
+                        <input type="text" id="input-item-short" class="input-box" style="width: 100%; margin-top: 4px;" data-i18n-placeholder="cs_modal_ph_short" placeholder="如：狼">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="color:#f1c40f; font-size:12px; font-weight:bold;" data-i18n="cs_modal_lbl_tier">所属稀有度</label>
+                        <select id="input-item-tier" class="input-box" style="width: 100%; margin-top: 4px;"></select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="color:#aaa; font-size:12px; font-weight:bold;" data-i18n="cs_modal_lbl_cat">所属图鉴库</label>
+                        <select id="input-item-cat-select" class="input-box" style="width: 100%; margin-top: 4px;"></select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="color:#2ecc71; font-size:12px; font-weight:bold;" data-i18n="cs_modal_lbl_tags">获取属性与标签 (可多选，如同时属于限定与定制可歪)</label>
+                    <div class="tags-checkbox-grid" id="modal-tags-container"></div>
+                </div>
+
+                <div>
+                    <label style="color:#aaa; font-size:12px; font-weight:bold;" data-i18n="cs_modal_lbl_img">头像/图片 (支持本地上传自动压缩)</label>
+                    <input type="file" id="input-item-file" accept="image/*" style="margin-top: 4px; font-size: 12px; color: #aaa; width: 100%;">
+                    <div id="modal-img-preview" style="width:60px; height:60px; border-radius:8px; border:1px dashed #666; margin-top:8px; background-size:cover; background-position:center;"></div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-action-gray" onclick="document.getElementById('itemModalOverlay').style.display='none'" data-i18n="cancel">取消</button>
+                <button class="btn btn-primary" onclick="saveItemData()" data-i18n="cs_modal_btn_save">💾 保存图鉴</button>
+            </div>
+        </div>
+    </div>
+
+<!-- 通用确认弹窗 -->
+<div id="confirmModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:10000; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
+    <div id="confirm-modal-box" style="background:var(--card-bg, #1e2022); border:1px solid #ff4757; padding:24px; border-radius:12px; width:400px; box-shadow:0 12px 35px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:16px; transition: border-color 0.2s;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:24px;">⚠️</span>
+            <h3 id="confirm-modal-title" style="margin:0; color:#ff4757; font-size:1.15rem; transition: color 0.2s;">危险操作警告</h3>
+        </div>
+        <p id="confirm-modal-msg" style="margin:0; font-size:13px; color:#bbb; line-height:1.6;"></p>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+            <button class="btn btn-action-gray" id="btn-confirm-cancel" style="padding:6px 14px; font-size:12px;" data-i18n="cancel">取消</button>
+            <button class="btn" id="btn-confirm-ok" style="padding:6px 16px; font-size:12px; background:#ff4757; color:#fff; border:1px solid #ff4757; font-weight:bold; cursor:pointer; border-radius:6px; transition: all 0.2s;">确认删除</button>
+        </div>
+    </div>
+</div>
+
+    <!-- 全局轻量 Toast 提示框 -->
+    <div id="toast-notification" style="
+        display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: rgba(30, 33, 40, 0.95); border: 1px solid var(--border); color: #fff;
+        padding: 10px 22px; border-radius: 8px; font-size: 13px; z-index: 99999;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.5); pointer-events: none; transition: opacity 0.3s ease;
+    "></div>
+
+    <!-- 三选一退出保存确认弹窗 -->
+    <div id="unsavedModalOverlay" style="
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); z-index: 99999; justify-content: center; align-items: center;
+    ">
+        <div style="
+            background: var(--card-bg, #1a1c23); border: 1px solid var(--border, #444);
+            padding: 24px; border-radius: 12px; width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        ">
+            <h4 style="margin: 0 0 10px 0; color: #f1c40f; font-size: 16px; display: flex; align-items: center; gap: 8px;" data-i18n="cp_unsaved_title">
+                ⚠️ 未保存的修改
+            </h4>
+            <p style="color: #ccc; font-size: 13px; margin-bottom: 22px; line-height: 1.6;" data-i18n="cs_gallery_unsaved_desc">
+                检测到你对当前图鉴或引擎设定进行了修改，尚未保存！请选择接下来的操作：
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-action-gray" id="btn-unsaved-stay" style="padding: 6px 12px; font-size: 12px;" data-i18n="cp_btn_unsaved_stay">留在此页</button>
+                <button type="button" class="btn btn-action-gray" id="btn-unsaved-discard" style="padding: 6px 12px; font-size: 12px; color: #ff4757; border-color: rgba(255,71,87,0.3);" data-i18n="discard_and_leave">不保存离开</button>
+                <button type="button" class="btn btn-primary" id="btn-unsaved-save" style="padding: 6px 14px; font-size: 12px;" data-i18n="save_and_leave">保存并离开</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 外部预设库与脚本依赖 -->
+    <script src="Preset_Data/db_hsr.js"></script>
+    <script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_test.js"></script>
+    <script src="Preset_Data/db_end.js"></script>
+    <script src="Preset_Data/db_ark.js"></script>
+    <script src="translate/translate_zh.js?v=catalog-engine-title"></script>
+    <script src="translate/translate_en.js?v=catalog-engine-title"></script>
+    <script src="translate/translate.js"></script>
+    <script src="ui/icon_render.js"></script>
+    <script src="logic/catalog_utils.js"></script>
+    <script src="logic/game_data.js?v=test-template"></script>
+    <script src="ui/item_format.js"></script>
+    <script src="ui/toast.js"></script>
+    <script src="logic/list_order.js"></script>
+    <script src="logic/app_preferences.js"></script>
+    <script src="ui/drag_sort.js"></script>
+    <script src="logic/preset_storage.js"></script>
+    <script src="ui/layout.js?v=shared-list-order"></script>
+    <script src="ui/quick_settings.js?v=shared-preferences"></script>
+    <script src="ui/select_ui.js"></script>
+
+    <script src="ui/dialog.js"></script>
+    <script src="ui/unsaved_changes.js"></script>
+    <script src="logic/import_export.js"></script>
+    <script src="ui/image_upload.js"></script>
+    <script src="ui/preview_lock.js"></script>
+    <link rel="stylesheet" href="ui/icon_picker.css">
+    <script src="ui/icon_picker.js"></script>
+    <script src="pages/gallery_setup.js?v=shared-list-order"></script>
+    <link rel="stylesheet" href="ui/bilingual_input.css">
+    <script src="ui/bilingual_input.js"></script>
+    <script src="pages/gallery_bilingual.js"></script>
+</body>
+</html>

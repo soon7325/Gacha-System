@@ -1,0 +1,72 @@
+#sim-economy { flex-shrink:0; border:1px solid var(--primary); border-radius:8px; padding:10px 12px; margin-bottom:12px; background:var(--card-bg); }
+#sim-economy[hidden] { display:none; }
+body:has(#sim-economy:not([hidden])) .pool-config-top-body { max-height:min(230px,27vh); }
+.sim-wallet-strip .btn,.sim-wallet-dialog .btn { background:var(--primary); color:#fff; border:1px solid var(--primary); }
+.sim-wallet-strip { display:flex; align-items:center; gap:12px; }
+.sim-wallet-account { max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.sim-wallet-balances { display:flex; flex:1; flex-wrap:wrap; gap:8px 16px; font-size:12px; }
+.sim-wallet-balances b { color:var(--gold); margin-left:5px; }
+.sim-wallet-payment { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:12px; }
+.sim-wallet-payment select { max-width:460px; flex:1; }
+.sim-wallet-payment .custom-select-ui { width:min(100%,460px)!important; }
+.sim-wallet-note { color:#94a3b8; font-size:12px; }
+.sim-wallet-dialog { width:min(850px,90vw); max-height:82vh; padding:20px; border:1px solid #555; border-radius:12px; background:var(--card-bg); color:var(--text); overflow:auto; }
+.sim-wallet-dialog::backdrop { background:#0009; }
+.sim-wallet-heading,.sim-wallet-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.sim-wallet-heading h3 { margin:0; }
+.sim-wallet-dialog details { margin-top:18px; border:1px solid var(--border); border-radius:8px; padding:12px; }
+.sim-wallet-dialog summary { cursor:pointer; font-weight:bold; }
+.sim-wallet-row { display:flex; align-items:center; gap:10px; margin-top:12px; }
+.sim-wallet-row>div,.sim-wallet-row>select { flex:1; min-width:0; }
+.sim-wallet-row input[type=number] { width:90px; }
+.sim-wallet-dialog small { display:block; color:#94a3b8; margin:5px 0; }
+.sim-wallet-exchange { border-top:1px dashed var(--border); padding-top:12px; margin-top:12px; }
+.sim-wallet-prerequisite { display:block; font-size:12px; margin-top:10px; }
+.sim-wallet-prerequisite span { display:block; color:#94a3b8; margin-top:5px; }
+.sim-wallet-footer { justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }
+.sim-payment-toast { display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:rgba(23,25,29,.95); border:1px solid #444; color:#fff; padding:10px 22px; border-radius:8px; font-size:13px; z-index:100008; box-shadow:0 8px 25px #0009; pointer-events:none; transition:opacity .3s; max-width:calc(100vw - 40px); box-sizing:border-box; }
+@media(max-width:650px){ .sim-wallet-strip,.sim-wallet-payment { flex-wrap:wrap; } .sim-wallet-row { flex-wrap:wrap; } }
+.sim-start-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:14px;margin-bottom:18px; }
+.sim-start-grid label { display:flex;flex-direction:column;gap:7px;font-size:13px; }
+.sim-start-grid input[type=checkbox] { align-self:flex-start; }
+.sim-start-grid .input-box { width:100%;box-sizing:border-box; }
+
+.sim-start-owned { max-height:320px;overflow:auto;margin-top:10px; }
+.sim-start-owned-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:8px; }
+.sim-start-owned [data-start-tier] { border:1px solid var(--border);border-radius:8px;margin-top:10px;padding:12px; }
+.sim-start-owned h4 { margin:12px 0; }
+.sim-start-owned h5 { margin:10px 0;color:#94a3b8; }
+.sim-start-owned .sim-start-category-title { font-size:16px;margin:20px 0 12px; }
+.sim-start-owned .sim-start-tier-title { color:var(--text);font-size:14px; }
+.sim-start-owned h6 { margin:10px 0;color:#94a3b8;font-size:12px;font-weight:normal; }
+.sim-start-owned [hidden] { display:none; }
+.sim-start-owned label { display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px; }
+.sim-start-owned label[hidden] { display:none; }
+.sim-start-owned input { width:75px; }
+.sim-start-fill-toolbar { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px; }
+.sim-start-fill-toolbar .sim-wallet-note { flex:1;min-width:180px; }
+.sim-start-fill-toolbar button[hidden] { display:none; }
+.sim-start-dialog [data-start-search] { width:100%;box-sizing:border-box;margin-top:12px; }
+.sim-start-dialog .sim-wallet-heading { position:sticky;top:-20px;padding:12px 0;background:var(--card-bg);z-index:2; }
+
+.sim-wallet-unlock-group{border:1px solid var(--border,#444);border-radius:8px;padding:14px;margin:14px 0;background:var(--card-bg,#202428)}
+.sim-wallet-unlock-group h4{display:flex;justify-content:space-between;gap:12px;margin:0 0 8px;color:var(--text,#eee)}
+.sim-wallet-unlock-group h4 span{color:#74b9ff;font-size:12px;font-weight:normal}
+.sim-wallet-unlock-progress{padding-left:20px;color:var(--text,#eee);font-size:12px;line-height:1.8}
+.sim-wallet-unlock-group button:disabled{opacity:.45;cursor:not-allowed}
+
+.resource-exchange-category{margin:12px 0;border:1px solid var(--border,#444);border-radius:8px;padding:12px}
+.resource-exchange-category>summary{cursor:pointer;font-weight:bold;color:var(--text,#eee)}
+.resource-exchange-body{padding-top:6px}.resource-exchange-body .sim-wallet-exchange:first-child{border-top:0}
+
+.resource-exchange-toast {display:none;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);max-width:min(680px,calc(100vw - 48px));box-sizing:border-box;padding:12px 20px;border:1px solid #ff4757;border-radius:8px;background:#291e22;color:#ffb3bb;box-shadow:0 8px 25px #0009;z-index:100010;pointer-events:none;transition:opacity .3s;font-size:14px;}
+
+.sim-start-history{margin-top:18px;padding-top:14px;border-top:1px dashed var(--border)}
+.sim-start-dialog .eco-error:empty{display:none}
+.sim-start-history h5{margin:0 0 8px;font-size:14px;color:var(--text)}
+/* 提示仅跟随排列最靠前的已展开卡池，后续面板不预留空间。 */
+.sim-start-dialog [data-start-pool-section] [data-history-note]{display:none}
+.sim-start-dialog [data-start-pool-section][open] [data-history-note]{display:block}
+.sim-start-dialog [data-start-pool-section][open] ~ [data-start-pool-section] [data-history-note]{display:none}
+.sim-start-history .input-box,.sim-start-history output{box-sizing:border-box;width:100%;height:34px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font:inherit}
+.sim-start-history output{display:flex;align-items:center;min-height:0;color:var(--text);background:var(--bg-dark)}

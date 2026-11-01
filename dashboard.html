@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
+    <script src="logic/version_storage.js"></script>
+    <script src="ui/color_style.js"></script>
+    <script src="logic/test_catalog.js?v=preset-visibility"></script>
+    <script src="ui/page_layout.js"></script>
+    <script src="ui/content_columns.js"></script>
+    <script src="ui/gold_ordinal.js"></script>
+    <link rel="stylesheet" href="ui/gold_ordinal.css">
+    <link rel="stylesheet" href="ui/content_columns.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gacha System - 自定义看板</title>
+    <!-- 页面加载前立即执行的主题与布局初始化脚本，避免页面闪烁 -->
+    <!--
+        抽卡记录面板：从 URL 的 gameId / pool 定位数据源，读取 GM_Data_{gameId}_{pool}，
+        并结合卡池规则与图鉴显示记录、统计结果，以及录入/删除操作。
+    -->
+    <script>
+        (function() {
+            document.documentElement.setAttribute('data-distribution', localStorage.getItem('GM_Dashboard_Distribution') || 'show');
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            let savedLayout = localStorage.getItem('GM_Dashboard_Layout') || 'center';
+
+            document.documentElement.setAttribute('data-layout', savedLayout);
+
+            const savedHeaderLayout = localStorage.getItem('GM_Dashboard_Header_Layout') || 'follow';
+            document.documentElement.setAttribute('data-header-layout', savedHeaderLayout);
+        })();
+    </script>
+    <link rel="stylesheet" href="ui/style.css">
+    <link rel="stylesheet" href="ui/number_input.css">
+    <script src="ui/number_input.js" defer></script>
+    <link rel="stylesheet" href="ui/select_ui.css">
+    <style>
+        [data-distribution="hide"] #tier-distribution-panel { display:none !important; }
+        /* ==========================================
+           1. 基础布局与变量 (继承自全局样式)
+           ========================================== */
+        :root {
+            --primary: #007bff;
+            --gold: #f1c40f;
+            --rarity-5: #f1c40f; 
+            --rarity-4: #9b59b6;
+            --rarity-3: #3498db;
+            --text: #eee;
+            --card-bg: #2a2a2a;
+            --border: #444;
+        }
+
+        .dashboard-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            margin-bottom: 25px; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 15px; 
+        }
+
+        .game-title { 
+            font-size: 2rem; 
+            margin: 0; 
+            background: -webkit-linear-gradient(45deg, var(--primary), #a29bfe); 
+            -webkit-background-clip: text; 
+            background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        
+        .stat-box { 
+            flex: 0 1 auto; 
+            min-width: 120px; 
+            background: var(--card-bg); 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border); 
+            text-align: center; 
+        }
+        .stat-label { font-size: 0.85rem; color: #888; margin-bottom: 5px; }
+        .stat-value { font-size: 1.6rem; font-weight: bold; color: var(--gold); }
+        .stat-box-total { display: flex; flex-direction: column; }
+        .stat-box-total #res-total { flex: 1; display: grid; place-items: center; font-size: 1.85rem; line-height: 1.3; }
+        .char-icon {
+            flex-shrink: 0;
+        }
+        /* 抽卡条与交互展开样式 */
+        .char-bar {
+            flex-shrink: 0;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+            white-space: nowrap;
+            height: 38px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            border-radius: 6px;
+            user-select: none;
+        }
+
+        /* 抽卡行容器支持多行包裹 */
+.char-row {
+    display: flex;
+    flex-direction: column; /* 允许异常详情在下方展开 */
+    align-items: flex-start;
+    gap: 6px;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 560px; /* 保持与原来对齐宽度一致 */
+}
+
+/* 靠右对齐时整体靠右 */
+[data-layout="right"] .char-row {
+    align-items: flex-end;
+}
+
+/* 顶部头像和主进度条那一行 */
+.char-row-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+[data-layout="right"] .char-row-main {
+    flex-direction: row-reverse;
+}
+
+/* 异常抽卡条 */
+.char-bar.is-invalid-bar {
+    cursor: pointer;
+    border: 1.5px solid #ff4757 !important;
+    background: #181113 !important;
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.45);
+    transition: all 0.2s ease;
+}
+.char-bar.is-invalid-bar:hover {
+    box-shadow: 0 0 16px rgba(255, 71, 87, 0.7);
+    filter: brightness(1.1);
+}
+
+/* 🌟 下方展开的异常详情气泡盒 (支持英文无限长文本自动换行) */
+.invalid-detail-box {
+    display: none; /* 默认折叠 */
+    background: rgba(255, 71, 87, 0.12);
+    border: 1px dashed #ff4757;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #ff6b81;
+    line-height: 1.5;
+    word-break: break-word; /* 核心：英文单词超长时自动折行 */
+    white-space: normal;    /* 核心：支持多行文字 */
+    width: fit-content;
+    max-width: 520px;
+    margin-left: 50px;      /* 避开左侧头像 */
+    box-sizing: border-box;
+    animation: fadeInDown 0.2s ease-out;
+}
+
+[data-layout="right"] .invalid-detail-box {
+    margin-left: 0;
+    margin-right: 50px;
+    text-align: right;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 展开激活 */
+.char-row.expanded .invalid-detail-box {
+    display: block;
+}
+
+        .input-box {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .input-box:focus { border-color: var(--primary) !important; }
+
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10000; 
+        }
+        .modal-content { 
+            background: #1e2126; 
+            border: 1px solid #333; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+        }
+        [data-theme="light"] #display-engine-info { 
+            background: rgba(0,0,0,0.05) !important; 
+            border-color: #d1d5db !important; 
+            color: #4b5563 !important; 
+        }
+
+        /* =========================================================================
+           🌟 核心：中部内容区与滚动条对齐控制 (按你的需求精准定位)
+           ========================================================================= */
+
+        /* 默认基础盒 */
+        .dashboard-center-wrapper {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 1️⃣ 场景一：全覆盖 (full) 模式下，让中间宽度撑满 100%，滚动条直接贴在浏览器最右边！ */
+        [data-header-layout="full"] .dashboard-center-wrapper {
+            max-width: 100%;
+            margin: 0;
+        }
+
+        /* 2️⃣ 场景二：随下方移动 (follow) 模式下，限制为 800px (与头部等宽)，滚动条刚好落在「录入数据」垂直正下方！ */
+        [data-header-layout="follow"][data-layout="center"] .dashboard-center-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        [data-header-layout="follow"][data-layout="left"] .dashboard-center-wrapper {
+            max-width: 800px;
+            margin: 0 auto 0 0;
+        }
+        [data-header-layout="follow"][data-layout="right"] .dashboard-center-wrapper {
+            max-width: 800px;
+            margin: 0 0 0 auto;
+        }
+
+        /* 居中对齐时：4个统计格子居中，抽卡条居中显示 */
+        [data-layout="center"] .stats-header {
+            justify-content: center;
+            width: 100%;
+        }
+        [data-layout="center"] #list-wrap {
+            align-items: center; /* 抽卡条保持居中美观 */
+        }
+
+        /* 靠左对齐时：4个统计格子靠左，抽卡条靠左显示 */
+        [data-layout="left"] .stats-header {
+            justify-content: flex-start;
+        }
+        [data-layout="left"] #list-wrap {
+            align-items: flex-start;
+        }
+
+        /* 靠右对齐时：4个统计格子靠右，抽卡条靠右并反转镜像 */
+        [data-layout="right"] .stats-header {
+            justify-content: flex-end;
+        }
+        [data-layout="right"] #list-wrap {
+            align-items: flex-end;
+        }
+        [data-layout="right"] .char-bar {
+            justify-content: flex-end;
+            padding-right: 15px;
+        }
+
+        /* ==========================================
+           全视口三段式布局 (滚动条位置根据设置自适应)
+           ========================================== */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 禁止整页乱滚，由内部滚动区接管 */
+        }
+
+        .main-content {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .dashboard-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            padding: 20px 25px 12px 25px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        /* 顶部标题与操作栏 (固定顶部不随滚动离开) */
+        .dashboard-header-wrapper {
+            width: 100%;
+            flex-shrink: 0;
+            transition: max-width 0.3s ease, margin 0.3s ease;
+        }
+        /* 兼容设置：顶栏全覆盖 vs 随下方移动 */
+        [data-header-layout="full"] .dashboard-header-wrapper {
+            max-width: 100%;
+            margin: 0;
+        }
+        [data-header-layout="follow"][data-layout="center"] .dashboard-header-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        [data-header-layout="follow"][data-layout="left"] .dashboard-header-wrapper {
+            max-width: 800px;
+            margin: 0 auto 0 0;
+        }
+        [data-header-layout="follow"][data-layout="right"] .dashboard-header-wrapper {
+            max-width: 800px;
+            margin: 0 0 0 auto;
+        }
+
+        /* 4 个格子统计区域：固定置顶 */
+        .stats-header {
+            flex-shrink: 0;
+            margin-bottom: 12px;
+        }
+
+        /* =========================================================================
+           🌟 核心：中部内容区与滚动条对齐控制 (按你的需求精准定位)
+           ========================================================================= */
+
+        /* 默认基础盒 */
+        .dashboard-center-wrapper {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 1️⃣ 场景一：全覆盖 (full) 模式下，让中间宽度撑满 100%，滚动条直接贴在浏览器最右边！ */
+        [data-header-layout="full"] .dashboard-center-wrapper {
+            max-width: 100%;
+            margin: 0;
+        }
+
+        /* 2️⃣ 场景二：随下方移动 (follow) 模式下，限制为 800px (与头部等宽)，滚动条刚好落在「录入数据」垂直正下方！ */
+        [data-header-layout="follow"][data-layout="center"] .dashboard-center-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        [data-header-layout="follow"][data-layout="left"] .dashboard-center-wrapper {
+            max-width: 800px;
+            margin: 0 auto 0 0;
+        }
+        [data-header-layout="follow"][data-layout="right"] .dashboard-center-wrapper {
+            max-width: 800px;
+            margin: 0 0 0 auto;
+        }
+
+        /* 居中对齐时：4个统计格子居中，抽卡条居中显示 */
+        [data-layout="center"] .stats-header {
+            justify-content: center;
+            width: 100%;
+        }
+        [data-layout="center"] #list-wrap {
+            align-items: center; /* 抽卡条保持居中美观 */
+        }
+
+        /* 靠左对齐时：4个统计格子靠左，抽卡条靠左显示 */
+        [data-layout="left"] .stats-header {
+            justify-content: flex-start;
+        }
+        [data-layout="left"] #list-wrap {
+            align-items: flex-start;
+        }
+
+        /* 靠右对齐时：4个统计格子靠右，抽卡条靠右并反转镜像 */
+        [data-layout="right"] .stats-header {
+            justify-content: flex-end;
+        }
+        [data-layout="right"] #list-wrap {
+            align-items: flex-end;
+        }
+        [data-layout="right"] .char-bar {
+            justify-content: flex-end;
+            padding-right: 15px;
+        }
+
+        /* 🌟 把滚动容器放满整个中间区域，让滚动条去到最右边缘 */
+        #list-wrap {
+            flex: 1;
+            min-height: 0;
+            width: 100% !important; /* 关键：撑满 center-wrapper 的宽度 */
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 5px 12px 15px 12px;
+            box-sizing: border-box;
+        }
+
+        /* 滚动条外观保持精致低调 */
+        #list-wrap::-webkit-scrollbar {
+            width: 6px;
+        }
+        #list-wrap::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #list-wrap::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        #list-wrap::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        /* 🌟 固定底栏 */
+        .dashboard-fixed-footer {
+            flex-shrink: 0;
+            width: 100%;
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+            padding-top: 10px;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            box-sizing: border-box;
+        }
+
+        /* 录入行高亮指示 */
+        .highlight-flash {
+            animation: rowFlash 1.6s ease-out;
+        }
+        @keyframes rowFlash {
+            0% { background: rgba(241, 196, 15, 0.4); outline: 2px solid var(--gold); }
+            100% { background: transparent; outline: 2px solid transparent; }
+        }
+
+        /* 规则更新/换期分隔行与中央按钮样式 */
+.rule-update-divider-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 188, 156, 0.08);
+    border: 2px dashed #1abc9c;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 14px 0;
+    position: relative;
+    user-select: none;
+    transition: all 0.25s ease;
+}
+.rule-update-divider-row:hover {
+    background: rgba(26, 188, 156, 0.15);
+    border-color: #2ecc71;
+}
+.btn-update-pool-rules {
+    background: linear-gradient(135deg, #1abc9c, #16a085);
+    color: #fff;
+    border: 1px solid #2ecc71;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(26, 188, 156, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-update-pool-rules:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(26, 188, 156, 0.5);
+    background: linear-gradient(135deg, #2ecc71, #1abc9c);
+}
+.rule-update-tag-badge {
+    background: #1abc9c;
+    color: #000;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* ==========================================
+   删除模式专属状态样式
+   ========================================== */
+/* 顶部删除模式切换按钮 */
+.btn-delete-mode {
+    background: rgba(255, 71, 87, 0.15) !important;
+    border: 1px solid #ff4757 !important;
+    color: #ff4757 !important;
+    transition: all 0.2s ease;
+}
+.btn-delete-mode.active {
+    background: #ff4757 !important;
+    color: #fff !important;
+    box-shadow: 0 0 12px rgba(255, 71, 87, 0.55);
+    animation: pulseBorder 1.5s infinite;
+}
+@keyframes pulseBorder {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 71, 87, 0.4); }
+    50% { box-shadow: 0 0 16px rgba(255, 71, 87, 0.8); }
+}
+
+/* 默认状态下隐藏所有垃圾桶与节点的删除图标 */
+.row-delete-btn,
+.rule-node-delete-btn {
+    display: none !important;
+}
+
+/* 激活删除模式时展示整行删除入口 */
+body.is-delete-mode .row-delete-btn,
+body.is-delete-mode .rule-node-delete-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 激活删除模式时，方块呈现可删除状态 */
+body.is-delete-mode .box {
+    position: relative;
+    cursor: pointer !important;
+}
+body.is-delete-mode .box:hover {
+    outline: 2px solid #ff4757 !important;
+    filter: brightness(0.85);
+    transform: scale(0.96);
+}
+body.is-delete-mode .box:hover::after {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: 900;
+    color: #ff4757;
+    text-shadow: 0 0 4px #000, 0 0 8px #000;
+    z-index: 10;
+}
+
+/* 默认非删除模式下：强制彻底隐藏轮替节点右边的打叉 */
+.rule-node-delete-btn,
+.rule-node-item button[onclick*="rule-node-item"] {
+    display: none !important;
+}
+
+/* 激活删除模式时展示整行删除入口，并允许点击交互 */
+body.is-delete-mode .row-delete-btn {
+    display: inline-flex !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+body.is-delete-mode .rule-node-delete-btn,
+body.is-delete-mode .rule-node-item button[onclick*="rule-node-item"] {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+/* ==========================================
+   删除模式安全锁定与按钮样式
+   ========================================== */
+/* 删除模式下：更新卡池规则按钮、取消按钮、保存按钮变灰禁用 */
+body.is-delete-mode .btn-update-pool-rules,
+body.is-delete-mode #ui-btn-cancel,
+body.is-delete-mode #ui-btn-save {
+    pointer-events: none !important;
+    opacity: 0.35 !important;
+    filter: grayscale(1) !important;
+    cursor: not-allowed !important;
+}
+
+/* 默认状态下隐藏撤回按钮 */
+#btn-undo-delete {
+    display: none;
+}
+
+/* 删除模式下：隐藏「+十连」与「+单抽」，展示「↩️ 撤回上一步」 */
+body.is-delete-mode #btn-add-ten,
+body.is-delete-mode #btn-add-single {
+    display: none !important;
+}
+body.is-delete-mode #btn-undo-delete {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+}
+/* 🌟 删除模式下：隐藏行内的「+」单抽追加虚线框，防止误触 */
+body.is-delete-mode .box-add-more {
+    display: none !important;
+}
+
+/* ==========================================
+   看板外层：换期轮替分割标线样式
+   ========================================== */
+.pool-rotation-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 18px 0 8px 0;
+    width: 100%;
+    max-width: 560px;
+    user-select: none;
+}
+
+.pool-rotation-divider::before,
+.pool-rotation-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(26, 188, 156, 0.6), transparent);
+}
+
+.rotation-badge-capsule {
+    background: rgba(26, 188, 156, 0.15);
+    border: 1px solid #1abc9c;
+    color: #1abc9c;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 12px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 0 10px rgba(26, 188, 156, 0.25);
+    white-space: nowrap;
+}
+
+/* ==========================================
+   📱 移动端与窄屏响应式适配 (页面缩小自适应)
+   ========================================== */
+@media screen and (max-width: 768px) {
+    /* 1. 容器内边距缩小 */
+    .dashboard-container {
+        padding: 12px 10px 8px 10px !important;
+    }
+
+    /* 2. 顶部标题与操作按钮自适应缩小 */
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 15px;
+        padding-bottom: 12px;
+    }
+
+    .game-title {
+        font-size: 1.4rem !important;
+    }
+
+    /* 按钮组自动横向平铺/缩小，禁止竖向被挤扁 */
+    .dashboard-header > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: 6px !important;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-header .btn {
+        flex: 1 1 auto;
+        min-width: 80px;
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+        white-space: nowrap;
+        text-align: center;
+        justify-content: center;
+    }
+
+    /* 3. 统计网格适配 (避免一行4个被挤变形，变为2x2网格) */
+    .stats-header {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    .stat-box {
+        min-width: 0 !important;
+        padding: 10px 8px !important;
+    }
+
+    .stat-label {
+        font-size: 0.75rem !important;
+    }
+
+    .stat-value {
+        font-size: 1.25rem !important;
+    }
+    .stat-box-total #res-total {
+        font-size: 1.45rem !important;
+    }
+
+    /* 4. 抽卡记录条缩小尺寸 */
+    .char-row {
+        max-width: 100% !important;
+        gap: 4px !important;
+    }
+
+    .char-row-main {
+        gap: 8px !important;
+    }
+
+    .char-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 11px !important;
+    }
+
+    .char-bar {
+        height: 30px !important;
+        padding: 0 8px !important;
+        font-size: 11px !important;
+    }
+
+    /* 5. 底栏自适应 */
+    .dashboard-fixed-footer {
+        flex-direction: column;
+        gap: 6px !important;
+        padding-top: 6px !important;
+    }
+
+    .dashboard-fixed-footer button {
+        width: 100%;
+        height: 32px;
+    }
+}
+
+/* 超窄屏（如折叠屏外屏或小屏手机）更紧凑调整 */
+@media screen and (max-width: 420px) {
+    .game-title {
+        font-size: 1.2rem !important;
+    }
+    .dashboard-header .btn {
+        font-size: 10px !important;
+        padding: 5px 6px !important;
+    }
+}
+
+/* ==========================================
+   📱 录入数据弹窗移动端/小画面专用适配
+   ========================================== */
+@media screen and (max-width: 768px) {
+    /* 1. 弹窗容器尺寸微调，扩大可视区域 */
+    #modalOverlay .modal-content {
+        width: 96% !important;
+        max-width: 100vw !important;
+        padding: 12px 10px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 2. 弹窗顶栏允许换行与自适应排列 */
+    #modalOverlay .modal-content > div:first-child {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* 标题隐藏或缩减，腾出关键操作空间 */
+    #ui-modal-title {
+        display: none !important;
+    }
+
+    /* 左侧按钮工具条自适应换行，避免宽度撑爆 */
+    #modalOverlay .modal-content > div:first-child > div:first-child {
+        flex-wrap: wrap !important;
+        flex: 1 1 auto !important;
+        gap: 6px !important;
+    }
+
+    /* 顶部操作按钮紧凑化 */
+    #modalOverlay .btn {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+    }
+
+    /* 3. 核心：确保右侧【保存并关闭】始终醒目且不会被挤出 */
+    #modalOverlay .modal-content > div:first-child > div:last-child {
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    #ui-btn-save {
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+        font-weight: bold !important;
+    }
+
+    /* 定位抽数输入框变紧凑 */
+    #modalOverlay .modal-content input[type="number"] {
+        width: 42px !important;
+        font-size: 11px !important;
+    }
+
+    /* 4. 录入内容编辑列表在手机端的高度与间距优化 */
+    #edit-body {
+        height: 60vh !important;
+        padding: 8px 6px !important;
+    }
+
+    /* 行卡片紧凑排版 */
+    .edit-row-container {
+        padding: 6px 8px !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* 抽卡方块等比缩小，防止换行后占太多纵向空间 */
+    .boxes-group {
+        gap: 4px !important;
+    }
+    
+    .boxes-group .box,
+    .boxes-group .box-add-more {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 10px !important;
+        border-radius: 4px !important;
+    }
+
+    /* 右侧 白送/区间 控制区紧凑化 */
+    .edit-row-container > div:last-child {
+        gap: 6px !important;
+        font-size: 11px !important;
+    }
+    
+    .row-range-label {
+        font-size: 10px !important;
+    }
+
+    /* 5. 底部提示语缩小并允许折行 */
+    #modalOverlay .modal-content > div:last-child {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* 针对更极端的极窄屏幕（如小于 380px） */
+@media screen and (max-width: 380px) {
+    .boxes-group .box,
+    .boxes-group .box-add-more {
+        width: 27px !important;
+        height: 27px !important;
+    }
+}
+    .dashboard-initial-progress{padding:14px 18px;border:1px dashed var(--border);border-radius:8px;color:#94a3b8;font-size:12px;line-height:1.8;margin-top:12px;overflow-wrap:anywhere}
+</style>
+<link rel="stylesheet" href="ui/page_layout.css">
+    <link rel="stylesheet" href="ui/art-direction.css?v=0.3.6.21">
+</head>
+<body>
+    <!-- 侧边栏容器 (由 layout.js 动态渲染) -->
+    <div class="sidebar"></div>
+    
+    <!-- 主体内容区 -->
+    <div class="main-content">
+        <div class="dashboard-container">
+            <!-- 头部标题与操作按钮包裹器 -->
+            <div class="dashboard-header-wrapper">
+                <div class="dashboard-header">
+                    <div class="dashboard-heading">
+                        <div class="dashboard-title-row">
+                            <h1 class="game-title" id="display-game-name" data-i18n="cd_title_loading">加载中...</h1>
+                            <div class="dashboard-pool-badge" id="display-engine-info"></div>
+                        </div>
+                        <div id="dashboard-account-bar" class="dashboard-account-bar" hidden></div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-action-gray" onclick="window.location.href='pool_setup.html?gameId=' + currentGameId + '&pool=' + currentPool" data-i18n="cd_btn_edit_rules">⚙️ 修改卡池概率</button>
+                        <button class="btn btn-sim-open" style="background-color: #8e44ad;" onclick="openDashboardSimulator()" data-i18n="cd_btn_sim">✨ 模拟抽卡</button>
+                        <button class="btn btn-primary" onclick="openModal()" data-i18n="cd_btn_input">录入数据</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 下方数据中心 -->
+            <div class="dashboard-center-wrapper">
+                <!-- 顶部四个统计格子 (固定置顶) -->
+                <div class="stats-header">
+                    <!-- 1. 总抽数 -->
+                    <div class="stat-box stat-box-total">
+                        <div class="stat-label" data-i18n="cd_stat_total">总抽数</div>
+                        <div class="stat-value" id="res-total">0</div>
+                    </div>
+
+                    <!-- 2. 总出金 -->
+                    <div class="stat-box">
+                        <div class="stat-label" data-i18n="cd_stat_gold_title">总出金 (大奖)</div>
+                        <div class="stat-value" id="res-gold-count" style="color: var(--gold);">0</div>
+                        <div style="font-size: 11px; color: #aaa; margin-top: 5px;" id="res-gold-rate">✨ 出金率 0.00%</div>
+                    </div>
+
+                    <!-- 3. 不歪率 -->
+                    <div class="stat-box">
+                        <div class="stat-label" id="label-winrate" data-i18n="cd_stat_winrate">不歪率</div>
+                        <div class="stat-value" id="res-rate" style="color: #2ecc71;">0%</div>
+                        <div style="font-size: 11px; color: #aaa; margin-top: 5px;" id="res-win-detail">🎯 命中 UP 0 / 歪 0</div>
+                    </div>
+
+                    <!-- 4. 平均出金 -->
+                    <div class="stat-box">
+                        <div class="stat-label" data-i18n="cd_stat_avg">平均出金</div>
+                        <div class="stat-value" id="res-avg">0</div>
+                        <div style="font-size: 11px; color: #777; margin-top: 5px;" id="res-luck-rating">欧气评级: -</div>
+                    </div>
+                </div>
+
+                <!-- 🌟 抽卡流水条展示区 (仅此处上下独立滑动，严格响应居中/左/右对齐设置) -->
+                <div id="list-wrap"></div>
+
+                <!-- 🌟 始终贴紧浏览器视口最底端的底栏 -->
+                <div class="dashboard-fixed-footer">
+                    <!-- 左下角：导出记录按钮 -->
+                    <button class="btn btn-action-gray" style="flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; padding: 0 16px; border: 1px solid var(--border); border-radius: 8px;" onclick="exportGachaData()">
+                        <span>💾</span> <span data-i18n="cd_btn_export_record">导出记录</span>
+                    </button>
+
+                    <!-- 左下角隔壁：星级出货分布分析卡片 (动态自适应当前游戏/DB星级) -->
+                    <div id="tier-distribution-panel" style="flex: 1; min-width: 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; box-sizing: border-box;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px;">
+                            <span style="font-weight: bold; color: #eee; display: flex; align-items: center; gap: 6px;">
+                                <span>📊</span> <span data-i18n="cd_dist_title">星级出货分布分析</span>
+                            </span>
+                            <!-- 🌟 动态生成的星级数量与百分比文字列表 -->
+                            <div id="dist-tier-labels" style="display: flex; gap: 12px; font-size: 11px; font-weight: bold; flex-wrap: wrap;"></div>
+                        </div>
+                        <!-- 🌟 动态自适应颜色的百分比比例条 -->
+                        <div id="dist-tier-bars" style="display: flex; height: 10px; background: rgba(0,0,0,0.4); border-radius: 5px; overflow: hidden; width: 100%; border: 1px solid rgba(255,255,255,0.05);"></div>
+                    </div>
+                </div>
+            </div>
+
+<!-- 数据录入主弹窗 -->
+    <div id="modalOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width: 920px; width: 96%; padding: 18px 22px;">
+            <!-- 弹窗头部：按钮与抽数跳转导航 -->
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center; flex-wrap:nowrap; gap:10px; width:100%; box-sizing:border-box;">
+    <div style="display:flex; gap:8px; align-items:center; flex-shrink: 0;">
+        <button type="button" id="ui-btn-cancel" class="btn btn-action-gray" style="padding: 5px 10px; font-size: 14px;" onclick="handleModalCancelClick()" title="取消并退出">✕</button>
+        <button id="btn-add-ten" class="btn btn-action-gray" onclick="handleBtnAddTen()" data-i18n="cd_modal_add10">+ 十连</button>
+        <button id="btn-add-single" class="btn btn-action-gray" onclick="handleBtnAddSingle()" data-i18n="cd_modal_add1">+ 单抽</button>
+        <button type="button" id="btn-undo-delete" class="btn btn-action-gray" style="color: #f1c40f; border-color: #f1c40f;" onclick="handleUndoDelete()">
+            ↩️ <span data-i18n="cd_delete_revert_step">撤回上一步</span> (<span id="undo-step-count">0</span>)
+        </button>
+        <button type="button" id="btn-toggle-delete-mode" class="btn btn-delete-mode" onclick="toggleDeleteMode()" data-i18n="cd_delete_mode">🗑️ 删除模式</button>
+        
+        <div style="display: flex; align-items: center; gap: 4px; margin-left: 6px; background: rgba(0,0,0,0.25); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); flex-shrink: 0;">
+            <span style="font-size: 11px; color: #888;" data-i18n="cd_prompt_jump">🔍 定位抽数:</span>
+            <input type="number" id="input-jump-pull" data-i18n-placeholder="cd_ph_jump" placeholder="如 120" style="width: 55px; background: transparent; border: none; color: #fff; font-size: 12px; outline: none;" onkeydown="if(event.key==='Enter') scrollToPullNumber(this.value)">
+            <button class="btn btn-action-gray" style="padding: 2px 6px; font-size: 11px;" onclick="scrollToPullNumber(document.getElementById('input-jump-pull').value)">GO</button>
+        </div>
+    </div>
+
+    <h3 id="ui-modal-title" style="margin:0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px;" data-i18n="cd_modal_title">数据录入 (点击方块修改)</h3>
+    
+    <div style="flex-shrink: 0;">
+        <button id="ui-btn-save" class="btn btn-primary" style="white-space: nowrap;" onclick="closeModal()" data-i18n="cd_modal_save">保存并更新</button>
+    </div>
+</div>
+            
+            <!-- 弹窗内部十连记录编辑区 -->
+            <div id="edit-body" style="height:65vh; overflow-y:auto; border-radius:8px; padding:15px; background: rgba(0,0,0,0.18);"></div>
+
+            <!-- 底部状态指示 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; color: #888;">
+                <span data-i18n="cd_input_tip_bottom">💡 提示：点击「+ 十连」必定开辟新排；单抽沿未满行追加。点击方块循环切换星级。</span>
+                <span id="modal-footer-pull-count">当前已录入: 0 抽</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 取消退出三选一拦截弹窗 -->
+    <div id="cancelConfirmModal" class="modal-overlay" style="display:none; z-index: 100006;">
+        <div class="modal-content" style="max-width: 440px; width: 92%; padding: 22px; border-left: 4px solid #f1c40f; border-radius: 10px;">
+            <h4 style="margin:0 0 10px 0; color:#f1c40f; font-size:16px; display:flex; align-items:center; gap:8px;">
+                <span>⚠️</span><span data-i18n="cd_modal_unsaved_title">未保存的录入修改</span>
+            </h4>
+            <p style="font-size:13px; color:#ccc; margin-bottom:20px; line-height:1.6;">
+                <span data-i18n="cd_modal_unsaved_desc">检测到录入数据已被修改。是否确认在离开前保存？</span>
+            </p>
+            <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+                <button type="button" id="btn-cancel-stay" class="btn btn-action-gray" style="padding:5px 12px; font-size:12px;" data-i18n="cd_btn_stay">留在这里</button>
+                <button type="button" id="btn-cancel-discard" class="btn btn-action-gray" style="color:#ff4757; border-color:rgba(255,71,87,0.3); padding:5px 12px; font-size:12px;" data-i18n="discard_and_leave">不保存离开</button>
+                <button type="button" id="btn-cancel-save" class="btn btn-primary" style="padding:5px 14px; font-size:12px;" data-i18n="save_and_leave">保存并离开</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 规则限制更新与换期弹层（与主弹窗完全平级独立） -->
+    <div id="ruleUpdateModalOverlay" class="modal-overlay" style="display:none; z-index: 100001;">
+        <div class="modal-content" style="max-width: 520px; width: 92%; padding: 22px; border-left: 4px solid #1abc9c; border-radius: 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px dashed #444; padding-bottom:8px;">
+                <h4 style="margin:0; color:#1abc9c; font-size:16px; display:flex; align-items:center; gap:8px;">
+                    <span>🔄</span><span data-i18n="cd_rotation_modal_title">更新卡池规则限制 / 换期轮替</span> 
+                </h4>
+                <button onclick="closeRuleUpdateModal()" style="background:none; border:none; color:#ff4757; font-size:16px; cursor:pointer;">✕</button>
+            </div>
+            
+            <p style="font-size:12px; color:#aaa; margin-bottom:14px; line-height: 1.5;">
+                <span data-i18n="cd_rotation_modal_desc">在此节点之后生效新的卡池限制（基于卡池 11 换期继承配置）。系统将从当前抽数起，自动执行以下刷新与继承：</span>
+            </p>
+
+            <!-- 动态规则刷新清单容器 -->
+            <div id="rule-update-dynamic-items" style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
+                <button class="btn btn-action-gray" onclick="closeRuleUpdateModal()"data-i18n="cancel">取消</button>
+                <button class="btn btn-primary" onclick="confirmInsertRuleNode()" style="background:#1abc9c; border-color:#1abc9c;"data-i18n="cd_btn_confirm_rotation">确认并开辟新期十连</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 退出删除模式确认弹窗（与主弹窗完全平级独立） -->
+    <div id="deleteExitConfirmModal" class="modal-overlay" style="display:none; z-index: 100005;">
+        <div class="modal-content" style="max-width: 420px; width: 92%; padding: 22px; border-left: 4px solid #ff4757; border-radius: 10px;">
+            <h4 style="margin:0 0 10px 0; color:#ff4757; font-size:16px; display:flex; align-items:center; gap:8px;">
+                <span>⚠️</span> <span data-i18n="cd_delete_exit_title">退出删除模式确认</span>
+            </h4>
+            <p style="font-size:13px; color:#ccc; margin-bottom:20px; line-height:1.6;">
+                <span data-i18n="cd_delete_exit_desc">检测到你在删除模式中进行了修改。是否保留当前的删除操作？</span>
+            </p>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-action-gray" style="color:#f1c40f; border-color:#f1c40f;" onclick="handleDiscardAllDeletes()">
+                    <span data-i18n="cd_btn_revert_all">↩️ 全部回退 (取消删除)</span>
+                </button>
+                <button class="btn btn-primary" style="background:#ff4757; border-color:#ff4757;" onclick="handleConfirmAllDeletes()">
+                    <span data-i18n="cd_btn_keep_exit">💾 保留修改并退出</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色/物品选择器浮层 -->
+    <div id="charPicker" class="char-picker" style="display:none; position:fixed; z-index:99999; background:#222630; border:1px solid #444; border-radius:10px; padding:12px; box-shadow:0 8px 30px rgba(0,0,0,0.85); width: 400px; max-width: 92vw; box-sizing: border-box;"></div>
+
+    <!-- 全局悬浮 Toast 提示框 (与图示样式一致，数秒后自动淡出) -->
+<div id="toast-notification" style="
+    display: none;
+    position: fixed;
+    bottom: 45px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #14171d;
+    border: 1.5px solid #2ecc71;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 100010;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+"></div>
+
+    <!-- 外部预设库与脚本依赖引入 -->
+    <script src="Preset_Data/db_hsr.js"></script>
+    <script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_test.js"></script>
+    <script src="Preset_Data/db_end.js"></script>
+    <script src="Preset_Data/db_ark.js"></script>
+    <script src="translate/translate_zh.js"></script>
+    <script src="translate/translate_en.js"></script>
+    <script src="translate/translate.js"></script>
+    <script src="ui/icon_render.js"></script>
+    <script src="logic/catalog_utils.js"></script>
+    <script src="logic/game_data.js"></script>
+    <script src="logic/gacha_engine.js"></script>
+    <script src="logic/dashboard_validation.js"></script>
+    <script src="logic/simulator_start.js?v=progress-validation-labels"></script>
+    <script src="logic/user_data_profiles.js?v=empty-pool-edit"></script>
+    <script src="logic/dashboard_accounts.js"></script>
+    <script src="logic/user_data_tools.js?v=legacy-validation-audit"></script>
+    <link rel="stylesheet" href="ui/dashboard_accounts.css">
+    <script src="ui/item_format.js"></script>
+    <script src="ui/toast.js"></script>
+    <script src="logic/list_order.js"></script>
+    <script src="logic/app_preferences.js"></script>
+    <script src="ui/drag_sort.js"></script>
+    <script src="logic/preset_storage.js"></script>
+    <script src="ui/layout.js?v=shared-list-order"></script>
+    <script src="ui/quick_settings.js?v=shared-preferences"></script>
+    <script src="ui/select_ui.js"></script>
+
+    <!-- 核心业务逻辑脚本 -->
+    <script src="ui/unsaved_changes.js"></script>
+    <script src="logic/import_export.js"></script>
+    <script src="ui/user_data_accounts.js?v=account-order-sync"></script>
+    <script src="pages/dashboard.js?v=initial-hint-visibility"></script>
+</body>
+</html>

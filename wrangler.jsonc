@@ -1,0 +1,29 @@
+{
+  "name": "gachasystem",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "."
+  },
+  "routes": [
+    {
+      "pattern": "www.gachasystem.com/*",
+      "zone_name": "gachasystem.com"
+    },
+    {
+      "pattern": "gachasystem.com/*",
+      "zone_name": "gachasystem.com"
+    }
+  ],
+  "env": {
+    "test": {
+      "name": "gachasystem-test",
+      "routes": [
+        {
+          "pattern": "gachasystem-test.gachasystem.com",
+          "custom_domain": true
+        }
+      ]
+    }
+  }
+}

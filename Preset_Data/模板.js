@@ -1,148 +1,344 @@
-const HSR_CHAR = [
-{ name: "", en: "", short: "", eshort: "", type: ["char_up","char_up_2"] ,tierId: "tier_5" ,img : ""},
-]
+// ==========================================
+// 1. 图鉴图库数据 (纯仓库，不与特定卡池硬绑定)
+// 供复制填入：
+// { name: "测试角色A", en: "Char A", short: "角A", eshort: "CA", tags: ["up"], tierId: "tier_5", img: "" },
+// ==========================================
 
-//无论上面怎么命名分类，最后这边都会被统一成一个大图鉴让代码能读信息
-const HSR_DB = [...HSR_CHAR, ...HSR_WEAPON];
+const TEST_CHAR = [];
+const TEST_WEAPON = [];
+const TEST_OTHER = [];
 
-//  全局稀有度 (Tier) 定义
-const HSR_GLOBAL_TIERS = [
+const TEST_DB = [
+    ...TEST_CHAR.map(i => ({ ...i, category: 'char' })),
+    ...TEST_WEAPON.map(i => ({ ...i, category: 'wep' })),
+    ...TEST_OTHER.map(i => ({ ...i, category: 'pet' }))
+];
+
+// ==========================================
+// 2. 全局稀有度 (Tier) 基因库
+// ==========================================
+const TEST_GLOBAL_TIERS = [
     { id: 'tier_5', name: '5', color: '#f1c40f' },
     { id: 'tier_4', name: '4', color: '#9b59b6' },
     { id: 'tier_3', name: '3', color: '#3498db' }
 ];
 
-const HSR_SETUP_RULES = {
-    gameName: "崩坏：星穹铁道",
-    
-    //  1. 动态积木池定义 (直接接管 custom_setup 的界面)
-    rosterPools: [
-        { 
-            id: 'char_up', 
-            name: '限定角色', 
-            type: 'up' 
-        },
-         { 
-            id: 'char_up_2', 
-            name: '联动角色', 
-            type: 'up' 
-        },
-        { 
-            id: 'wep_up', 
-            name: '限定光锥池', 
-            type: 'up' 
-        },
-        { 
-            id: 'wep_up_2', 
-            name: '联动光锥', 
-            type: 'up' 
-        },
-        { 
-            id: 'char_std', 
-            name: '常驻角色', 
-            type: 'std', 
-            isStandalone: false,          // 是否开放侧栏独立抽取
-            enableCustomUp: false,        //  是否允许模拟器拖拽自选UP
-            enableSpecRate: false,        //  是否开启特限出货干预
-        },
-        { 
-            id: 'char_std_2', 
-            name: '特限角色', 
-            type: 'std', 
-            isStandalone: false,
-            enableCustomUp: false,
-            enableSpecRate: false,
-        },
-        { 
-            id: 'wep_std', 
-            name: '常驻光锥', 
-            type: 'std', 
-            isStandalone: false, 
-            enableCustomUp: false, 
-            enableSpecRate: false 
-        }
+// ==========================================
+// 3. 游戏全局设定 (大类 / 标签字典 / 满破上限)
+// ==========================================
+const TEST_SETUP_RULES = {
+    gameName: "测试引擎模板",
+    enName: "Test Engine Template",
+
+    categories: [
+        { id: 'char', name: '角色', icon: '👤' },
+        { id: 'wep',  name: '武器', icon: '🗡️' },
+        { id: 'pet',  name: '随宠', icon: '🐾' }
     ],
 
-    // 🌟 2. 多重混池定义 (取代旧版单一的 mixedStd)
-    mixedPools: [
-        { 
-            id: 'mixed_std', 
-            name: '常驻跃迁', 
-            components: ['char_std', 'wep_std'], // 融合上述哪些图鉴
-            enableCustomUp: false                 // 混池也可以开启自选 UP
-        },
-        { 
-            id: 'mixed_std_2', 
-            name: '常驻角色跃迁', 
-            components: ['char_std', 'char_std_2'], // 融合上述哪些图鉴
-            enableCustomUp: false                 // 混池也可以开启自选 UP
-        },
-    ],
+    tagDefinitions: {
+        up: { name: "限定", color: "#f1c40f", textColor: "#000" },
+        reup: { name: "不歪", color: "#f1c40f", textColor: "#000" },
+        custom_offrate: { name: "定制调频", color: "#e67e22", textColor: "#fff" },
+        std: { name: "常驻", color: "#3498db", textColor: "#fff" },
+        gift: { name: "赠送", color: "#2ecc71", textColor: "#000" },
+        normal: { name: "副产物", color: "#95a5a6", textColor: "#000" }
+    },
 
-    // 🌟 3. 限定池歪出流向判定 (key必须和上方的id对应)
-    offRate: {
-        'char_up': ['char_std', 'char_std_2'], 
-        'char_up_2': ['char_std', 'char_std_2'], 
-        'wep_up': ['wep_std'],
-        'wep_up_2': ['wep_std']
+    overflowRules: {
+        char: 7,
+        wep: 5,
+        pet: 5
     }
 };
 
-const HSR_POOL_RULES = {
+// ==========================================
+// 4. 卡池专属规则集
+// ==========================================
+// 新版规则约定（适用于 earlyUpRules / goldCategorySequence / sparkRules / giftRules）：
+// 1. 每条规则填写固定 id，以及 name / en。改名、排序、调整门槛时保持原 id。
+// 2. 默认立即生效：activation: { match:'all', counting:'reset', catchUp:'all', conditions:[] }。
+//    依赖其他规则：conditions:[{type:'rule',ruleId:'固定来源ID',count:1}]；或 {type:'pulls',count:100}。
+// 3. 默认不失效：expiration:{type:'none',scope:'after_unlock'}。
+//    新手首次目标保证：expiration:{type:'target',scope:'after_unlock'}，不再写 cancelOnHit / cancelOnUp。
+//    scope:'including_before' 表示也检查本期解锁前已记录的结果；不是“错过节点不补发”。
+// 4. 界面的“限制触发次数”保存为 type:'loop', maxTriggers:8；不限次数为 maxTriggers:null。
+//    一次性仍保存 type:'once'。不要把界面的 limited 字样写成数据库 type。
+// 5. 普通累计自选/循环赠礼通常使用 expiration.type:'none'；不要默认依赖可能被取消的首次保证。
+const TEST_POOL_RULES = {
     // 角色限定池
     char_up: {
-        //调整星级
-        tiers: [
-            { id: 'tier_5', prob: 0.6},
-            { id: 'tier_4', prob: 5.1},
-            { id: 'tier_3', prob: 94.3}
-        ],
-        // --- 目标金设定 (核心！你想定谁是金，谁就是金) ---
-        targetGoldIds: ['tier_5'],
-        // 副产物保底配置 
-        minorPities: [
-            {pulls: 10,tierId: 'tier_4',resetOnHit: true },
-        ],
-        // --- 保底与UP概率  ---
-        hardPity: 90,
-        upRate: 0.5,
-        // --- 分段式软保底 ---
-        softEnabled: true,
-        softRule: [
-            { start: 74, end: 89, inc: 0.06 },
-        ],
-        // --- 大保底机制 ---
-        useGuarantee: true, 
-        guaranteeLimit: 1, 
-        // --- 井 ---
-        sparkRules: [
-            { limit: 120, type: 'once', 
-                cancelOnUp: true,      //提前命中后重置该井
-                noReset: false         //作为类福袋额外发放
-            }, 
-            { limit: 240, type: 'loop', 
-                cancelOnUp: false, 
-                noReset: true 
-            }  
-        ],
-        // --- 赠送抽 ---
-        giftRules: [
-            { trigger: 30, amount: 10, type: 'once', countPity: false /*不计入保底垫数*/} 
-        ],
-         // --- 模拟器预选数量限制设定 ---
-        preSelect: {
-            enabled: true,
-            upMin: 1,
-            upMax: 1,
-            stdMin: 7,
-            stdMax: 7
+        info: { name: "角色限定池", en: "Character Event Warp", icon: "👤", badgeColor: "#f1c40f" },
+
+        // 0. 卡池图鉴与标签装配
+        assembly: {
+            tierRules: {
+                tier_5: {
+                    mode: 'up_split',                        // 限定池
+                    upCats: ['char'],                        // UP 仅限代理人角色
+                    offrateCats: ['char'],                   // 歪也仅出代理人角色（绝区零限定角色池S级不可歪出音擎）
+                    upTags: ['up'],                          // UP 吸附标签：限定
+                    offrateTags: ['std', 'custom_offrate']   // 可歪吸附标签：常驻、定制调频
+                },
+                tier_4: {
+                    mode: 'up_split',
+                    upCats: ['char'],
+                    offrateCats: ['char', 'wep'],
+                    upTags: ['custom_offrate'],
+                    offrateTags: ['normal', 'std']
+                },
+                tier_3: {
+                    mode: 'flat',                            // 平分池
+                    flatCats: ['wep'],
+                    tags: ['normal']
+                }
+            }
         },
-        // 🌟 特限出货干预配置 🌟
+
+        // 1. 稀有度出货概率与细分绝对概率
+        tiers: [
+            { 
+                id: 'tier_5', 
+                prob: 0.6, 
+                isGold: true 
+            },
+            { 
+                id: 'tier_4', 
+                prob: 9.4,
+                subProbs: [
+                    { prob: 7.05, conditions: [{ cat: 'char', tags: ['custom_offrate'] }] },
+                    { prob: 2.35, conditions: [{ cat: 'wep', tags: ['normal'] }] }
+                ]
+            },
+            { 
+                id: 'tier_3', 
+                prob: 90.0 
+            }
+        ],
+
+        // 3. 全星级保底与动态概率中心
+        pities: [
+            {
+                tierId: 'tier_S',
+                pulls: 90,
+                resetOnHit: true,
+                enableUp: true,
+                upRate: 0.5,            // 基础不歪率 50%
+                useGuarantee: true,     // 开启大保底机制
+                guaranteeMode: 'progressive', // 📈 概率递进模式：歪后按步长提升胜率  /   'classic', // 🎯 经典模式：固定连歪次数后触发大保底
+                guaranteeStep: 25,      // 每次歪金，下次出金 UP 率增加 25%          /    guaranteeLimit: 1,      // 歪 1 次后，下一次出金 100% 必出 UP
+                guaranteeMax: 100,      // UP 胜率上限为 100% (封顶必出)            /    无
+                softEnabled: true,
+                softRules: [{ start: 74, end: 89, inc: 0.06 }]
+            },
+            {
+                tierId: 'tier_4',
+                pulls: 10,
+                resetOnHit: true,
+                enableUp: true,
+                upRate: 0.5,
+                useGuarantee: true,
+                guaranteeLimit: 1,
+                softEnabled: false,
+                softRules: []
+            }
+        ],
+
+        // 6. 歪出挽救机制 (捕获明光)
+        secondaryRescue: {
+            enabled: true,                 // 开启挽救二次判定
+            triggerRate: 10,              // 常态歪时有 10% 几率被救回并翻转为 UP (折算综合胜率 55%)
+            hardGuaranteeLosses: 3,       // 连续歪 3 次后，下一次如果再歪则 100% 触发强制救回
+            customEffectName: "明光",      // 抽卡结果卡片显示的专属标识角标
+            onHitUpStrategy: "decay",     //可选值: "reset" (重置为0), "decay" (减少固定层数), "keep" (保留不变)
+            strategyValue: 1              // 每次命中 UP 减 1 层 (Math.max(0, 3 - 1) = 2)       /              strategyValue: 1            // 命中 UP 后无论当前攒了几歪，直接变为 1 歪
+        },
+
+        // 7. 「井」与里程碑兑换
+        sparkRules: [
+            {
+                id: "template_selector", name: "300抽自选", en: "300-pull selector",
+                activation: { match: "all", counting: "reset", catchUp: "all", conditions: [] },
+                expiration: { type: "none", scope: "after_unlock" }, maxTriggers: null,
+                limit: 300,
+                type: "once",
+                targetType: "custom_filter",                 // "random_up" 随机UP / "up_index" 指定序号 / "custom_filter" 标签吸附
+                targetTier: "tier_5",
+                targetCats: ['char'],
+                targetTags: ['std'],
+                deliverMode: "selectable",            // "selectable" 玩家自选 / "random" 随机均分
+                noReset: true                            // 纯白送兑换井，不重置已垫抽数与大保底状态
+            },
+            {
+                id: "template_first_up", name: "120抽首次UP保证", en: "First UP guarantee at 120 pulls",
+                activation: { match: "all", counting: "reset", catchUp: "all", conditions: [] },
+                expiration: { type: "target", scope: "after_unlock" }, maxTriggers: null,
+                limit: 120,
+                type: "once",
+                targetType: "up_index",
+                upIndex: 1,                // 锁定列表里的第 1 个 UP 目标
+                noReset: false             // 正常算作吃保底，重置垫抽进度
+            },
+            {
+                id: "template_repeat_up", name: "240抽循环赠礼", en: "UP gift every 240 pulls",
+                activation: { match: "all", counting: "reset", catchUp: "all", conditions: [] },
+                expiration: { type: "none", scope: "after_unlock" }, maxTriggers: null,
+                limit: 240,
+                type: "loop",
+                targetType: "random_up",
+                deliverMode: "selectable", // 玩家自选
+                noReset: true              // 白送不重置垫抽
+            }
+        ],
+
+        // 8. 前 N 金胜率特权
+        earlyUpRules: [
+            { id: "template_early", name: "首金不歪", en: "First gold is UP", order: 1, upRate: 100,
+              activation: { match: "all", counting: "reset", catchUp: "all", conditions: [] }, expiration: { type: "none", scope: "after_unlock" } }
+        ],
+
+        // 9. 前 N 金类型定向序列
+        goldCategorySequence: [
+            { id: "template_category", name: "首金常驻角色", en: "First gold standard character", order: 1, targetCats: ['char'], targetTags: ['std'],
+              activation: { match: "all", counting: "reset", catchUp: "all", conditions: [] }, expiration: { type: "none", scope: "after_unlock" } }
+        ],
+
+        // 10. 赠送抽机制
+        giftRules: [
+            {
+                id: "template_bonus", name: "30抽赠送十抽", en: "10 bonus pulls every 30 pulls",
+                activation: { match: "all", counting: "reset", catchUp: "all", conditions: [] },
+                expiration: { type: "none", scope: "after_unlock" }, maxTriggers: null,
+                trigger: 30,
+                amount: 10,
+                type: "loop",                            // "loop" 循环赠送 / "once" 仅首发一次
+                countPity: false                         // 赠送的抽数是否计入保底垫抽进度
+            }
+        ],
+
+        // 11. 特限出货干预
         specRate: {
             enabled: true,
-            type: 'multiplier',       // 【算法】填写 'multiplier' (权值倍数提升) 或 'percent' (固定占有率)
-            value: 5,                 // 【数值】如果是 multiplier 填 5 就是 5倍；如果是 percent 填 50 就是 50%
-            items: []                 // 【干预名单】直接留空数组 [] 即可！系统会接收玩家在模拟器中拖拽的角色
+            rules: [
+                {
+                    tierId: 'tier_5',
+                    type: 'multiplier',                 // 'multiplier' 权值倍数 (如5倍) / 'percent' 固定出货占有率 (如50%)
+                    value: 5,
+                    targetCats: ['char'],
+                    targetTags: ['up', 'custom_offrate']
+                }
+            ]
+        },
+
+        // 12. 模拟器预选数量限制
+        preSelect: {
+            enabled: true,
+            tiers: {
+                tier_5: { upMin: 1, upMax: 1, stdMin: 6, stdMax: 6 },
+                tier_4: { upMin: 2, upMax: 2, stdMin: 0, stdMax: 999 },
+                tier_3: { stdMin: 0, stdMax: 999 }
+            },
+        },
+
+        lifecycle: {
+            // 1. 是否允许换期轮替 (限定池/复刻池填 true；常驻池/新手池填 false 彻底关闭换期功能)
+            allowRotation: true, 
+
+            // 2. 跨池共享保底绑定 (母池绑定)
+            // 独立卡池留空 ""；如果是复刻池/联动池要和母池共享垫抽与大保底，填母池的 id (如 "char_up")
+            sharedPityParent: "", 
+
+            // 3. 换期轮替继承矩阵 (当用户开新期/换当期 UP 角色时，哪些数据保留，哪些重置)
+            rotationMatrix: {
+                inheritPityPulls: true,       // 保留已垫抽数 (跨期继承)
+                inheritGuaranteeState: true,  // 保留大保底/连歪进度 (跨期继承)
+                inheritRescueLosses: true,    // 保留捕获明光层数 (跨期继承)
+                resetEarlyUp: true,           // 重置前 N 金胜率特权 (新一期重享)
+                resetCatSeq: true,            // 重置前 N 金类型定向序列
+                resetSparkPity: true,         // 重置里程碑/井抽数进度
+                resetGiftRules: true          // 重置赠送抽累计抽数
+            }
         },
     },
-}
+
+    // 常规常驻混池模板
+    mixed_std: {
+        info: { name: "常驻总集池", en: "Standard Pool", icon: "🏠", badgeColor: "#3498db" },
+
+        assembly: {
+            tierRules: {
+                tier_5: {
+                    mode: 'flat',
+                    flatCats: ['char', 'wep'],
+                    tags: ['std']
+                },
+                tier_4: {
+                    mode: 'flat',
+                    flatCats: ['char', 'wep'],
+                    tags: ['normal', 'std']
+                },
+                tier_3: {
+                    mode: 'flat',
+                    flatCats: ['wep'],
+                    tags: ['normal']
+                }
+            }
+        },
+
+        tiers: [
+            {
+                id: 'tier_5',
+                prob: 0.6,
+                isGold: true,
+                subProbs: [
+                    { prob: 0.3, conditions: [{ cat: 'char', tags: ['std'] }] },
+                    { prob: 0.3, conditions: [{ cat: 'wep', tags: ['std'] }] }
+                ]
+            },
+            {
+                id: 'tier_4',
+                prob: 9.4,
+                subProbs: [
+                    { prob: 4.7, conditions: [{ cat: 'char', tags: ['normal', 'std'] }] },
+                    { prob: 4.7, conditions: [{ cat: 'wep', tags: ['normal', 'std'] }] }
+                ]
+            },
+            {
+                id: 'tier_3',
+                prob: 90.0
+            }
+        ],
+
+        pities: [
+            {
+                tierId: 'tier_5',
+                pulls: 90,
+                resetOnHit: true,
+                enableUp: false,
+                useGuarantee: false,
+                softEnabled: true,
+                softRules: [
+                    { start: 74, end: 89, inc: 0.06 }
+                ]
+            },
+            {
+                tierId: 'tier_4',
+                pulls: 10,
+                resetOnHit: true,
+                enableUp: false,
+                useGuarantee: false,
+                softEnabled: false,
+                softRules: []
+            }
+        ],
+
+        preSelect: {
+            enabled: true,
+            tiers: {
+                tier_5: { stdMin: 0, stdMax: 999 },
+                tier_4: { stdMin: 0, stdMax: 999 },
+                tier_3: { stdMin: 0, stdMax: 999 }
+            }
+        }
+    }
+};

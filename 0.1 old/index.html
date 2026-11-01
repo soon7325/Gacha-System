@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 必须先加载存储隔离；目录自动识别为 0.1，不与新版共享数据。 -->
+    <script src="../logic/version_storage.js"></script>
+
+    <!-- 初始化重定向脚本：检查用户是否设置了默认起始页 -->
+    <script>
+        (function checkStartPage() {
+            // 利用 sessionStorage 确保每次打开浏览器会话只执行一次重定向，避免死循环
+            if (!sessionStorage.getItem('GM_HasRedirected')) {
+                sessionStorage.setItem('GM_HasRedirected', 'true');
+                const startPage = localStorage.getItem('GM_Start_Page');
+                // 如果用户在设置中配置了默认打开非首页的其他页面，则立即跳转
+                if (startPage && startPage !== 'index.html') {
+                    window.location.replace(startPage);
+                }
+            }
+        })();
+    </script>
+    <title>Gacha System - 首页</title>
+    
+    <!-- 主题初始化脚本：在页面渲染前应用深色/浅色模式，防止白屏闪烁 -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* ==========================
+           1. 基础布局与滚动条样式
+           ========================== */
+        body {
+            overflow: hidden !important; /* 彻底禁止外层 body 的滚动，将滚动区域限制在 main-content 内 */
+        }
+
+        /* 美化主内容区的自定义滚动条 */
+        .main-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main-content::-webkit-scrollbar-thumb {
+            background: rgba(136, 136, 136, 0.5);
+            border-radius: 4px;
+        }
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary); /* 悬停时高亮为主色调 */
+        }
+
+        /* ==========================
+           2. 首页特有视觉排版样式 (欢迎区、功能介绍)
+           ========================== */
+        .welcome-section {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 55vh; text-align: center; padding: 40px 20px;
+            background: linear-gradient(to bottom, rgba(0, 123, 255, 0.05), transparent);
+            border-bottom: 1px solid var(--border);
+        }
+        .welcome-card h1 { 
+            font-size: 3.5rem; margin-bottom: 10px; 
+            /* 渐变色文字效果 */
+            background: -webkit-linear-gradient(45deg, var(--primary), #a29bfe); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+        }
+        /* 立即开始/登录按钮样式 */
+        .btn-start { 
+            background: var(--primary); color: white; padding: 14px 35px; border-radius: 30px; 
+            text-decoration: none; font-size: 1.1rem; font-weight: bold; transition: 0.3s; 
+            border: none; cursor: pointer; display: inline-block; margin-top: 20px; 
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3); 
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5); }
+        
+        .about-section { max-width: 800px; margin: 0 auto; padding: 50px 20px; line-height: 1.6; }
+        .profile-img { width: 100%; border-radius: 12px; margin: 20px 0; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+        /* ==========================
+           3. 🔑 登录 / 注册弹窗专属 UI
+           ========================== */
+        .auth-modal { max-width: 380px; width: 90%; padding: 0; overflow: hidden; border-radius: 16px; }
+        .auth-header { padding: 30px 20px 15px; text-align: center; background: linear-gradient(135deg, rgba(0,123,255,0.1), transparent); }
+        .auth-header h2 { margin: 0; font-size: 1.5rem; color: var(--text); font-weight: 800; letter-spacing: 1px; }
+        .auth-header p { margin: 8px 0 0 0; font-size: 0.85rem; color: #888; }
+        
+        .auth-body { padding: 20px 30px 30px; }
+        
+        /* 登录与注册切换标签页 (Tabs) */
+        .auth-tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid var(--border); }
+        .auth-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #888; font-weight: bold; transition: 0.2s; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .auth-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .auth-tab:hover:not(.active) { color: var(--text); }
+
+        /* 表单输入框组 */
+        .auth-input-group { margin-bottom: 18px; text-align: left; }
+        .auth-input-group label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; font-weight: 600; }
+        .auth-input { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); outline: none; transition: 0.2s; box-sizing: border-box; font-size: 14px; }
+        .auth-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,123,255,0.15); background: transparent; }
+
+        /* 表单提交按钮与分割线 */
+        .btn-auth-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,123,255,0.2); }
+        .btn-auth-submit:hover { background: #0056b3; transform: translateY(-1px); }
+
+        .auth-divider { display: flex; align-items: center; text-align: center; margin: 25px 0; color: #666; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
+        .auth-divider:not(:empty)::before { margin-right: 1em; }
+        .auth-divider:not(:empty)::after { margin-left: 1em; }
+
+        /* Google 第三方联合登录按钮 */
+        .btn-google { width: 100%; padding: 12px; background: #ffffff; color: #3c4043; border: 1px solid #dadce0; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn-google:hover { background: #f8f9fa; border-color: #d2e3fc; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .btn-google svg { width: 20px; height: 20px; }
+
+        /* 亮色模式深度适配覆盖 */
+        [data-theme="light"] .auth-input { background: #f9fafb; border-color: #d1d5db; color: #111827; }
+        [data-theme="light"] .auth-header { background: linear-gradient(135deg, rgba(0,123,255,0.05), #ffffff); }
+        [data-theme="light"] .welcome-card h1 { background: -webkit-linear-gradient(45deg, var(--primary), #6c5ce7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* ==========================
+           4. 🔄 数据同步策略弹窗专属 UI
+           ========================== */
+        .sync-option { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; text-align: left; position: relative; overflow: hidden; }
+        .sync-option:hover { border-color: var(--primary); background: rgba(0, 123, 255, 0.1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,123,255,0.15); }
+        .sync-option h3 { margin: 0 0 6px 0; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .sync-option p { margin: 0; font-size: 0.85rem; color: #aaa; line-height: 1.5; }
+        /* 危险操作(如完全覆盖)的特殊警示样式 */
+        .sync-option.danger:hover { border-color: #e74c3c; background: rgba(231, 76, 60, 0.1); box-shadow: 0 4px 12px rgba(231, 76, 60, 0.15); }
+        .sync-option.danger h3 { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏容器 (由 layout.js 动态挂载渲染) -->
+    <div class="sidebar"></div>
+
+    <!-- 页面主要内容区，开启弹性布局并允许独立 Y 轴滚动 -->
+    <div class="main-content" style="flex: 1; height: 100vh; overflow-y: auto;">
+        
+        <!-- 首屏欢迎视差区域 -->
+        <section class="welcome-section">
+            <div class="welcome-card">
+                <h1>Gacha System</h1>
+                <p style="color:#888; font-size: 1.2rem; margin-bottom: 30px;" data-i18n="index_desc">专注于实时的抽卡数据分析与运气追踪</p>
+                
+                <!-- 游客模式下展示的登录按钮面板 -->
+                <div id="guest-panel">
+                    <button class="btn-start" onclick="openAuthModal()" data-i18n="btn_login_reg">🔑 登录 / 注册账号</button>
+                </div>
+                
+                <!-- 已登录用户展示的欢迎面板 -->
+                <div id="user-panel" style="display: none; margin-top: 15px; text-align: center;">
+                    <p style="color: var(--text); font-size: 1.1rem; margin-bottom: 10px;">
+                        <span data-i18n="index_welcome">欢迎回来，</span><span id="display-username" style="color: var(--primary); font-weight: bold;">玩家</span>!
+                    </p>
+                    <div id="display-avatar-home" style="width: 80px; height: 80px; border-radius: 50%; background: #444; margin: 0 auto; border: 3px solid var(--primary); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; box-shadow: 0 4px 15px rgba(0,123,255,0.3);">
+                        ?
+                    </div>
+                </div>
+            
+            <div style="margin-top: 50px; color: #555; font-size: 14px; opacity: 0.7;" data-i18n="index_scroll">向下滚动查看详情 ↓</div>
+        </section>
+
+        <!-- 特色功能与项目说明区域 -->
+        <section class="about-section">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h2 style="color: var(--text); font-size: 2rem; margin-bottom: 10px;" data-i18n="index_hero_title">不仅仅是记录，更是你的专属「抽卡沙盒」</h2>
+                <p style="color: #9ca3af; font-size: 1.1rem; max-width: 600px; margin: 0 auto;" data-i18n="index_hero_desc">
+                    打破传统抽卡工具只能绑定单一游戏的限制。在这里，你可以像拼积木一样，从零构建任何游戏的抽卡引擎。
+                </p>
+            </div>
+
+            <h3 style="color: var(--text); margin-bottom: 20px; font-size: 1.5rem; border-left: 4px solid var(--primary); padding-left: 15px;" data-i18n="feat_core">🌟 核心特性</h3>
+            
+            <!-- 特性四宫格展示 -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 40px;">
+                
+                <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                    <h4 style="color: var(--primary); margin-top: 0; font-size: 1.2rem;" data-i18n="feat_engine_title">🛠️ 终极自定义引擎</h4>
+                    <p style="color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;" data-i18n="feat_engine_desc">
+                        完全解绑图鉴。支持自定义星级颜色、分段式软保底曲线、动态增幅、命定值（大保底）与多重「井」机制。你的规则，你说了算。
+                    </p>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                    <h4 style="color: #f1c40f; margin-top: 0; font-size: 1.2rem;" data-i18n="feat_data_title">📊 硬核数据剖析</h4>
+                    <p style="color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;" data-i18n="feat_data_desc">
+                        告别玄学测算。实时为你统计「不歪率」、「平均出金抽数」以及精准的垫池进度。欧非守恒定律，用数据一眼看透。
+                    </p>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                    <h4 style="color: #9b59b6; margin-top: 0; font-size: 1.2rem;" data-i18n="feat_sim_title">🎲 沉浸式跃迁模拟</h4>
+                    <p style="color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;" data-i18n="feat_sim_desc">
+                        完美复刻底层概率逻辑的模拟器。支持拖拽指定「自选 UP 神坛」与「特限概率干预」，抽卡前先来这里测测风水。
+                    </p>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                    <h4 style="color: #2ecc71; margin-top: 0; font-size: 1.2rem;" data-i18n="feat_cloud_title">☁️ 本地+云端双轨运行</h4>
+                    <p style="color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;" data-i18n="feat_cloud_desc">
+                        默认开启本地运算，保障极致丝滑的响应速度；绑定账号后无缝接入 Firebase 云端，多设备自动融合，数据永不丢失。
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- 使用场景列表 -->
+            <h3 style="color: var(--text); margin-bottom: 20px; font-size: 1.5rem; border-left: 4px solid var(--gold); padding-left: 15px;" data-i18n="use_cases_title">🎮 你可以用它做什么？</h3>
+            <ul style="color: #9ca3af; padding-left: 20px; line-height: 1.8; margin-bottom: 40px;">
+                <li data-i18n="use_case_1"><b>作为资源规划管家：</b> 同时管理《星穹铁道》、《绝区零》、《明日方舟》等多款游戏的保底进度。</li>
+                <li data-i18n="use_case_2"><b>作为抽卡整活器：</b> 新建一个“群友池”或“生活池”，把朋友的头像录入图鉴，模拟抽出他们的概率。</li>
+                <li data-i18n="use_case_3"><b>作为概率验证机：</b> 输入官方公布的概率曲线，利用百连抽甚至千连抽模拟器验证实际期望值。</li>
+                <li data-i18n="use_case_4"><b>作为小型游戏开发者：</b> 输入自己为自己游戏填充的概率，并在测试后实时修改规则。</li>
+            </ul>
+
+            <div style="background: rgba(0, 123, 255, 0.05); border-left: 4px solid var(--primary); padding: 15px 20px; border-radius: 0 8px 8px 0;">
+                <p style="color: #9ca3af; margin: 0 0 10px 0;">
+                    <em data-i18n="beta_warning">"注意，该网站仍处于 Beta 开发阶段。由于是本人的首个作品，自然是想到哪儿做到哪儿。可能会有一些 Bug，但也充满了各种硬核的尝试。"</em>
+                </p>
+            </div>
+
+            <!-- 版本日志与赞助信息区 -->
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 40px; margin-bottom: 40px;">
+            
+            <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
+                <h3 style="color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                    📦 <span data-i18n="idx_version_title">当前版本:</span>
+                </h3>
+                
+                <details style="margin-bottom: 20px; cursor: pointer; outline: none;">
+                    <summary style="color: var(--text); font-weight: bold; margin-bottom: 10px; user-select: none;" data-i18n="idx_version_detail">点击查看当前版本更新详情</summary>
+                    <div style="padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 13px; color: #aaa; line-height: 1.6; cursor: text;" data-i18n="idx_version_content">
+                        - 🚀 首次发布 Gacha System 核心引擎<br>
+                        - ✨ 支持多游戏卡池自定义拼装与基础配置<br>
+                        - 📊 实装数据看板与抽卡记录云端同步<br>
+                        - 🌍 完善中英文多语言无缝切换功能
+                    </div>
+                </details>
+
+                <!-- 🌟 直接跳回 v0.2 新版通道的按钮（不带提示小字） -->
+                <div style="margin-top: 10px;">
+                    <a href="../changelog.html?channel=0.1" class="btn btn-action-gray" style="text-decoration: none; font-size: 13px; padding: 10px 0; border: 1px solid #2ecc71; color: #2ecc71; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; box-sizing: border-box; font-weight: bold; transition: 0.2s;" onmouseover="this.style.background='rgba(46, 204, 113, 0.15)'" onmouseout="this.style.background='transparent'">
+                        <span data-i18n="btn_switch_v03_home">⏩ 返回 v0.2 新版本通道</span>
+                    </a>
+                </div>
+            </div>
+
+            <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
+                <h3 style="color: #f1c40f; margin-top: 0;" data-i18n="idx_support_title">💬 反馈与赞助</h3>
+                
+                <p style="color: #aaa; font-size: 14px; margin-bottom: 5px;" data-i18n="idx_support_desc">如遇到 Bug 或有新功能建议，欢迎通过邮件联系我：</p>
+                <a href="mailto:gachasystem.feedback@gmail.com" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 15px;">gachasystem.feedback@gmail.com</a>
+
+                <hr style="border: 0; border-top: 1px dashed var(--border); margin: 20px 0;">
+
+                <p style="color: #aaa; font-size: 14px; margin-bottom: 15px;" data-i18n="idx_sponsor_desc">如果觉得这个项目对你有帮助，可以请作者喝杯咖啡 ☕</p>
+                
+                <p style="color: #f1c40f; font-size: 14px; margin-bottom: 15px; font-weight: bold;" data-i18n="idx_sponsor_desc_2"> ✨ 赞助也有特殊关照哦
+                </p>
+
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+    
+                    <a href="https://ifdian.net/a/gachasystem" target="_blank" class="btn btn-primary" style="text-decoration: none; background: #ff82ab; border-color: #ff82ab; color: white; display: flex; align-items: center; gap: 8px; font-weight: bold; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(255, 130, 171, 0.3); transition: 0.3s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13 2.05v7.95h6l-8 12v-7.95H5l8-12z"/>
+                        </svg>
+                        <span data-i18n="idx_sponsor_afdian">前往爱发电</span>
+                    </a>
+
+                    <a href="https://ko-fi.com/gachasystem" target="_blank" class="btn btn-primary" style="text-decoration: none; background: #29abe0; border-color: #29abe0; color: white; display: flex; align-items: center; gap: 8px; font-weight: bold; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(41, 171, 224, 0.3); transition: 0.3s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.144.007.004.322.247.696.247 4.265 0 5.143-3.66 5.86-7.747h-.006zm-4.661-2.906c.71 0 1.544.205 2.14 1.144.73 1.157.653 2.668.22 4.14-.492 1.67-1.42 2.91-2.518 3.551-.59.347-1.464.385-2.227.18 0 0 .153-2.904.148-3.414-.017-1.638-.59-4.708-1.574-5.601H19.22zM2.844 18.068L2.57 6.13h13.91l.161 6.911c0 .54-.239 2.016-1.922 2.437H2.844z"/>
+                        </svg>
+                        <span data-i18n="idx_sponsor_kofi">Support on Ko-fi</span>
+                    </a>
+
+                </div>
+        </div>
+
+        </section>
+
+    </div> 
+    
+    <!-- 🔑 身份认证 (登录/注册) 悬浮弹窗容器 -->
+    <div id="authModalOverlay" class="modal-overlay" style="display:none; backdrop-filter: blur(5px);">
+        <div class="modal-content auth-modal">
+            <div class="auth-header">
+                <h2 data-i18n="auth_title">通行证登录</h2>
+                <p data-i18n="auth_subtitle">同步你的所有欧气记录</p>
+            </div>
+            <div class="auth-body">
+                <!-- 顶部选项卡：登录与注册切换 -->
+                <div class="auth-tabs">
+                    <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')" data-i18n="auth_tab_login">登录</div>
+                    <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')" data-i18n="auth_tab_reg">注册新账号</div>
+                </div>
+                <!-- 表单输入区 -->
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                    <div class="auth-input-group">
+                        <label data-i18n="auth_email">电子邮箱</label>
+                        <input type="email" class="auth-input" placeholder="example@gmail.com" required>
+                    </div>
+                    <div class="auth-input-group">
+                        <label data-i18n="auth_pwd">密码</label>
+                        <input type="password" class="auth-input" placeholder="••••••••" required>
+                    </div>
+                    <!-- 确认密码框，仅在注册模式下显示 -->
+                    <div class="auth-input-group" id="group-confirm-pwd" style="display: none;">
+                        <label data-i18n="auth_pwd_confirm">确认密码</label>
+                        <input type="password" class="auth-input" data-i18n="auth_pwd_confirm_ph" placeholder="请再次输入密码">
+                    </div>
+                    <button type="submit" class="btn-auth-submit" id="btn-auth-submit" data-i18n="auth_btn_login">登录</button>
+                </form>
+                <div class="auth-divider" data-i18n="auth_or">OR</div>
+                <!-- 第三方 Google 联合登录入口 -->
+                <button class="btn-google" type="button" onclick="realGoogleLogin()">
+                  <svg viewBox="0 0 48 48"> 
+                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                      <path fill="none" d="M0 0h48v48H0z"></path>
+                  </svg>
+                  <span data-i18n="auth_google">Continue with Google</span>
+              </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔄 发现两端数据差异时的策略选择弹窗 -->
+    <div id="syncModalOverlay" class="modal-overlay" style="display:none; backdrop-filter: blur(8px); z-index: 10001;">
+        <div class="modal-content auth-modal" style="max-width: 450px;">
+            <div class="auth-header" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), transparent);">
+                <h2 id="sync-title" data-i18n="sync_title">🔄 发现数据差异</h2>
+                <p data-i18n="sync_subtitle">本地与云端均有数据，请选择融合方案</p>
+            </div>
+            <div class="auth-body" style="padding: 20px;">
+                <!-- 策略 1：云端优先合并 -->
+                <div class="sync-option" onclick="executeDataSync('cloud_first')">
+                    <h3 data-i18n="sync_cloud_first">☁️ 以【云端】为主相互融合</h3>
+                    <p data-i18n="sync_cloud_first_desc">保留云端的所有抽卡。若本地抽数更多（如云端100抽，本地120抽），本地多出的 20 抽将无缝追加到云端后方。</p>
+                </div>
+                <!-- 策略 2：本地优先合并 -->
+                <div class="sync-option" onclick="executeDataSync('local_first')">
+                    <h3 data-i18n="sync_local_first">💻 以【本地】为主相互融合</h3>
+                    <p data-i18n="sync_local_first_desc">保留本地的所有抽卡。若云端有本地缺失的极早期记录，云端独有的旧抽卡也会自动下载补全到本地。</p>
+                </div>
+                <div class="auth-divider" data-i18n="sync_extreme">极端操作</div>
+                <!-- 策略 3：危险操作，抹除本地数据纯靠云端覆盖 -->
+                <div class="sync-option danger" onclick="executeDataSync('cloud_only')">
+                    <h3 data-i18n="sync_cloud_only">🗑️ 舍弃本地，完全覆盖</h3>
+                    <p data-i18n="sync_cloud_only_desc">清空当前浏览器的所有数据，完全以云端的备份为准（适用于更换新电脑或清空重置）。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入翻译与公共布局脚本 -->
+    <script src="translate.js"></script>
+    <script src="layout.js"></script>
+    
+    <script>
+    // 继承全局语言
+    currentLang = localStorage.getItem('GM_Lang') || 'zh';
+    let lineLimitPerPage = 300;
+    let currentPage = 1;
+    let pagedGroups = []; // 切分后的页面数据数组
+    let measureContainer = null;
+
+    // 🌟 核心：必须在最顶层优先提取版本通道参数！
+    const urlParams = new URLSearchParams(window.location.search);
+    let activeVer = urlParams.get('ver') || urlParams.get('from') || 'latest';
+    activeVer = activeVer.replace(/^v/, ''); // 'v0.1' -> '0.1'
+    const isLatest = (activeVer === 'latest' || activeVer === '0.2'); // 当前最新版是 0.2
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if (typeof renderSidebar === 'function') renderSidebar();
+
+        const langSelect = document.getElementById('lang-switch-select');
+        if (langSelect) langSelect.value = currentLang;
+
+        initMeasureContainer();
+        applyUiText();
+        applyChannelEnvironment(); // 🌟 放在这里一起初始化
+        buildAndRenderPages();
+
+        // 监听窗口大小变化
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                buildAndRenderPages();
+            }, 200);
+        });
+    });
+        // 页面加载完成后立即生成左侧菜单（在普通 script 里能准确捕捉到该事件）
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof renderSidebar === 'function') renderSidebar();
+        });
+
+        // ==========================
+        // 原生 UI 交互逻辑绑定区
+        // ==========================
+        
+        // 唤起登录/注册弹窗
+        window.openAuthModal = () => document.getElementById('authModalOverlay').style.display = 'flex';
+        
+        // 点击遮罩层的空白处自动关闭弹窗
+        document.getElementById('authModalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+        
+        // 切换登录/注册面板的状态 (显隐确认密码框、更改按钮文字)
+        window.switchAuthTab = (mode) => {
+            const tLogin = document.getElementById('tab-login');
+            const tRegister = document.getElementById('tab-register');
+            const confirmPwdGroup = document.getElementById('group-confirm-pwd');
+            const submitBtn = document.getElementById('btn-auth-submit');
+    
+            if (mode === 'login') {
+                tLogin.classList.add('active'); tRegister.classList.remove('active');
+                confirmPwdGroup.style.display = 'none'; 
+                submitBtn.innerText = window.getTrans('auth_btn_login'); // 动态获取翻译
+            } else {
+                tRegister.classList.add('active'); tLogin.classList.remove('active');
+                confirmPwdGroup.style.display = 'block'; 
+                submitBtn.innerText = window.getTrans('auth_btn_register'); // 动态获取翻译
+            }
+        };
+
+        // 处理版本日志文件下载
+        window.downloadChangelog = function(event) {
+            event.preventDefault(); // 阻止 <a> 标签的默认跳转行为
+    
+            // 获取当前语言环境，决定下载哪种语言的日志版本
+            const currentLang = localStorage.getItem('GM_Lang') || 'zh'; 
+    
+            // 默认配置（中文版路径）
+            let fileUrl = 'changelog_zh.txt'; 
+            let fileName = 'GachaMaster_Changelog_zh.txt';
+
+            // 若检测到环境为英文，则切换到对应的英文件
+            if (currentLang.includes('en')) {
+                fileUrl = 'changelog_en.txt';
+                fileName = 'GachaMaster_Changelog_en.txt';
+            }
+
+            // 动态创建不可见的 <a> 标签触发浏览器下载流，完成后从 DOM 中移除
+            const a = document.createElement('a');
+            a.href = fileUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a); 
+        };
+    </script>
+    
+    <!-- Firebase 身份验证与 Firestore 数据读写模块 (声明为 type="module" 以支持原生 ES6 导入) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // 🌟 核心包引入：加入了 runTransaction (保证用户数计数器并发安全), serverTimestamp 等
+        import { getFirestore, collection, doc, getDoc, setDoc, getDocs, runTransaction, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Firebase 秘钥配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBr9xYxp9dQvdf2gkr1ILeEqkn6Bt1CZmI",
+            authDomain: "fyp-gacha-system.firebaseapp.com",
+            databaseURL: "https://fyp-gacha-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "fyp-gacha-system",
+            storageBucket: "fyp-gacha-system.firebasestorage.app",
+            messagingSenderId: "892136562526",
+            appId: "1:892136562526:web:6d2b218ec3f1bc346b79cf",
+            measurementId: "G-5WQ8HNPC3D"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' }); // 强制要求 Google 弹出账号选择界面
+
+        // 挂载到全局方便外部或其他非 module 的 script 可能会用到
+        window.firebaseDb = db;
+        window.firebaseAuth = auth;
+
+        /**
+         * 自动初始化或拉取用户云端基本资料
+         * @param {Object} user Firebase 身份验证对象
+         * @param {Object} additionalData 包含显示名称等可选数据的字典
+         */
+        async function initializeUserProfile(user, additionalData = {}) {
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            // 如果该 UID 不存在文档，说明是首次注册的新用户
+            if (!userSnap.exists()) {
+                const counterRef = doc(db, "system", "counters");
+                let customUid = "";
+                try {
+                    // 开启事务 (Transaction)，确保多个新用户同时注册时不会发生分配相同 customUid 的并发冲突
+                    customUid = await runTransaction(db, async (transaction) => {
+                        const counterSnap = await transaction.get(counterRef);
+                        let newCount = 1;
+                        if (!counterSnap.exists()) {
+                            transaction.set(counterRef, { userCount: 1 });
+                        } else { 
+                            newCount = (counterSnap.data().userCount || 0) + 1; 
+                            transaction.update(counterRef, { userCount: newCount }); 
+                        }
+                        // 组装格式化专属数字 ID，例如 U000105
+                        return "U" + String(newCount).padStart(6, '0');
+                    });
+                    
+                    const profileData = { 
+                        customUid: customUid, 
+                        email: user.email, 
+                        displayName: additionalData.displayName || user.displayName || "玩家_" + customUid, 
+                        avatar: user.photoURL || "", 
+                        createdAt: serverTimestamp() 
+                    };
+                    // 把资料存储进个人中心
+                    await setDoc(userRef, profileData, { merge: true });
+                    return profileData;
+                } catch (error) { throw error; }
+            }
+            return userSnap.data();
+        }
+
+        // ==========================================
+        // 🌟 核心引擎：多端数据双向智能融合与覆盖逻辑
+        // 根据弹窗中用户的选择策略，安全地合并本地 localStorage 和 Firebase Firestore 的数据
+        // ==========================================
+        window.executeDataSync = async (mode) => {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            // 锁定界面以防止重复点击，并在标题给出处理中的反馈
+            document.getElementById('sync-title').innerText = window.getTrans('sync_in_progress');
+            document.querySelectorAll('.sync-option').forEach(el => { el.style.pointerEvents = 'none'; el.style.opacity = '0.5'; });
+
+            try {
+                // 1. 发起两轮并发请求，拉取该用户在云端保存的所有"引擎数据"和"抽卡记录分片"
+                const enginesSnap = await getDocs(collection(db, "users", user.uid, "custom_engines"));
+                const recordsSnap = await getDocs(collection(db, "users", user.uid, "gacha_records"));
+
+                // 梳理云端引擎列表
+                let cloudEngines = {};
+                enginesSnap.forEach(d => cloudEngines[d.id] = d.data());
+
+                // 梳理云端抽卡记录，进行碎片拼合
+                let cloudRecords = {};
+                recordsSnap.forEach(docSnap => {
+                    let d = docSnap.data();
+                    if(!cloudRecords[d.gameId]) cloudRecords[d.gameId] = {};
+                    if(!cloudRecords[d.gameId][d.poolId]) cloudRecords[d.gameId][d.poolId] = [];
+                    // 解析类似 '0001_迪卢克' 的 key 值将其逆向还原为有序数组
+                    let keys = Object.keys(d.data || {});
+                    keys.forEach(k => {
+                        let idx = parseInt(k.split('_')[0]) - 1; 
+                        cloudRecords[d.gameId][d.poolId][idx] = d.data[k];
+                    });
+                });
+
+                // 安全的 JSON 解析工具，防止本地数据损坏导致页面卡死
+                const safeParse = (str) => { try { return str && str !== 'undefined' ? JSON.parse(str) : null; } catch(e) { return null; } };
+
+                // 2. 梳理全局 GameID，找到需要合并的所有游戏集合 (并集)
+                let localGamesList = safeParse(localStorage.getItem('GM_Custom_Games_List')) || [];
+                let mergedGamesMap = new Map();
+                // 录入本地游戏名录
+                localGamesList.forEach(g => mergedGamesMap.set(g.id, g));
+                // 追加录入云端独有或已存在的游戏名录
+                Object.keys(cloudEngines).forEach(gId => mergedGamesMap.set(gId, {id: gId, name: cloudEngines[gId].gameName}));
+                
+                let finalGamesList = Array.from(mergedGamesMap.values());
+
+                // 策略：如果彻底废弃本地以云端为准，先斩后奏清理掉本地相关所有的键值对
+                if (mode === 'cloud_only') {
+                    finalGamesList = Object.keys(cloudEngines).map(gId => ({id: gId, name: cloudEngines[gId].gameName}));
+                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                        let key = localStorage.key(i);
+                        if (key && key.startsWith('GM_')) localStorage.removeItem(key);
+                    }
+                }
+                // 把融合后的名录先行覆盖
+                localStorage.setItem('GM_Custom_Games_List', JSON.stringify(finalGamesList));
+
+                // 3. 开始执行逐个游戏的深度双向融合算法
+                for (let game of finalGamesList) {
+                    let gId = game.id;
+                    let cEngine = cloudEngines[gId]; // 取出云端对应的游戏引擎
+                    
+                    // 取出本地该游戏引擎的三个核心碎片
+                    let lInfo = safeParse(localStorage.getItem(`GM_Info_${gId}`));
+                    let lRoster = safeParse(localStorage.getItem(`GM_Roster_${gId}`));
+                    let lRosterPools = safeParse(localStorage.getItem(`GM_RosterPools_${gId}`));
+                    let lEngine = null;
+                    if (lInfo) {
+                        lEngine = { gameName: lInfo.gameName || gId, info: lInfo, roster: lRoster || {}, rosterPools: lRosterPools || [] };
+                    }
+
+                    // --- 模块 A: 游戏引擎本体融合 (Info, Roster, RosterPools) ---
+                    let finalEngine = null;
+                    let needsUploadEngine = false; // 是否需要将本地最新引擎反哺上传的标记
+
+                    if (mode === 'cloud_only') {
+                        finalEngine = cEngine;
+                    } else if (mode === 'cloud_first') {
+                        if (cEngine) {
+                            finalEngine = cEngine; // 发生冲突或皆有情况，尊崇云端版本
+                        } else if (lEngine) {
+                            finalEngine = lEngine; // 云端无对应游戏，用本地充当并开启上传通道
+                            needsUploadEngine = true;
+                        }
+                    } else if (mode === 'local_first') {
+                        if (lEngine) {
+                            finalEngine = lEngine; // 尊崇本地版本，并强制推向云端进行覆盖
+                            needsUploadEngine = true; 
+                        } else if (cEngine) {
+                            finalEngine = cEngine; // 本地无此游戏但云端有（比如新手机换机场景），将其下载
+                        }
+                    }
+
+                    // 如果决胜出了该游戏的最终引擎，存入本地
+                    if (finalEngine) {
+                        localStorage.setItem(`GM_Info_${gId}`, JSON.stringify(finalEngine.info || {}));
+                        localStorage.setItem(`GM_Roster_${gId}`, JSON.stringify(finalEngine.roster || {}));
+                        if (finalEngine.rosterPools) localStorage.setItem(`GM_RosterPools_${gId}`, JSON.stringify(finalEngine.rosterPools));
+                        
+                        // 若触发上传标记，利用 setDoc 对远程执行并集融合更新
+                        if (needsUploadEngine) {
+                            await setDoc(doc(db, "users", user.uid, "custom_engines", gId), {
+                                gameName: finalEngine.gameName || gId,
+                                info: finalEngine.info || {}, roster: finalEngine.roster || {}, rosterPools: finalEngine.rosterPools || [],
+                                lastModified: serverTimestamp()
+                            }, { merge: true });
+                        }
+                    }
+
+                    // --- 模块 B: 抽卡记录数组精细化融合算法 ---
+                    // 找出所有存在该游戏数据的池子ID
+                    let poolIds = new Set();
+                    if (cloudRecords[gId]) Object.keys(cloudRecords[gId]).forEach(p => poolIds.add(p));
+                    for (let i = 0; i < localStorage.length; i++) {
+                        let key = localStorage.key(i);
+                        if (key && key.startsWith(`GM_Data_${gId}_`)) poolIds.add(key.replace(`GM_Data_${gId}_`, ''));
+                    }
+
+                    for (let pId of poolIds) {
+                        let cArr = (cloudRecords[gId] && cloudRecords[gId][pId]) ? cloudRecords[gId][pId] : [];
+                        let lArr = safeParse(localStorage.getItem(`GM_Data_${gId}_${pId}`)) || [];
+                        // 净化可能出现的缺失或稀疏数组现象
+                        cArr = Array.from(cArr, item => item || null);
+
+                        let mergedArr = [];
+                        if (mode === 'cloud_only') {
+                            mergedArr = cArr; // 纯云端模式直接舍弃比对环节
+                        } else {
+                            // 以两者中最长的一方为界限开始补全遍历
+                            let maxLen = Math.max(cArr.length, lArr.length);
+                            for(let i=0; i<maxLen; i++) {
+                                let cItem = cArr[i];
+                                let lItem = lArr[i];
+                                if (mode === 'cloud_first') {
+                                    // 【云端优先】：有分歧优先采纳云端，云端没数据（数组超出其长度）则把本地特有的多出数据追加进去
+                                    mergedArr[i] = (cItem !== undefined && cItem !== null) ? cItem : lItem;
+                                } else if (mode === 'local_first') {
+                                    // 【本地优先】：有分歧采纳本地，本地没有这条数据(如早期没录)则采纳云端历史记录进行填补
+                                    mergedArr[i] = (lItem !== undefined && lItem !== null) ? lItem : cItem;
+                                }
+                            }
+                        }
+
+                        // 清理数组末尾的空洞垃圾 (Null)，防止污染后续逻辑
+                        while(mergedArr.length > 0 && mergedArr[mergedArr.length - 1] === null) mergedArr.pop();
+
+                        // 落入本地
+                        if (mergedArr.length > 0) {
+                            localStorage.setItem(`GM_Data_${gId}_${pId}`, JSON.stringify(mergedArr));
+                        } else {
+                            localStorage.removeItem(`GM_Data_${gId}_${pId}`);
+                        }
+
+                        // 分片同步机制：向云端重新交卷以保证双端严格一致
+                        // 为了绕过单文档1MB上限，按最大 9000 条切割上传区块 (Chunk)
+                        const CHUNK_SIZE = 9000;
+                        const totalChunks = Math.ceil(mergedArr.length / CHUNK_SIZE) || 1;
+                        for (let i = 0; i < totalChunks; i++) {
+                            const chunkArray = mergedArr.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                            const cloudReadableData = {};
+                            chunkArray.forEach((item, index) => {
+                                if(!item) return;
+                                // 还原如 00001_神里绫华 样式的键，便于控制台审查
+                                const pullNum = String((i * CHUNK_SIZE) + index + 1).padStart(5, '0');
+                                cloudReadableData[`${pullNum}_${item.name || '空'}`] = item;
+                            });
+                            // 分批异步写回云端集合中
+                            await setDoc(doc(db, "users", user.uid, "gacha_records", `${gId}_${pId}_pt${i + 1}`), {
+                                gameId: gId, poolId: pId, part: i + 1, data: cloudReadableData, lastModified: serverTimestamp()
+                            });
+                        }
+                    }
+                }
+
+                // 给该会话作上完成同步的标记，防止刷新后不断弹窗
+                sessionStorage.setItem('GM_HasSynced', 'true');
+                document.getElementById('syncModalOverlay').style.display = 'none';
+                
+                alert(window.getTrans('alert_sync_success'));
+                        location.reload(); 
+
+                    } catch(e) {
+                        console.error(e);
+                        document.getElementById('syncModalOverlay').style.display = 'none';
+                        // 专门识别是否因为触发了 Firebase 免费额度的上限错误 (读写过多)
+                        if (e.code === 'resource-exhausted' || (e.message && e.message.includes('Quota'))) {
+                            alert(window.getTrans('alert_sync_quota'));
+                        } else {
+                            alert(window.getTrans('alert_sync_error') + e.message + window.getTrans('alert_local_safe'));
+                        }
+                    }
+        };
+
+        // ==========================================
+        // 🌟 监听用户全局身份状态及界面调度
+        // ==========================================
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 如果已登录，获取/初始化云端用户信息
+                try {
+                    const userProfile = await initializeUserProfile(user);
+            
+                    // 切换前端展示面板：隐去登录按钮，显示欢迎语及用户头像
+                    document.getElementById('guest-panel').style.display = 'none';
+                    document.getElementById('user-panel').style.display = 'block';
+            
+                    const displayName = userProfile.displayName || user.email.split('@')[0];
+                    document.getElementById('display-username').innerText = displayName;
+
+                    // 优先展示自定义头像，其次展示 Google 帐号头像，最后以降级文字显示
+                    const avatarContainer = document.getElementById('display-avatar-home');
+                    if (userProfile.avatar) {
+                        avatarContainer.innerHTML = `<img src="${userProfile.avatar}" style="width:100%; height:100%; object-fit:cover;">`;
+                    } else if (user.photoURL) {
+                        avatarContainer.innerHTML = `<img src="${user.photoURL}" style="width:100%; height:100%; object-fit:cover;">`;
+                    } else {
+                        avatarContainer.innerText = displayName.charAt(0).toUpperCase();
+                    }
+            
+                    // ==========================================
+                    // 接收处理跳转传参或触发默认数据同步逻辑
+                    // ==========================================
+                    const forceSyncMode = sessionStorage.getItem('GM_ForceSync');
+                    const hasSynced = sessionStorage.getItem('GM_HasSynced');
+
+                    // 1. 若是从 settings.html 发来的强制云端动作指令
+                    if (forceSyncMode) {
+                        sessionStorage.removeItem('GM_ForceSync');
+                        let mode = 'cloud_first';
+                        if (forceSyncMode === 'push') mode = 'local_first'; // "强制推向云端"对应本地优先全覆盖
+                        if (forceSyncMode === 'pull') mode = 'cloud_only';  // "强制从云端覆盖"对应无脑信任云端
+                        
+                        window.executeDataSync(mode);
+                    } 
+                    // 2. 正常场景，检测在当前一次浏览中是否已经触发过同步机制弹窗，若未触发则呼出
+                    else if (!hasSynced) {
+                        document.getElementById('syncModalOverlay').style.display = 'flex';
+                    }
+            
+                } catch (error) {
+                    console.error("加载首页用户信息出错:", error);
+                }
+            } else {
+                // 若用户退出或未登录，恢复界面初始访客状态
+                document.getElementById('guest-panel').style.display = 'block';
+                document.getElementById('user-panel').style.display = 'none';
+                sessionStorage.removeItem('GM_HasSynced'); // 登出时销毁会话同步标记，为下次登录做准备
+            }
+        });
+
+        // ==========================================
+        // 拦截表单提交：处理原生邮箱与密码登录/注册
+        // ==========================================
+        window.handleAuthSubmit = async (e) => {
+            e.preventDefault(); // 阻止 form 自带的刷新动作
+            const isLogin = document.getElementById('tab-login').classList.contains('active');
+            const inputs = document.querySelectorAll('.auth-input');
+            const email = inputs[0].value; 
+            const pwd = inputs[1].value;
+
+            try {
+                if (isLogin) {
+                    // 调用 Firebase Auth 进行邮箱登录验证
+                    await signInWithEmailAndPassword(auth, email, pwd);
+                } else {
+                    // 注册校验：校验两次密码输入的一致性
+                    const confirmPwd = inputs[2].value;
+                    if (pwd !== confirmPwd) return alert(window.getTrans('alert_pwd_mismatch'));
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, pwd);
+                    // 注册成功后立刻为其在云端开辟用户资料库
+                    await initializeUserProfile(userCredential.user);
+                    alert(window.getTrans('alert_reg_success'));
+                }
+                // 成功后关闭遮罩弹窗
+                document.getElementById('authModalOverlay').style.display = 'none';
+            } catch (error) { 
+                // 捕获可能产生的网络错/配额满等异常
+                if (error.code === 'resource-exhausted' || (error.message && error.message.includes('Quota'))) {
+                    alert(window.getTrans('alert_quota_full'));
+                } else {
+                    alert(window.getTrans('alert_login_fail') + error.message); 
+                }
+            }
+        };
+    </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"bceac37f94aa49e39e7285c5fa781796","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

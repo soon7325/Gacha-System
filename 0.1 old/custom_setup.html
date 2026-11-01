@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 必须先加载存储隔离；目录自动识别为 0.1，不与新版共享数据。 -->
+    <script src="../logic/version_storage.js"></script>
+    <title>Gacha System - 终极引擎配置</title>
+    <script>
+        // 在页面渲染前立即执行，读取本地存储的主题设置（深色/浅色），防止页面闪烁
+        (function() {
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ==========================================
+           1. 基础布局与区块样式
+           ========================================== */
+        /* 页面主容器，居中并限制最大宽度 */
+        .setup-container { max-width: 1000px; margin: 0 auto; padding-bottom: 80px; }
+        /* 头部标题与按钮的弹性布局 */
+        .header-actions { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 1px dashed var(--border); padding-bottom: 15px; }
+        /* 模块分类的大标题样式 (带左侧竖线) */
+        .type-header { font-size: 1.5rem; color: var(--text); border-left: 4px solid var(--primary); padding-left: 10px; margin: 40px 0 20px; }
+        /* 独立的卡池/区块卡片样式 */
+        .pool-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* 卡池标题栏 (可点击、支持悬停反馈) */
+        .pool-title { margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; padding: 5px; border-radius: 6px; transition: 0.2s; }
+        .pool-title:hover { background: rgba(255,255,255,0.05); }
+        .pool-body { overflow: hidden; transition: 0.3s ease; }
+        
+        /* ==========================================
+           2. 图鉴网格与角色卡片样式
+           ========================================== */
+        /* 角色卡片网格布局，自适应列宽 */
+        .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; }
+        /* 统一的角色卡片与“添加按钮”卡片的基础宽高比和布局 */
+        .char-card, .add-btn-card { aspect-ratio: 1; border-radius: 8px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+        /* “添加新角色”的虚线框卡片 */
+        .add-btn-card { border: 2px dashed #666; color: #666; background: rgba(0,0,0,0.1); }
+        .add-btn-card:hover { border-color: var(--primary); color: var(--primary); background: rgba(0,123,255,0.1); }
+        /* 实体角色卡片 */
+        .char-card { background: #333; border: 1px solid #555; }
+        .char-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); border-color: var(--primary); }
+        /* 角色背景图 (填满卡片) */
+        .char-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; opacity: 0.8; }
+        /* 底部半透明的名称遮罩带 */
+        .char-info { z-index: 2; position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 5px; text-align: center; color: white; font-size: 12px; font-weight: bold; }
+        /* 左上角的稀有度数字标记 */
+        .char-star { position: absolute; top: 5px; left: 5px; z-index: 2; font-weight: bold; text-shadow: 0 0 3px #000; font-size: 12px; }
+        /* 右上角的删除小红点 (默认隐藏，悬停卡片时显示) */
+        .del-badge { position: absolute; top: 5px; right: 5px; z-index: 3; background: #e74c3c; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; display: none; }
+        .char-card:hover .del-badge { display: flex; }
+        
+        /* 通用输入框 */
+        .input-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; outline: none; width: 100%; box-sizing: border-box; font-size: 1rem; }
+        .input-box:focus { border-color: var(--primary); }
+        
+        /* 规则配置行与复选框 */
+        .rule-row { display: flex; align-items: center; gap: 20px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .rule-label { font-weight: bold; width: 180px; color: var(--text); }
+        .cb-group { display: flex; gap: 15px; }
+        .cb-item { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #ccc; font-size: 14px; }
+        .cb-item:hover { color: #fff; }
+        .hint-text { font-size: 13px; color: #888; margin-top: 5px; margin-bottom: 15px; }
+        
+        /* 拖拽排序把手样式 */
+        .drag-handle { cursor: grab; font-size: 24px; color: #555; padding-right: 15px; user-select: none; transition: color 0.2s; display: flex; align-items: center; }
+        .drag-handle:hover { color: var(--primary); }
+        .drag-handle:active { cursor: grabbing; }
+        /* 拖拽目标悬停时的高亮反馈 */
+        .drag-over-pool { border: 2px dashed var(--primary) !important; background: rgba(0, 123, 255, 0.05) !important; transform: scale(1.01); transition: all 0.2s ease; opacity: 0.9; }
+
+        /* 全局稀有度设置面板样式 (颜色选择器定制) */
+        .tier-row { display:flex; gap:12px; align-items:center; margin-bottom:12px; padding:12px 15px; background:rgba(0,0,0,0.2); border-radius:8px; border: 1px solid var(--border); }
+        .color-picker { -webkit-appearance: none; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; padding: 0; }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.2); border-radius: 6px; }
+
+        /* ==========================================
+           3. 预览模式核心样式
+           原理：通过给 body 添加 class，利用 CSS 强行隐藏或禁用所有编辑相关的 UI 元素
+           ========================================== */
+        /* 隐藏所有“添加”、“删除”相关的按钮和标识 */
+        body.preview-mode .add-btn-card, 
+        body.preview-mode .del-badge, 
+        body.preview-mode .drag-handle,
+        body.preview-mode button[onclick^="delete"], 
+        body.preview-mode button[onclick^="remove"],
+        body.preview-mode button[onclick^="addPoolBlock"], 
+        body.preview-mode button[onclick^="addMixPool"], 
+        body.preview-mode button[onclick^="addGlobalTier"],
+        body.preview-mode #btn-delete { display: none !important; }
+        
+        /* 禁用输入框和复选框的点击事件，并使其看起来像普通文本 */
+        body.preview-mode .input-box { pointer-events: none; border-color: transparent !important; background: transparent !important; padding: 0; font-weight: bold; }
+        body.preview-mode .color-picker { pointer-events: none; opacity: 0.8; }
+        body.preview-mode .cb-item { pointer-events: none; }
+        body.preview-mode input[type="checkbox"] { filter: grayscale(1); opacity: 0.7; }
+        
+        /* 禁用角色卡片的交互动画 */
+        body.preview-mode .char-card { cursor: default; }
+        body.preview-mode .char-card:hover { transform: none; box-shadow: none; border-color: #555; }
+        body.preview-mode .pool-section { border-style: solid !important; }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏注入锚点 -->
+    <div class="sidebar"></div>
+    <div class="main-content">
+        <div class="roster-container">
+            <!-- 头部操作区 (标题、动态工具按钮、预览按钮、保存按钮) -->
+            <div class="header-actions">
+                <div>
+                    <h1 style="margin: 0; color: var(--primary);" id="page-main-title" data-i18n="cs_main_title">🛠️ 游戏全量构建中心</h1>
+                    <p style="color: #888; margin: 5px 0 0 0;" data-i18n="cs_main_desc">图鉴类型完全解绑，像拼积木一样自由构建抽卡池</p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;" id="header-btn-group">
+                    <!-- 隐藏的文件选择框，用于导入 -->
+                    <input type="file" id="engine-import-input" accept=".json" style="display: none;" onchange="handleEngineImport(this)">
+                    
+                    <!-- 动态工具按钮（新建时为导入，已有游戏时为导出） -->
+                    <button class="btn btn-action-gray" id="btn-engine-tool" style="padding: 12px 18px; font-weight: bold;"></button>
+                    
+                    <button class="btn btn-action-gray" id="btn-preview-toggle" style="padding: 12px 18px; font-weight: bold; transition: all 0.3s ease;" onclick="togglePreviewMode()">👁️ 锁定预览</button>
+                    <button class="btn btn-primary" id="btn-save-all" style="padding: 12px 24px; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,123,255,0.3);" onclick="saveAllAndGenerate()" data-i18n="cs_btn_save_all">💾 保存全部配置并生成系统</button>
+                </div>
+            </div>
+
+            <!-- 游戏名称配置 -->
+            <div class="pool-section" style="border-top: 4px solid var(--primary);">
+                <label style="font-size: 14px; color: #ccc; font-weight: bold; margin-bottom: 10px; display: block;" data-i18n="cs_game_name">游戏/引擎名称 (必填)</label>
+                <!-- 根据系统语言，更新相应的中英文名称对象 -->
+                <input type="text" id="input-game-name" class="input-box" data-i18n="cs_game_name_ph" placeholder="例如：崩坏：星穹铁道 / 明日方舟" onchange="if(sysLang==='en') { gameInfo.enGameName = this.value; } else { gameInfo.gameName = this.value; }">
+            </div>
+
+            <!-- 全局稀有度(Tier)设定卡片 -->
+            <div class="pool-section" style="border-top: 4px solid #9b59b6;">
+                <h3 style="margin-top:0; color:#9b59b6;" data-i18n="cs_tier_title">🌟 全局稀有度 (Tier) 设定</h3>
+                <p class="hint-text" data-i18n="cs_tier_desc">在此统一定义该游戏的所有稀有度与颜色。下方图鉴录入时可直接在下拉框中选择。此设置将作为所有卡池的底层基准。</p>
+                <!-- 存放稀有度条目的容器 -->
+                <div id="global-tiers-container"></div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn btn-action-gray" style="border-style: dashed; border-color: #888; width: 100%;" onclick="addGlobalTier()" data-i18n="cs_btn_add_tier">➕ 添加新稀有度</button>
+                </div>
+            </div>
+
+            <!-- 动态积木卡池挂载点 (所有自建卡池都会渲染在这里) -->
+            <div id="dynamic-pools-container"></div>
+
+            <!-- 添加新积木卡池的按钮组 -->
+            <div style="display: flex; justify-content: center; gap: 20px; margin: 30px 0;">
+                <button class="btn btn-action-gray" style="padding: 12px 25px; border-style: dashed; border-color: #f1c40f; color: #f1c40f;" onclick="addPoolBlock('up')" data-i18n="cs_btn_add_up">➕ 添加【目标图鉴】(作限定/联动用)</button>
+                <button class="btn btn-action-gray" style="padding: 12px 25px; border-style: dashed; border-color: #3498db; color: #3498db;" onclick="addPoolBlock('std')" data-i18n="cs_btn_add_std">➕ 添加【可歪图鉴】(作常驻/特限用)</button>
+            </div>
+
+            <h2 class="type-header" style="border-left-color: #2ecc71;" data-i18n="cs_flow_title">🔀 卡池流向与混合机制设定</h2>
+            <div id="dynamic-rules-container"></div>
+
+            <!-- 危险操作：销毁引擎 -->
+            <div style="margin-top: 40px; text-align: center; border-top: 1px dashed var(--border); padding-top: 30px;">
+                <button class="btn btn-action-gray" id="btn-delete" style="color: #ff4757; border-color: #ff4757;" onclick="deleteEntireGame()" data-i18n="cs_btn_del_game">🗑️ 销毁当前自定义游戏的所有数据</button>
+            </div>
+        </div>
+
+    <!-- 图鉴新增/编辑 悬浮弹窗 (Modal) -->
+    <div id="charModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:var(--card-bg); border:1px solid var(--border); padding:20px; border-radius:12px; width:400px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <h2 id="modal-title" style="margin-top:0; color:var(--primary);" data-i18n="cs_modal_add">➕ 添加新图鉴</h2>
+            <!-- 隐藏字段，记录当前正在编辑的卡池 ID -->
+            <input type="hidden" id="input-pool-type">
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+                <div class="input-group">
+                    <label style="color:#aaa; font-size:12px;" data-i18n="cs_lbl_name">名称</label>
+                    <input type="text" id="input-name" class="input-box" data-i18n="cs_lbl_name_ph" placeholder="如：银狼">
+                </div>
+                <div class="input-group">
+                    <label style="color:#aaa; font-size:12px;" data-i18n="cs_lbl_short">简称 </label>
+                    <input type="text" id="input-short" class="input-box" data-i18n="cs_lbl_short_ph" placeholder="如：狼">
+                </div>
+                <div class="input-group">
+                    <label style="color:#f1c40f; font-size:12px; font-weight:bold;" data-i18n="cs_lbl_tier">所属稀有度</label>
+                    <!-- 动态生成选项的下拉框 -->
+                    <select id="input-tier-id" class="input-box" style="border-color: #f1c40f; padding: 12px;"></select>
+                </div>
+                <div class="input-group">
+                    <label style="color:#aaa; font-size:12px;" data-i18n="cs_lbl_img">头像图片 (可选)</label>
+                    <input type="file" id="input-img" accept="image/*" style="color:#aaa; font-size:12px;">
+                    <!-- 用于显示上传图片的预览区 -->
+                    <div id="preview-img" style="width:60px; height:60px; border-radius:8px; border:1px dashed #666; margin-top:5px; background-size:cover; background-position:center;"></div>
+                </div>
+            </div>
+            <!-- 弹窗底部按钮 -->
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-action-gray" onclick="document.getElementById('charModalOverlay').style.display='none'" data-i18n="cs_btn_cancel">取消</button>
+                <button class="btn btn-primary" onclick="saveItem()" data-i18n="cs_btn_save">💾 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="Preset_Data/db_hsr.js"></script>
+    <script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_end.js"></script>
+    <script src="Preset_Data/db_ark.js"></script>
+    <script src="translate.js"></script>
+    <script src="layout.js"></script>
+    
+    <script>
+        // 解析 URL 参数以获取当前要编辑的游戏 ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const sysLang = localStorage.getItem('GM_Lang') || 'zh';
+
+        // 统一的多语言物品名称获取方法
+        function getItemName(item) {
+            if (!item) return '?';
+            if (sysLang === 'en') { return item.en || item.nameEn || item.name; }
+            return item.name;
+        }
+
+        // 统一的多语言物品简称获取方法
+        function getItemShort(item) {
+            if (!item) return '?';
+            if (sysLang === 'en') { return item.eshort || item.shortEn || item.en || item.nameEn || item.short || item.name; }
+            return item.short || item.name;
+        }
+
+        let gameId = urlParams.get('gameId'); 
+
+        // 核心状态数据结构
+        let rosterPools = []; // 存储所有卡池积木块的数据 (id, 名称, 包含的物品列表等)
+        let gameInfo = { gameName: '', mixedPools: [], offRate: {}, globalTiers: null }; // 游戏元数据
+        
+        // 用于暂存图片 Base64 编码的全局变量，供模态框使用
+        let tempBase64Img = "";
+        let editingItemInfo = null; // 标识当前是在新建物品还是编辑已有物品
+
+        // 默认提供的颜色盘，用于创建新稀有度时循环分配颜色
+        const DEFAULT_COLORS = ["#f1c40f", "#9b59b6", "#3498db", "#2ecc71", "#95a5a6", "#ff4757"];
+
+        // 页面 DOM 加载完成后执行初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof renderSidebar === 'function') renderSidebar();
+            
+            initOrMigrateData(); // 加载并兼容处理历史数据
+            
+            // 填充游戏名称输入框
+            document.getElementById('input-game-name').value = sysLang === 'en' ? (gameInfo.enGameName || gameInfo.gameName || '') : (gameInfo.gameName || '');
+            
+            // 渲染各项 UI 模块
+            renderGlobalTiers();
+            renderPoolBlocks();
+            if (typeof setupImageUploader === 'function') setupImageUploader(); 
+
+            // 如果是预设游戏，加锁禁止编辑
+            lockPresetGame();
+        });
+
+        // 初始化右上角工具按钮：新建模式为【导入】，已有自设为【导出】
+        const toolBtn = document.getElementById('btn-engine-tool');
+        if (toolBtn) {
+            if (!gameId) {
+                // 新建页面：显示导入配置
+                toolBtn.innerHTML = sysLang === 'en' ? '📥 Import Config' : '📥 导入配置';
+                toolBtn.onclick = () => document.getElementById('engine-import-input').click();
+            } else {
+                // 已有页面：显示导出配置
+                toolBtn.innerHTML = sysLang === 'en' ? '📥 Export Config' : '📥 导出配置';
+                toolBtn.onclick = () => exportCurrentEngineConfig();
+            }
+        }
+
+        // 🌟 读取并校验导入的 JSON 文件
+        window.handleEngineImport = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    // ==========================================
+                    // 🛡️ 结构完整性严苛校验
+                    // ==========================================
+                    // 1. 必须是对象
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                        throw new Error(sysLang === 'en' ? 'Config file must be a valid JSON object!' : '配置文件不是合法的 JSON 对象！');
+                    }
+
+                    // 2. 核心必要字段缺失检测
+                    const hasPools = Array.isArray(data.rosterPools) && data.rosterPools.length > 0;
+                    const hasInfo = data.info && typeof data.info === 'object';
+                    const hasTiers = hasInfo && Array.isArray(data.info.globalTiers) && data.info.globalTiers.length > 0;
+
+                    if (!hasPools || !hasInfo || !hasTiers) {
+                        throw new Error(
+                            sysLang === 'en' 
+                            ? 'Invalid format: Missing critical fields (rosterPools / globalTiers / info)!' 
+                            : '配置文件格式错误：缺少必要的图鉴数据或稀有度定义！拒绝导入。'
+                        );
+                    }
+
+                    // 3. 校验卡池内部合法性（每个卡池积木必须有 id、name、type、items 数组）
+                    const validPools = data.rosterPools.every(p => p.id && (p.name || p.en) && p.type && Array.isArray(p.items));
+                    if (!validPools) {
+                        throw new Error(sysLang === 'en' ? 'Corrupted rosterPool structure!' : '卡池积木结构损坏或不完整！拒绝导入。');
+                    }
+
+                    // ==========================================
+                    // ✅ 校验通过，注入内存并即时渲染
+                    // ==========================================
+                    gameInfo = data.info;
+                    rosterPools = data.rosterPools;
+
+                    // 填充名称
+                    const importedName = data.gameName || gameInfo.gameName || (sysLang === 'en' ? 'Imported Engine' : '导入的游戏');
+                    gameInfo.gameName = importedName;
+                    document.getElementById('input-game-name').value = importedName;
+
+                    // 如果带有关联规则，暂存到 sessionStorage，等用户点击生成时落盘
+                    if (data.rules && typeof data.rules === 'object') {
+                        sessionStorage.setItem('GM_Temp_Imported_Rules', JSON.stringify(data.rules));
+                    }
+
+                    // 重新绘制页面上的稀有度和卡池积木
+                    renderGlobalTiers();
+                    renderPoolBlocks();
+
+                    alert(sysLang === 'en' ? '✅ Configuration imported successfully! Click Save to apply.' : '✅ 配置文件解析成功并已加载到界面！请确认后点击右上角保存。');
+
+                } catch (err) {
+                    console.error("导入校验失败:", err);
+                    alert(`❌ 导入失败（文件已被拒绝）：\n${err.message}`);
+                } finally {
+                    input.value = ''; // 重置文件框以便下次选择同名文件
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        // ==========================================
+        // 预览模式切换逻辑
+        // ==========================================
+        window.togglePreviewMode = function() {
+            const body = document.body;
+            const btn = document.getElementById('btn-preview-toggle');
+            
+            // 如果是官方预设游戏，本身就是锁定的，无需触发预览模式
+            const fallbackIds = ['hsr', 'zzz', 'end', 'ark'];
+            const presetIds = typeof PRESET_GAME_IDS !== 'undefined' ? PRESET_GAME_IDS : fallbackIds;
+            if (presetIds.includes(gameId)) {
+                alert(typeof getTrans === 'function' ? getTrans('cs_js_preset_lock') : '官方预设游戏本身即为只读模式，无需重复锁定。');
+                return;
+            }
+
+            // 切换 body 的 class，CSS 会自动接管 UI 元素的显隐逻辑
+            body.classList.toggle('preview-mode');
+            
+            // 更新按钮文本与样式
+            if (body.classList.contains('preview-mode')) {
+                btn.innerHTML = sysLang === 'en' ? '🔓 Unlock Preview' : '🔓 解除预览';
+                btn.style.color = '#2ecc71';
+                btn.style.borderColor = '#2ecc71';
+                btn.style.background = 'rgba(46, 204, 113, 0.1)';
+            } else {
+                btn.innerHTML = sysLang === 'en' ? '👁️ Lock Preview' : '👁️ 锁定预览';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+                btn.style.background = '';
+            }
+        };
+
+        // ==========================================
+        // 预设游戏只读保护锁 (防呆设计)
+        // ==========================================
+        function lockPresetGame() {
+            const fallbackIds = ['hsr', 'zzz', 'end', 'ark'];
+            const presetIds = typeof PRESET_GAME_IDS !== 'undefined' ? PRESET_GAME_IDS : fallbackIds;
+            const isPreset = presetIds.includes(gameId);
+            
+            if (!isPreset) return; // 不是预设游戏，跳过加锁
+
+            // 1. 注入顶部黄色警告横幅
+            const container = document.querySelector('.roster-container');
+            if (container && !document.getElementById('preset-warning-banner')) {
+                const warningDiv = document.createElement('div');
+                warningDiv.id = 'preset-warning-banner';
+                warningDiv.style = "background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px;";
+                warningDiv.innerHTML = `<span>⚠️</span> ${typeof getTrans === 'function' ? getTrans('cs_js_preset_warn') : '系统预设游戏不可修改'}`;
+                container.insertBefore(warningDiv, container.children[1] || container.firstChild);
+            }
+
+            // 2. 注入强制 CSS 锁，强行抹除 DOM 上的交互元素
+            if (!document.getElementById('lock-css')) {
+                const lockStyle = document.createElement('style');
+                lockStyle.id = 'lock-css';
+                lockStyle.innerHTML = `
+                    .add-btn-card { display: none !important; }
+                    .del-badge { display: none !important; }
+                    .char-card { cursor: default !important; border-color: transparent !important; }
+                    .char-card:hover { transform: none !important; box-shadow: none !important; }
+                    button[onclick^="deletePoolBlock"], button[onclick^="removeGlobalTier"], button[onclick^="deleteMixPool"] { display: none !important; }
+                    #btn-save-all, #btn-delete { display: none !important; }
+                    #btn-preview-toggle { display: none !important; }
+                `;
+                document.head.appendChild(lockStyle);
+            }
+
+           // 3. 动态禁用所有的 input 和 select，隐藏拖拽把手与危险操作
+            const hideButtons = () => {
+                const actionBtns = document.querySelectorAll('.btn-action-gray, .btn-green');
+                actionBtns.forEach(btn => { 
+                    // 🌟 特别放行导出按钮，不隐藏
+                    if (btn.id !== 'btn-preview-toggle' && btn.id !== 'btn-engine-tool') {
+                        btn.style.display = 'none'; 
+                    }
+                });
+                
+                const inputs = document.querySelectorAll('.roster-container input, .roster-container select');
+                inputs.forEach(el => { el.disabled = true; el.style.opacity = '0.5'; el.style.cursor = 'not-allowed'; });
+                
+                document.querySelectorAll('.color-picker').forEach(el => { el.disabled = true; el.style.pointerEvents = 'none'; });
+                
+                const dragHandles = document.querySelectorAll('.drag-handle');
+                dragHandles.forEach(h => h.style.display = 'none');
+                document.querySelectorAll('[draggable="true"]').forEach(el => el.removeAttribute('draggable'));
+            };
+            
+            hideButtons();
+
+            // 🌟 核心：为官方预设游戏页面定制专属导出按钮
+            const toolBtn = document.getElementById('btn-engine-tool');
+            if (toolBtn) {
+                toolBtn.style.display = 'inline-block';
+                toolBtn.innerHTML = sysLang === 'en' ? '📥 Export Preset Roster' : '📥 导出预设图鉴配置';
+                toolBtn.className = 'btn btn-primary'; // 用高亮色彩凸显导出
+                toolBtn.style.backgroundColor = 'var(--primary)';
+                toolBtn.style.cursor = 'pointer';
+                toolBtn.onclick = () => exportCurrentEngineConfig();
+            }
+
+            // 4. 彻底覆盖全局事件函数，防止通过控制台调用破坏数据
+            window.openEditModal = function(poolId, index) { alert(typeof getTrans === 'function' ? getTrans('cs_js_preset_lock') : '预设不可修改'); };
+            window.openAddModal = function(poolId) { alert(typeof getTrans === 'function' ? getTrans('cs_js_preset_lock_btn') : '预设不可修改'); };
+            window.deleteItem = function(poolId, index, event) { 
+                if(event) { event.stopPropagation(); event.preventDefault(); }
+                alert(typeof getTrans === 'function' ? getTrans('cs_js_preset_lock_btn') : '预设不可修改');
+            };
+            window.saveAllAndGenerate = function() { alert(typeof getTrans === 'function' ? getTrans('cs_js_preset_block') : '拦截：不可操作！'); };
+            window.deleteEntireGame = function() { alert("拦截：预设游戏不可销毁！"); };
+            window.deletePoolBlock = function() { alert("拦截：不可操作！"); };
+            window.addPoolBlock = function() { alert("拦截：不可操作！"); };
+            window.addGlobalTier = function() { alert("拦截：不可操作！"); };
+            window.removeGlobalTier = function() { alert("拦截：不可操作！"); };
+            
+            // 5. 挂载 MutationObserver 监控 DOM 变化，如果有新元素被渲染出来，立即加锁
+            const observer = new MutationObserver(() => { hideButtons(); });
+            const mainContainer = document.querySelector('.roster-container');
+            if (mainContainer) observer.observe(mainContainer, { childList: true, subtree: true });
+
+            // 如果存在从外部导入进来的卡池规则，顺便写入 localStorage
+            const tempRulesStr = sessionStorage.getItem('GM_Temp_Imported_Rules');
+            if (tempRulesStr) {
+                try {
+                    const importedRules = JSON.parse(tempRulesStr);
+                    Object.keys(importedRules).forEach(pKey => {
+                        localStorage.setItem(`GM_Rules_${gameId}_${pKey}`, JSON.stringify(importedRules[pKey]));
+                    });
+                    sessionStorage.removeItem('GM_Temp_Imported_Rules');
+                } catch(e) {}
+            }
+        }
+
+        // ==========================================
+        // 1. 数据初始化与兼容迁移
+        // ==========================================
+        function initOrMigrateData() {
+            // 1. 读取本地存储的基础信息
+            let savedInfo = JSON.parse(localStorage.getItem('GM_Info_' + gameId));
+            if (savedInfo) gameInfo = Object.assign(gameInfo, savedInfo);
+            
+            // 迁移极早期的混合池数据结构到新的数组格式
+            if (gameInfo.mixedStdConfig) {
+                gameInfo.mixedPools = [{ id: 'mp_' + Date.now(), name: gameInfo.mixedStdName || '混合常驻池', components: gameInfo.mixedStdConfig, enableCustomUp: false }];
+                delete gameInfo.mixedStdConfig; delete gameInfo.mixedStdName;
+            }
+            if (!gameInfo.mixedPools) gameInfo.mixedPools = [];
+            
+            // 2. 如果没有全局稀有度设定，尝试从预设数据库中抓取，如果抓不到就给个默认兜底
+            if (!gameInfo.globalTiers || gameInfo.globalTiers.length === 0) {
+                const gamePrefix = gameId ? gameId.toUpperCase() : '';
+                const getVar = (varName) => { try { return new Function(`return typeof ${varName} !== 'undefined' ? ${varName} : undefined`)(); } catch(e) { return undefined; } };
+                const presetGlobalTiers = getVar(`${gamePrefix}_GLOBAL_TIERS`);
+                
+                if (presetGlobalTiers) {
+                    gameInfo.globalTiers = JSON.parse(JSON.stringify(presetGlobalTiers));
+                } else {
+                    gameInfo.globalTiers = [
+                        { id: 'tier_5', name: '5', color: '#f1c40f' },
+                        { id: 'tier_4', name: '4', color: '#9b59b6' },
+                        { id: 'tier_3', name: '3', color: '#3498db' }
+                    ];
+                }
+            }
+            
+            // 3. 读取本地卡池结构数据与图鉴数据
+            let savedPools = JSON.parse(localStorage.getItem('GM_RosterPools_' + gameId));
+            let oldRoster = JSON.parse(localStorage.getItem('GM_Roster_' + gameId));
+
+            if (savedPools) {
+                rosterPools = savedPools; // 如果有新版结构直接用
+            } else if (oldRoster) {
+                // 如果是老版本的数据，执行平滑迁移算法，将其包装成积木块结构
+                const typeMap = {
+                    'char_up': { name: '限定角色', type: 'up' }, 'char_collab': { name: '联动角色', type: 'up' },
+                    'char_std': { name: '常驻角色', type: 'std' }, 'char_spec': { name: '特限角色', type: 'std', isStandalone: false },
+                    'wep_up': { name: '限定光锥/武器', type: 'up' }, 'wep_collab': { name: '联动光锥/武器', type: 'up' },
+                    'wep_std': { name: '常驻光锥/武器', type: 'std' }, 'wep_spec': { name: '特限光锥/武器', type: 'std', isStandalone: false },
+                    'pet_up': { name: '限定随宠', type: 'up' }, 'pet_std': { name: '常驻随宠', type: 'std' }
+                };
+                for (let key in oldRoster) {
+                    if (oldRoster[key] && oldRoster[key].length > 0 && typeMap[key]) {
+                        rosterPools.push({
+                            id: 'p_' + key, name: typeMap[key].name, type: typeMap[key].type, items: oldRoster[key],
+                            isStandalone: typeMap[key].isStandalone !== undefined ? typeMap[key].isStandalone : true,
+                            enableSpecRate: key.includes('spec'), enableCustomUp: false,
+                            specRateConfig: { type: 'multiplier', value: 5, items: [] }
+                        });
+                    }
+                }
+            }
+            // 如果连老数据都没有（纯新游戏），生成一限定一常驻作为默认骨架
+            if (rosterPools.length === 0) {
+                rosterPools.push({ id: 'p_def_up', name: sysLang === 'en' ? 'New Target Pool' : '新建限定池', type: 'up', items: [] });
+                rosterPools.push({ id: 'p_def_std', name: sysLang === 'en' ? 'New Off-rate Pool' : '新建常驻池', type: 'std', items: [], isStandalone: true, enableSpecRate: false, enableCustomUp: false });
+            }
+
+            // 4. 尝试从官方预设 JS 脚本中抓取强力规则覆盖
+            const prefix = gameId ? gameId.toUpperCase() : '';
+            const getVar = (varName) => { try { return new Function(`return typeof ${varName} !== 'undefined' ? ${varName} : undefined`)(); } catch(e) { return undefined; } };
+            
+            const liveSetup = getVar(`${prefix}_SETUP_RULES`);
+            if (liveSetup) {
+                gameInfo.mixedPools = liveSetup.mixedPools ? JSON.parse(JSON.stringify(liveSetup.mixedPools)) : [];
+                gameInfo.offRate = liveSetup.offRate ? JSON.parse(JSON.stringify(liveSetup.offRate)) : {};
+                
+                if (liveSetup.rosterPools) {
+                    let newPools = [];
+                    liveSetup.rosterPools.forEach(rulePool => {
+                        let existing = rosterPools.find(p => p.id === rulePool.id);
+                        newPools.push(Object.assign({}, rulePool, { items: existing ? existing.items : [] }));
+                    });
+                    rosterPools = newPools;
+                }
+            }
+
+            // 5. 从官方图鉴库注入角色数据
+            const liveDB = getVar(`${prefix}_DB`);
+            const liveCharDB = getVar(`${prefix}_CHAR_DB`);
+            const liveWepDB = getVar(`${prefix}_WEAPON_DB`);
+
+            if (liveDB || liveCharDB || liveWepDB) {
+                const liveRoster = {};
+                // 将打平的数据库数组转化为按类型归类的字典结构
+                const processDb = (dbArray, typePrefix) => {
+                    if (!dbArray) return;
+                    dbArray.forEach(item => {
+                        let types = Array.isArray(item.type) ? item.type : [item.type];
+                        types.forEach(t => {
+                            let key = (typePrefix && !t.startsWith(typePrefix)) ? `${typePrefix}_${t}` : t;
+                            if (!liveRoster[key]) liveRoster[key] = [];
+                            liveRoster[key].push(item);
+                        });
+                    });
+                };
+
+                if (liveDB) processDb(liveDB, "");
+                else { processDb(liveCharDB, 'char'); processDb(liveWepDB, 'wep'); }
+
+                // 将解析后的数据注入到当前的积木块中
+                rosterPools.forEach(pool => {
+                    if (liveRoster[pool.id]) {
+                        const isPreset = typeof PRESET_GAME_IDS !== 'undefined' && PRESET_GAME_IDS.includes(gameId);
+                        if (isPreset) {
+                            pool.items = liveRoster[pool.id]; // 预设游戏强行覆盖
+                        } else {
+                            // 自定义游戏则做增量更新，防止洗掉用户自己添加的角色
+                            liveRoster[pool.id].forEach(liveItem => {
+                                if (!pool.items.find(i => i.name === liveItem.name)) pool.items.push(liveItem);
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        // ==========================================
+        // 全局星级渲染与操作
+        // ==========================================
+        function renderGlobalTiers() {
+            const container = document.getElementById('global-tiers-container');
+            let html = '';
+            gameInfo.globalTiers.forEach((t, index) => {
+                html += `
+                <div class="tier-row" style="border-left: 5px solid ${t.color};">
+                    <input type="color" class="color-picker" value="${t.color}" onchange="updateGlobalTier('${t.id}', 'color', this.value)">
+                    <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+                        <input type="text" class="input-box" value="${t.name}" onchange="updateGlobalTier('${t.id}', 'name', this.value)" placeholder="名称(如: 5, SSS)" style="font-weight:bold; color:${t.color}; font-size: 1.1rem; padding: 6px 10px;">
+                        <span style="font-size:11px; color:#888; padding-left: 2px;">${getTrans('cs_js_base_id')}${t.id}</span>
+                    </div>
+                    <button class="btn btn-action-gray" style="color: #ff4757; border:none; background:transparent;" onclick="removeGlobalTier('${t.id}')">✕</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+            renderPoolBlocks(); // 刷新下方的卡池方块以便同步颜色
+        }
+
+        window.addGlobalTier = function() {
+            const newId = 'tier_' + Date.now();
+            const nextColor = DEFAULT_COLORS[gameInfo.globalTiers.length % DEFAULT_COLORS.length];
+            const defaultName = sysLang === 'en' ? "New Rarity" : "新稀有度";
+            gameInfo.globalTiers.push({ id: newId, name: defaultName, color: nextColor });
+            renderGlobalTiers();
+        };
+
+        window.removeGlobalTier = function(id) {
+            gameInfo.globalTiers = gameInfo.globalTiers.filter(t => t.id !== id);
+            renderGlobalTiers();
+        };
+
+        window.updateGlobalTier = function(id, key, value) {
+            const tier = gameInfo.globalTiers.find(t => t.id === id);
+            if (tier) { tier[key] = value; renderGlobalTiers(); }
+        };
+
+        // ==========================================
+        // 2. 积木块 UI 渲染与操作
+        // ==========================================
+        function addPoolBlock(type) {
+            const poolName = prompt(typeof getTrans === 'function' ? getTrans('cs_js_prompt_name') : '请输入卡池名称', type === 'up' ? (getTrans('cs_js_prompt_up') || '新建限定池') : (getTrans('cs_js_prompt_std') || '新建常驻池'));
+            if (!poolName) return;
+            // 构造新的积木对象
+            const newPool = { id: 'p_' + Date.now(), name: poolName, type: type, items: [] };
+            if (type === 'std') {
+                newPool.isStandalone = true; 
+                newPool.enableSpecRate = false; 
+                newPool.enableCustomUp = false;
+                newPool.hideInSimPanel = false;
+                newPool.specRateConfig = { type: 'multiplier', value: 5, items: [] };
+            }
+            rosterPools.push(newPool);
+            renderPoolBlocks();
+        }
+
+        function deletePoolBlock(id) {
+            if (confirm(typeof getTrans === 'function' ? getTrans('cs_js_del_pool_conf') : '确认删除此卡池区块吗？')) {
+                rosterPools = rosterPools.filter(p => p.id !== id);
+                renderPoolBlocks();
+            }
+        }
+
+        function updatePoolName(id, newName) {
+            const pool = rosterPools.find(p => p.id === id);
+            if (pool) { 
+                if (sysLang === 'en') pool.en = newName;
+                else pool.name = newName;
+                renderDynamicRules(); // 名字改变，需要刷新下方涉及流向规则的面板
+            }
+        }
+
+        window.toggleStdConfig = function(id, key, element) {
+            const pool = rosterPools.find(p => p.id === id);
+            if (pool) {
+                pool[key] = element.checked;
+                if (key === 'enableSpecRate') renderPoolBlocks(); 
+                else renderDynamicRules(); 
+            }
+        };
+
+        // 将内存中的 rosterPools 数组渲染到页面上
+        function renderPoolBlocks() {
+            const container = document.getElementById('dynamic-pools-container');
+            container.innerHTML = '';
+            rosterPools.forEach((pool, index) => {
+                const isUP = pool.type === 'up';
+                const borderColor = isUP ? '#f1c40f' : '#3498db';
+                const titlePrefix = isUP ? (typeof getTrans === 'function' ? getTrans('cs_js_badge_up') : '限定卡池') : (typeof getTrans === 'function' ? getTrans('cs_js_badge_std') : '常驻卡池');
+                const poolDisplayName = sysLang === 'en' ? (pool.en || pool.name) : pool.name;
+                
+                let stdConfigHtml = '';
+                // 常驻池专属选项渲染
+                if (!isUP) {
+                    if (!pool.specRateConfig) pool.specRateConfig = { type: 'multiplier', value: 5, items: [] };
+                    if (pool.enableCustomUp === undefined) pool.enableCustomUp = false;
+
+                    let specRateHtml = '';
+                    if (pool.enableSpecRate) {
+                        specRateHtml = `
+                        <div style="margin-top: 10px; padding: 10px 15px; background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; border-radius: 8px;">
+                            <div style="font-size: 13px; color: #e74c3c;">${getTrans('cs_js_spec_enabled')}</div>
+                        </div>`;
+                    }
+                    stdConfigHtml = `
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <label class="cb-item"><input type="checkbox" onchange="toggleStdConfig('${pool.id}', 'isStandalone', this)" ${pool.isStandalone ? 'checked' : ''}> ${getTrans('cs_js_opt_standalone')}</label>
+                        <label class="cb-item" style="color: #9b59b6;"><input type="checkbox" onchange="toggleStdConfig('${pool.id}', 'enableCustomUp', this)" ${pool.enableCustomUp ? 'checked' : ''}> ${getTrans('cs_js_opt_custom_up')}</label>
+                        <label class="cb-item" style="color: #e74c3c;"><input type="checkbox" onchange="toggleStdConfig('${pool.id}', 'enableSpecRate', this)" ${pool.enableSpecRate ? 'checked' : ''}> ${getTrans('cs_js_opt_spec')}</label>
+                        <label class="cb-item" style="color: #f39c12;"><input type="checkbox" onchange="toggleStdConfig('${pool.id}', 'hideInSimPanel', this)" ${pool.hideInSimPanel ? 'checked' : ''}> ${getTrans('cs_js_opt_hide_sim')}</label>
+                    </div>
+                    ${specRateHtml}`;
+                }
+
+                // 给卡池容器绑定原生 H5 的 Drag and Drop 事件
+                const html = `
+                <div class="pool-section" style="border-top: 3px solid ${borderColor}; transition: 0.2s;" 
+                    draggable="true" data-index="${index}" ondragstart="handleDragStart(event, ${index})" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event, this)" ondragleave="handleDragLeave(event, this)" ondrop="handleDrop(event, ${index}, this)" ondragend="handleDragEnd(event, this)">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div style="display: flex; flex: 1;">
+                            <div class="drag-handle" title="Drag">☰</div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 12px; color: ${borderColor}; font-weight: bold; margin-bottom: 5px;">${titlePrefix}</div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="text" value="${poolDisplayName}" class="input-box" style="font-size: 1.3rem; font-weight: bold; width: 300px;" onchange="updatePoolName('${pool.id}', this.value)">
+                                </div>
+                                ${stdConfigHtml}
+                            </div>
+                        </div>
+                        <button class="btn btn-action-gray" style="color: #ff4757; border: none; background: transparent;" onclick="deletePoolBlock('${pool.id}')">${getTrans('cs_js_del_btn')}</button>
+                    </div>
+                    <div class="pool-body" id="body-${pool.id}"><div class="char-grid" id="grid-${pool.id}"></div></div>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+                renderGrid(pool); // 在容器里渲染具体的物品网格
+            });
+            renderDynamicRules();
+        }
+
+        // 渲染具体图鉴物品的卡片
+        function renderGrid(pool) {
+            const grid = document.getElementById(`grid-${pool.id}`);
+            if (!grid) return;
+            let html = '';
+            pool.items.forEach((item, index) => {
+                // 兼容旧版数据的 star 属性，转换为新版的 tierId
+                let tId = item.tierId;
+                if (!tId && item.star !== undefined) tId = 'tier_' + item.star;
+                
+                let tierObj = gameInfo.globalTiers.find(t => t.id === tId) || { name: item.star || tId.replace('tier_', ''), color: '#aaa' };
+
+                let displayShort = getItemShort(item);
+                let displayName = getItemName(item);
+
+                // 有图用图，没图用带背景色的文字框代替
+                let bgImg = item.img ? `<img src="${item.img}" class="char-img">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#666;position:absolute;z-index:1;font-weight:bold;font-size:20px;">${displayShort}</div>`;
+                html += `
+                <div class="char-card" onclick="openEditModal('${pool.id}', ${index})">
+                    ${bgImg}
+                    <div class="char-star" style="color: ${tierObj.color}; text-shadow: 0 0 5px ${tierObj.color}90, 1px 1px 2px #000;">${tierObj.name}</div>
+                    <div class="del-badge" onclick="deleteItem('${pool.id}', ${index}, event)">✕</div>
+                    <div class="char-info">${displayName}</div>
+                </div>`;
+            });
+            // 尾部追加一个加号卡片
+            html += `<div class="add-btn-card" onclick="openAddModal('${pool.id}')"><span style="font-size: 30px;">+</span><span style="font-size: 12px; margin-top: 5px;">${getTrans('cs_js_add_roster')}</span></div>`;
+            grid.innerHTML = html;
+        }
+
+        // ==========================================
+        // 图鉴的增删改与动态下拉框生成
+        // ==========================================
+        
+        // 为模态框生成“所属稀有度”下拉选项
+        function populateTierDropdown() {
+            const select = document.getElementById('input-tier-id');
+            select.innerHTML = gameInfo.globalTiers.map(t => `<option value="${t.id}" style="color:${t.color}; font-weight: bold;">${t.name}</option>`).join('');
+        }
+
+        window.openAddModal = function(poolId) {
+            if (document.body.classList.contains('preview-mode')) return; // 预览模式阻断
+            editingItemInfo = null; // 清空标记代表新建
+            populateTierDropdown();
+            
+            // 清空弹窗内表单的数据
+            document.getElementById('input-pool-type').value = poolId;
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-short').value = '';
+            
+            if (gameInfo.globalTiers.length > 0) document.getElementById('input-tier-id').value = gameInfo.globalTiers[0].id;
+            
+            document.getElementById('input-img').value = '';
+            document.getElementById('preview-img').style.backgroundImage = 'none';
+            tempBase64Img = "";
+            document.getElementById('modal-title').innerText = typeof getTrans === 'function' ? getTrans('cs_modal_add') : '➕ 添加新图鉴';
+            document.getElementById('charModalOverlay').style.display = 'flex';
+        };
+
+        window.openEditModal = function(poolId, index) {
+            if (document.body.classList.contains('preview-mode')) return; // 预览模式阻断
+            editingItemInfo = { poolId, index }; // 记录正在编辑哪一项
+            populateTierDropdown(); 
+
+            const pool = rosterPools.find(p => p.id === poolId);
+            const item = pool.items[index];
+            
+            // 将已有数据反填进表单
+            document.getElementById('input-pool-type').value = poolId;
+            document.getElementById('input-name').value = item.name || '';
+            document.getElementById('input-short').value = item.short || '';
+            
+            let tId = item.tierId || (item.star !== undefined ? 'tier_' + item.star : 'tier_5');
+            document.getElementById('input-tier-id').value = tId; 
+
+            document.getElementById('input-img').value = ''; 
+            tempBase64Img = item.img || "";
+            document.getElementById('preview-img').style.backgroundImage = tempBase64Img ? `url(${tempBase64Img})` : 'none';
+            
+            document.getElementById('modal-title').innerText = typeof getTrans === 'function' ? getTrans('cs_modal_edit') : '✏️ 编辑图鉴';
+            document.getElementById('charModalOverlay').style.display = 'flex';
+        };
+
+        window.saveItem = function() {
+            const name = document.getElementById('input-name').value.trim();
+            const short = document.getElementById('input-short').value.trim();
+            let tierId = document.getElementById('input-tier-id').value; 
+            const poolId = document.getElementById('input-pool-type').value;
+            
+            if (!name) return alert(typeof getTrans === 'function' ? getTrans('cs_js_err_name_req') : '请输入图鉴名称！');
+            
+            // 智能判断简称长度限制，防止UI溢出破坏页面布局
+            if (short) {
+                const hasChinese = /[\u4e00-\u9fa5]/.test(short); // 检测是否包含中文
+                if (hasChinese && short.length > 2) {
+                    return alert(typeof getTrans === 'function' ? getTrans('cs_js_err_pool_full') : "⚠️ 中文简称不能超过 2 个字哦，不然方块显示不下！");
+                } else if (!hasChinese && short.length > 5) {
+                    return alert(typeof getTrans === 'function' ? getTrans('cs_js_err_pool_full_2') : "⚠️ 非中文简称不能超过 5 个字符！");
+                }
+            }
+
+            const pool = rosterPools.find(p => p.id === poolId);
+            if (!pool) return alert(typeof getTrans === 'function' ? getTrans('cs_js_err_pool_null') : '找不到对应卡池');
+
+            if (editingItemInfo) {
+                // 编辑模式：更新数据
+                let item = pool.items[editingItemInfo.index];
+                item.name = name;
+                item.short = short;
+                item.tierId = tierId;
+                item.img = tempBase64Img;
+                
+                // 清理旧英文数据结构，避免冗余
+                delete item.nameEn;
+                delete item.shortEn;
+                delete item.en;
+                delete item.eshort;
+            } else {
+                // 新增模式：推入数组
+                const newData = { name, short, tierId, img: tempBase64Img };
+                pool.items.push(newData);
+            }
+
+            document.getElementById('charModalOverlay').style.display = 'none';
+            renderPoolBlocks(); 
+        };
+
+        window.deleteItem = function(poolId, index, event) {
+            event.stopPropagation(); // 阻止点击事件冒泡触发外层的 edit 模态框
+            if (confirm(typeof getTrans === 'function' ? getTrans('cs_js_del_item_conf') : '确定删除此图鉴？')) {
+                const pool = rosterPools.find(p => p.id === poolId);
+                if (pool) pool.items.splice(index, 1);
+                renderPoolBlocks();
+            }
+        };
+
+        // ==========================================
+        // 动态规则和其他杂项 (决定常驻和限定卡池的关联)
+        // ==========================================
+        function renderDynamicRules() {
+            const container = document.getElementById('dynamic-rules-container');
+            const upPools = rosterPools.filter(p => p.type === 'up');
+            const stdPools = rosterPools.filter(p => p.type === 'std');
+
+            if (rosterPools.length === 0) return container.innerHTML = `<div style="color:#666; text-align:center; padding: 20px;">${getTrans('cs_js_empty_roster')}</div>`;
+
+            let html = '';
+            
+            // 1. 渲染混合常驻池设定区
+            if (stdPools.length > 0) {
+                let mixPoolsHtml = '';
+                gameInfo.mixedPools.forEach((mp) => {
+                    let checkboxes = stdPools.map(std => {
+                        let stdDisplayName = sysLang === 'en' ? (std.en || std.name) : std.name;
+                        let isChecked = mp.components && mp.components.includes(std.id) ? 'checked' : '';
+                        return `<label class="cb-item"><input type="checkbox" onchange="updateMixPoolComps('${mp.id}', '${std.id}', this.checked)" ${isChecked}> ${stdDisplayName}</label>`;
+                    }).join('');
+
+                    mixPoolsHtml += `
+                    <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; border: 1px solid #444; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="text" class="input-box" style="width: 200px; font-weight: bold; border-color: #2ecc71;" value="${mp.name}" onchange="updateMixPoolName('${mp.id}', this.value)">
+                                <label class="cb-item" style="color: #9b59b6;"><input type="checkbox" onchange="updateMixPoolSetting('${mp.id}', 'enableCustomUp', this.checked)" ${mp.enableCustomUp ? 'checked' : ''}> ${getTrans('cs_js_opt_custom_up')}</label>
+                            </div>
+                            <button class="btn btn-action-gray" style="color: #ff4757; border: none;" onclick="deleteMixPool('${mp.id}')">${getTrans('cs_js_mix_del')}</button>
+                        </div>
+                        <div class="rule-row" style="margin: 0; border: none; background: transparent; padding: 0;">
+                            <span class="rule-label" style="width: auto;">${getTrans('cs_js_mix_lbl')}</span>
+                            <div class="cb-group" style="flex-wrap: wrap;">${checkboxes}</div>
+                        </div>
+                    </div>`;
+                });
+
+                html += `
+                <div class="pool-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <h3 class="pool-title" style="margin: 0;">${getTrans('cs_js_mix_title_1')}</h3>
+                        </div>
+                        <button class="btn btn-green" onclick="addMixPool()">${getTrans('cs_js_mix_add')}</button>
+                    </div>
+                    ${mixPoolsHtml || `<div style="color:#666; font-size: 13px;">${getTrans('cs_js_mix_empty')}</div>`}
+                </div>`;
+            }
+
+            // 2. 渲染限定池的歪池流向设定区
+            if (upPools.length > 0 && stdPools.length > 0) {
+                html += `<div class="pool-section"><h3 class="pool-title">${getTrans('cs_js_mix_title_2')}</h3>`;
+                upPools.forEach(up => {
+                    let upDisplayName = sysLang === 'en' ? (up.en || up.name) : up.name;
+                    if (!gameInfo.offRate) gameInfo.offRate = {};
+                    let offCbs = stdPools.map(std => {
+                        let stdDisplayName = sysLang === 'en' ? (std.en || std.name) : std.name;
+                        let isChecked = gameInfo.offRate[up.id] && gameInfo.offRate[up.id].includes(std.id) ? 'checked' : '';
+                        return `<label class="cb-item"><input type="checkbox" onchange="updateOffRate('${up.id}', '${std.id}', this.checked)" ${isChecked}> ${stdDisplayName}</label>`;
+                    }).join('');
+
+                    html += `<div class="rule-row" style="border-left: 3px solid #f1c40f; background: rgba(241, 196, 15, 0.05);"><span class="rule-label">🌠 ${upDisplayName} ${getTrans('cs_js_mix_offrate')}</span><div class="cb-group">${offCbs}</div></div>`;
+                });
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        window.addMixPool = function() { 
+            gameInfo.mixedPools.push({ 
+                id: 'mp_' + Date.now(), 
+                name: sysLang === 'en' ? 'New Mixed Pool' : '新建混合池', 
+                components: [], 
+                enableCustomUp: false 
+            }); 
+            renderDynamicRules(); 
+        };
+        window.deleteMixPool = function(id) { gameInfo.mixedPools = gameInfo.mixedPools.filter(mp => mp.id !== id); renderDynamicRules(); };
+        window.updateMixPoolName = function(id, name) { const mp = gameInfo.mixedPools.find(p => p.id === id); if (mp) mp.name = name; };
+        window.updateMixPoolSetting = function(id, key, val) { const mp = gameInfo.mixedPools.find(p => p.id === id); if (mp) mp[key] = val; };
+        window.updateMixPoolComps = function(mpId, stdId, isChecked) {
+            const mp = gameInfo.mixedPools.find(p => p.id === mpId);
+            if (!mp) return;
+            if (isChecked && !mp.components.includes(stdId)) mp.components.push(stdId);
+            if (!isChecked) mp.components = mp.components.filter(id => id !== stdId);
+        };
+        window.updateOffRate = function(upId, stdId, isChecked) {
+            if (!gameInfo.offRate) gameInfo.offRate = {};
+            if (!gameInfo.offRate[upId]) gameInfo.offRate[upId] = [];
+            if (isChecked) { if (!gameInfo.offRate[upId].includes(stdId)) gameInfo.offRate[upId].push(stdId); } 
+            else gameInfo.offRate[upId] = gameInfo.offRate[upId].filter(id => id !== stdId);
+        };
+
+        // 挂载图片上传并自动压缩转换为 Base64 的功能，避免超出 LocalStorage 的 5MB 限制
+        function setupImageUploader() {
+            document.getElementById('input-img').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width, height = img.height;
+                        // 约束图片最大尺寸在 150x150 左右，极大缩减 Base64 字符串的体积
+                        if (width > height) { if (width > 150) { height *= 150 / width; width = 150; } } 
+                        else { if (height > 150) { width *= 150 / height; height = 150; } }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // 输出 jpeg 格式，质量压缩至 0.8
+                        tempBase64Img = canvas.toDataURL('image/jpeg', 0.8);
+                        document.getElementById('preview-img').style.backgroundImage = `url(${tempBase64Img})`;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ==========================================
+        // 原生 HTML5 拖拽事件处理器 (用于拖拽卡池重排序)
+        // ==========================================
+        let draggedPoolIndex = null;
+        window.handleDragStart = function(e, index) { 
+            if (document.body.classList.contains('preview-mode')) return e.preventDefault(); 
+            draggedPoolIndex = index; 
+            e.dataTransfer.effectAllowed = 'move'; 
+            e.dataTransfer.setData('text/plain', index); 
+            setTimeout(() => e.target.style.opacity = '0.4', 0); 
+        };
+        window.handleDragOver = function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; };
+        window.handleDragEnter = function(e, el) { el.classList.add('drag-over-pool'); };
+        window.handleDragLeave = function(e, el) { el.classList.remove('drag-over-pool'); };
+        window.handleDrop = function(e, targetIndex, el) { 
+            e.stopPropagation(); 
+            el.classList.remove('drag-over-pool'); 
+            // 若发生了实际的层级变动，则在内存数组里进行互换并重绘
+            if (draggedPoolIndex !== null && draggedPoolIndex !== targetIndex) { 
+                const movedItem = rosterPools.splice(draggedPoolIndex, 1)[0]; 
+                rosterPools.splice(targetIndex, 0, movedItem); 
+                renderPoolBlocks(); 
+            } 
+            return false; 
+        };
+        window.handleDragEnd = function(e, el) { el.style.opacity = '1'; document.querySelectorAll('.drag-over-pool').forEach(pool => pool.classList.remove('drag-over-pool')); draggedPoolIndex = null; };
+
+        // ==========================================
+        // 5. 终极保存引擎 (含 Firebase 同步触发)
+        // ==========================================
+        window.saveAllAndGenerate = async function() { // 修改1：加上 async，因为涉及到与云端的网络通信等待
+            const gameName = document.getElementById('input-game-name').value.trim();
+            if (!gameName) return alert(typeof getTrans === 'function' ? getTrans('cs_js_err_game_name') : '必须填写游戏名称');
+            gameInfo.gameName = gameName;
+
+            // 1. 管理自定义游戏主列表
+            let gamesList = JSON.parse(localStorage.getItem('GM_Custom_Games_List')) || [];
+            if (!gameId) {
+                gameId = 'g_' + Date.now(); 
+                gamesList.push({ id: gameId, name: gameName });
+            } else {
+                let target = gamesList.find(g => g.id === gameId);
+                if (target) target.name = gameName; 
+                else gamesList.push({ id: gameId, name: gameName }); 
+            }
+            localStorage.setItem('GM_Custom_Games_List', JSON.stringify(gamesList));
+
+            // 2. 持久化存储积木池对象和游戏基础信息
+            localStorage.setItem('GM_RosterPools_' + gameId, JSON.stringify(rosterPools));
+            localStorage.setItem('GM_Info_' + gameId, JSON.stringify(gameInfo));
+
+            // 3. 构建供旧版代码向下兼容的"扁平化大花名册"(flatRoster)
+            let flatRoster = {};
+            rosterPools.forEach(pool => { flatRoster[pool.id] = pool.items; });
+            // 把混合池引用的物品合并进去作为独立对象
+            gameInfo.mixedPools.forEach(mp => {
+                let combinedItems = [];
+                mp.components.forEach(compId => {
+                    const compPool = rosterPools.find(p => p.id === compId);
+                    if (compPool) combinedItems = combinedItems.concat(compPool.items);
+                });
+                flatRoster[mp.id] = combinedItems;
+            });
+            localStorage.setItem('GM_Roster_' + gameId, JSON.stringify(flatRoster));
+            
+            // 4. 为每个新产生的池子预制一套默认的出货概率(如果不这么做，跳转到设置页时会报错)
+            autoGenerateDynamicPoolRules(gameId, rosterPools, gameInfo);
+            
+            // 5. 将这些数据整体打包，准备推送到 Firebase 云端
+            if (window.syncEngineToFirebase) {
+                const engineBundle = {
+                    gameId: gameId,
+                    gameName: gameName,
+                    info: gameInfo,
+                    rosterPools: rosterPools,
+                    roster: flatRoster
+                };
+                // 修改2：改一下按钮文字与状态，给用户明确的网络反馈，防止狂点导致云端多次写入冲突
+                const saveBtn = document.getElementById('btn-save-all');
+                const originalText = saveBtn.innerText;
+                saveBtn.innerText = '☁️ 正在打包上传...';
+                saveBtn.disabled = true;
+
+                // 修改3：加上 await，强制等 Firebase 把图鉴和引擎两份文档都成功 setDoc，再往下执行提示成功
+                await window.syncEngineToFirebase(gameId, engineBundle);
+                
+                saveBtn.innerText = originalText;
+                saveBtn.disabled = false;
+            }
+
+            alert(typeof getTrans === 'function' ? getTrans('cs_js_save_success') : '保存成功');
+            window.location.href = 'index.html'; // 保存完成后跳回首页选单
+        };
+
+        // 自动初始化卡池规则 (如果该卡池尚未配置过专属概率)
+        function autoGenerateDynamicPoolRules(gId, pools, info) {
+            const processPoolRules = (poolId, items, isUP) => {
+                if (items.length === 0) { localStorage.removeItem(`GM_Rules_${gId}_${poolId}`); return; } // 空池直接清理遗留垃圾
+                const existingConfig = localStorage.getItem(`GM_Rules_${gId}_${poolId}`);
+                if (!existingConfig) {
+                    // 若无配置，写死一套通用的原神基础 0.6% 模型
+                    let defaultRules = {
+                        tiers: [
+                            { id: 'tier_5', prob: 0.6 },
+                            { id: 'tier_4', prob: 5.1 },
+                            { id: 'tier_3', prob: 94.3 }
+                        ],
+                        targetGoldIds: ['tier_5'],
+                        tenPityId: 'tier_4',
+                        pity: { hard: 90, upRate: isUP ? 50 : 0, softEnabled: true, softRules: [{ start: 74, end: 89, inc: 6 }], useGuarantee: isUP, guaranteeLimit: 1 },
+                        sparkRules: [], giftRules: []
+                    };
+                    localStorage.setItem(`GM_Rules_${gId}_${poolId}`, JSON.stringify(defaultRules));
+                }
+            };
+            pools.forEach(pool => processPoolRules(pool.id, pool.items, pool.type === 'up'));
+            (info.mixedPools || []).forEach(mp => {
+                let combinedItems = [];
+                mp.components.forEach(compId => {
+                    const compPool = pools.find(p => p.id === compId);
+                    if (compPool) combinedItems = combinedItems.concat(compPool.items);
+                });
+                processPoolRules(mp.id, combinedItems, false);
+            });
+        }
+
+        // 🌟 导出当前正在查看的游戏配置（支持预设游戏与自建游戏）
+        window.exportCurrentEngineConfig = function() {
+            const currentName = gameInfo.gameName || document.getElementById('input-game-name').value || gameId;
+
+            // 打包数据
+            const engineExportPackage = {
+                version: "GachaSystem_Engine_v1",
+                exportTime: new Date().toISOString(),
+                gameId: gameId || 'custom_export',
+                gameName: currentName,
+                info: gameInfo,
+                rosterPools: rosterPools,
+                rules: {}
+            };
+
+            // 提取该游戏下所有的专属规则
+            if (gameId) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    if (key && key.startsWith(`GM_Rules_${gameId}_`)) {
+                        let poolKey = key.replace(`GM_Rules_${gameId}_`, '');
+                        try {
+                            engineExportPackage.rules[poolKey] = JSON.parse(localStorage.getItem(key));
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            // 触发安全文件下载
+            const blob = new Blob([JSON.stringify(engineExportPackage, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Engine_${currentName}_${gameId || 'export'}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        window.deleteEntireGame = async function() { // 修改1：加上 async，使云端删除和本地清理能够同步等待
+            if (!gameId) return alert(typeof getTrans === 'function' ? getTrans('cs_js_del_err_new') : '新建的游戏无法删除');
+            if (confirm(typeof getTrans === 'function' ? getTrans('cs_js_del_game_conf') : '确认删除整个游戏吗？数据不可恢复！')) {
+                
+                // 新增反馈：改变危险操作按钮文字并提示用户等待，防止在网速慢时反复点击触发 bug
+                const delBtn = document.getElementById('btn-delete');
+                if (delBtn) delBtn.innerText = '☁️ 正在处理云端数据，请稍候...';
+
+                // 1. 清理本地 LocalStorage 数据（遍历匹配带有该 gameId 的所有键）
+                localStorage.removeItem('GM_Info_' + gameId);
+                localStorage.removeItem('GM_Roster_' + gameId);
+                localStorage.removeItem('GM_RosterPools_' + gameId);
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    let key = localStorage.key(i);
+                    // 顺便清洗掉由它衍生出的抽卡记录和所有子卡池规则
+                    if (key && (key.startsWith(`GM_Rules_${gameId}_`) || key.startsWith(`GM_Data_${gameId}_`))) localStorage.removeItem(key);
+                }
+                let gamesList = JSON.parse(localStorage.getItem('GM_Custom_Games_List')) || [];
+                gamesList = gamesList.filter(g => g.id !== gameId); // 把主名录里的条目摘除
+                localStorage.setItem('GM_Custom_Games_List', JSON.stringify(gamesList));
+
+                //  修改2：加上 await！必须确保跟云端通好气，云端上关于这个游戏的全部表都被删完/备份完，程序才能往下走跳出这个页面
+                if (window.deleteEngineFromFirebase) {
+                    await window.deleteEngineFromFirebase(gameId); 
+                }
+
+                alert(typeof getTrans === 'function' ? getTrans('cs_js_del_success') : '销毁成功');
+                window.location.href = 'index.html'; // 等上面所有事情（包括 Firebase 通讯）全搞定，最后再安全跳转
+            }
+        };
+    </script>
+
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Firebase 通信配置 (密钥与域名)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBr9xYxp9dQvdf2gkr1ILeEqkn6Bt1CZmI",
+            authDomain: "fyp-gacha-system.firebaseapp.com",
+            projectId: "fyp-gacha-system",
+            databaseURL: "https://fyp-gacha-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+            storageBucket: "fyp-gacha-system.firebasestorage.app",
+            messagingSenderId: "892136562526",
+            appId: "1:892136562526:web:6d2b218ec3f1bc346b79cf"
+        };
+
+        // 核心修复：防冲突初始化！判断是否已经被外部脚本 (如 layout.js) 初始化过 app 对象。
+        // 因为这段脚本是当作 module 引入的，二次调用 initializeApp 会导致整个网页崩溃报 FirebaseError。
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUserUid = null;
+
+        // 监听系统用户的身份是否合法登录
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUserUid = user.uid;
+            else currentUserUid = null;
+        });
+
+        // 绑定暴露在全局 window 下，供前方界面点击“保存并生成”时调用的保存方法
+        window.syncEngineToFirebase = async (gameId, engineBundle) => {
+            if (!currentUserUid) {
+                console.warn("⚠️ [Firebase] 未登录，转为纯本地保存。");
+                return; 
+            }
+            try {
+                // 1. 把轻量级的元信息存放在 engines 表里，适合在首页加载展示
+                const engineRef = doc(db, "users", currentUserUid, "custom_engines", gameId);
+                await setDoc(engineRef, {
+                    gameId: engineBundle.gameId,
+                    gameName: engineBundle.gameName,
+                    info: engineBundle.info, // 包含了混合卡池规则、颜色星级设定等
+                    lastModified: serverTimestamp()
+                }, { merge: true });
+
+                // 2. 把含有大量 Base64 图片数据的具体花名册存放到另外一个 rosters 集合中，进行动静分离解耦
+                const rosterRef = doc(db, "users", currentUserUid, "custom_rosters", gameId);
+                await setDoc(rosterRef, {
+                    rosterPools: engineBundle.rosterPools,
+                    roster: engineBundle.roster,
+                    lastModified: serverTimestamp()
+                }, { merge: true });
+
+                console.log("☁️ [Firebase] 引擎基础与图鉴信息已分别同步至 custom_engines 和 custom_rosters！");
+            } catch (error) {
+                console.error("☁️ [Firebase] 引擎上云失败:", error);
+            }
+        };
+
+        // 绑定暴露在全局 window 下，供前方界面点击“销毁游戏”时调用的核心云端清理方法
+        window.deleteEngineFromFirebase = async (gameId) => {
+            if (!currentUserUid) return;
+            try {
+                // 1. 获取当前用户的信息节点，探测其 VIP 状态权限
+                // 修改这里：把路径从深入的 "users/uid/user_data/profile" 变更为直接访问 "users/uid" 文档
+                const profileRef = doc(db, "users", currentUserUid); 
+                const profileSnap = await getDoc(profileRef);
+                
+                // 获取用户对象，并为了防止部分旧库兼容问题，同时识别大小写的 isvip 键
+                const userData = profileSnap.data() || {};
+                const isVip = profileSnap.exists() && (userData.isVip === true || userData.isvip === true);
+
+                // 2. 定义好三个要彻底销毁的目标文档（引擎表、图鉴表、规则表）
+                const engineRef = doc(db, "users", currentUserUid, "custom_engines", gameId);
+                const rosterRef = doc(db, "users", currentUserUid, "custom_rosters", gameId);
+                const ruleRef = doc(db, "users", currentUserUid, "custom_rules", gameId);
+
+                // 3. 回收站/云端后悔药机制：如果用户是尊贵的 VIP 用户，提供备份选择权
+                if (isVip) {
+                    // 核心修改：通过原生的 confirm 弹窗打断删除流程，询问用户真实意愿
+                    const wantBackup = confirm("🌟 VIP 特权提示：\n您正在删除游戏引擎。是否需要将数据备份到【云端回收站】？\n\n✅ 点击 [确定]：备份至回收站（可找回）\n❌ 点击 [取消]：彻底永久销毁（释放空间）");
+                    
+                    if (wantBackup) {
+                        console.log("🌟 用户选择备份，正在将数据转移至云端回收站...");
+                        
+                        // 先利用 Promise.all 兵分三路极速且并发地把当前即将灰飞烟灭的数据读取出来
+                        const [engineSnap, rosterSnap, ruleSnap] = await Promise.all([
+                            getDoc(engineRef), getDoc(rosterRef), getDoc(ruleRef)
+                        ]);
+
+                        const deleteTimestamp = serverTimestamp();
+                        const backupId = `${gameId}_${Date.now()}`; // 附加上当前的时间戳拼接防止名字冲突
+
+                        // 包装好数据写进对应的三个专属的 trash 垃圾站（回收站）集合
+                        const backupPromises = [];
+                        if (engineSnap.exists()) {
+                            backupPromises.push(setDoc(doc(db, "users", currentUserUid, "trash_engines", backupId), {
+                                ...engineSnap.data(),
+                                originalId: gameId,
+                                deletedAt: deleteTimestamp
+                            }));
+                        }
+                        if (rosterSnap.exists()) {
+                            backupPromises.push(setDoc(doc(db, "users", currentUserUid, "trash_rosters", backupId), {
+                                ...rosterSnap.data(),
+                                originalId: gameId,
+                                deletedAt: deleteTimestamp
+                            }));
+                        }
+                        if (ruleSnap.exists()) {
+                            backupPromises.push(setDoc(doc(db, "users", currentUserUid, "trash_rules", backupId), {
+                                ...ruleSnap.data(),
+                                originalId: gameId,
+                                deletedAt: deleteTimestamp
+                            }));
+                        }
+                        
+                        await Promise.all(backupPromises); // 等待三个备份动作全部执行完毕
+                        console.log("☁️ [Firebase] VIP 数据备份完成！");
+                    } else {
+                        console.log("🗑️ 用户选择放弃备份，直接销毁数据。");
+                    }
+                }
+
+                // 4. 不管你是普通用户还是已备份的 VIP，走到最后一步，向 Firestore 下达最终处决令，抹掉生产区的原始数据
+                await Promise.all([
+                    deleteDoc(engineRef),
+                    deleteDoc(rosterRef),
+                    deleteDoc(ruleRef)
+                ]);
+                
+                console.log("☁️ [Firebase] 引擎关联主数据已清理！");
+
+            } catch (error) {
+                console.error("☁️ [Firebase] 删除失败:", error);
+                alert("删除失败，请检查网络或控制台报错。");
+            }
+        };
+    </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"bceac37f94aa49e39e7285c5fa781796","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

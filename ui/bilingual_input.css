@@ -1,0 +1,12 @@
+.bilingual-input { position: relative; display: inline-flex; vertical-align: middle; flex-shrink: 1; min-width: 0; max-width: 100%; }
+.bilingual-input > input { box-sizing: border-box; min-width: 0; }
+.bilingual-input:not(.bilingual-editing-off) > input { padding-right: 29px !important; }
+.bilingual-input-game { flex: 1; }
+.bilingual-input-toggle { position: absolute; right: 1px; top: 1px; bottom: 1px; width: 27px; border: 0; border-radius: 0 4px 4px 0; background: transparent; color: #8b9bab; cursor: pointer; font-size: 15px; padding: 0; }
+.bilingual-input-toggle:hover, .bilingual-input-toggle[aria-expanded="true"] { color: var(--primary, #007bff); background: rgba(0, 123, 255, .12); }
+.bilingual-input-toggle:focus-visible { outline: 2px solid var(--primary, #007bff); outline-offset: -2px; }
+.bilingual-input-toggle:disabled { opacity: .3; cursor: default; }
+.bilingual-input-panel { position: fixed; inset: auto; margin: 0; box-sizing: border-box; padding: 7px; border: 1px solid var(--primary, #007bff); border-radius: 5px; background: #1e2329; color: #dce4ed; box-shadow: 0 6px 18px #0009; }
+.bilingual-input-panel:popover-open { display: flex; align-items: center; gap: 6px; }
+.bilingual-input-panel label { flex-shrink: 0; color: #94bfff; font-size: 10px; font-weight: bold; }
+.bilingual-input-panel .input-box { width: 100%; min-width: 0; box-sizing: border-box; font-size: 13px; padding: 5px 6px; }

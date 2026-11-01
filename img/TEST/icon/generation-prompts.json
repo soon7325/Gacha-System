@@ -1,0 +1,138 @@
+{
+  "tool": "image_gen.imagegen (built-in)",
+  "mode": "main logo: generate; pool icons: generate with main logo as style reference",
+  "style": "Warm gold, teal accents, charcoal outline; transparent PNG",
+  "assets": [
+    {
+      "id": "game_icon",
+      "path": "img/TEST/icon/game_icon.png",
+      "prompt": "Use case: logo-brand. Asset: one original square application logo for a local gacha probability testing sandbox called Feature Test Lab. Create a crisp, highly legible emblem: an upright laboratory flask whose central negative space contains a single four-point gacha star, with two tiny square experiment particles near the flask neck. Sophisticated friendly flat illustration, thick clean geometric silhouettes, subtle restrained enamel-like highlight, no tiny filigree, no text, letters, digits, watermark, frame, tile, scene, or cast shadow. Colors: warm pale gold #dfbf88 on the flask and star, cool teal #6ac9b5 as a small secondary accent, charcoal outlines only where necessary. Centered icon occupies 78 percent of the square, generous even transparent margin. Genuine transparent background, suitable on both an ink-blue sidebar and an ivory theme. It must be recognizable when downscaled to 24 pixels, with bold strokes and simple negative space. A finished production icon, not a mockup or a sheet of multiple icons."
+    },
+    {
+      "id": "char_up",
+      "path": "img/TEST/icon/char_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Classic pity guarantee test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a stout heraldic shield enclosing one four-point star; reassuring, stable, simple. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "wep_up",
+      "path": "img/TEST/icon/wep_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Early gold privileges test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: two bold four-point stars above a small medal ribbon; visibly TWO stars. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "wep_up_2",
+      "path": "img/TEST/icon/wep_up_2.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Rescue and reset test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a shield enclosing one star with a simple circular reset arrow wrapping its right edge. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "char_up_2",
+      "path": "img/TEST/icon/char_up_2.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Progressive guarantee test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: three ascending chunky steps with one upward arrow and small star at the top. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "rescue_decay",
+      "path": "img/TEST/icon/rescue_decay.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Rescue and decreasing counter test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a shield enclosing one star with a large simple minus bar at its lower right. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "rescue_retain",
+      "path": "img/TEST/icon/rescue_retain.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Rescue with capped retained progress test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a shield enclosing one star with a simple flat roof cap bar just above the star, a strong ceiling motif. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "rescue_keep",
+      "path": "img/TEST/icon/rescue_keep.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Rescue keeps progress test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a shield enclosing a star and two short parallel pause bars at lower right. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "mixed_std",
+      "path": "img/TEST/icon/mixed_std.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Category targeting and selectable reward test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a bold four-way targeting reticle around a central four-point star, with a small forked selection arrow below. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "spec_std",
+      "path": "img/TEST/icon/spec_std.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Category weights and absolute probability test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a balanced set of weighing scales with a four-point star on one pan and one round dot on the other. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "bangboo_up",
+      "path": "img/TEST/icon/bangboo_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Guaranteed-UP companion test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: an original friendly geometric rabbit-eared robot head with a large checkmark in a small lower-right badge; do not copy any existing character. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "gift_up",
+      "path": "img/TEST/icon/gift_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Bonus draws and repeating rewards test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a compact gift box with a simple bow and one bold circular repeat arrow around it. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "prereq_chain_up",
+      "path": "img/TEST/icon/prereq_chain_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Prerequisite chain test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: three square nodes joined by a single stepped zigzag path ending in a four-point star; clear sequential chain. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "prereq_combo_up",
+      "path": "img/TEST/icon/prereq_combo_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Combined prerequisite conditions test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: two short paths from two square nodes merge into one central four-point star; simple branching merge symbol. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "catchup_all_up",
+      "path": "img/TEST/icon/catchup_all_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Grant all missed milestone rewards test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a small clock behind a fan of three chunky reward tokens, three visible tokens, one forward arrow. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "catchup_one_up",
+      "path": "img/TEST/icon/catchup_one_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Grant one missed milestone reward test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a small clock behind exactly one chunky four-point-star reward token and one forward arrow. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "catchup_none_up",
+      "path": "img/TEST/icon/catchup_none_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Do not grant past milestones test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a small clock and a four-point-star token with a bold diagonal slash across the token only. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "sequence_skip_up",
+      "path": "img/TEST/icon/sequence_skip_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Skip an expired sequence privilege test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a stout rightward arrow jumping over a small broken step, a small star left behind; compact skip-forward emblem. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "sequence_next_up",
+      "path": "img/TEST/icon/sequence_next_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Defer a sequence privilege test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a curved rightward arrow carrying a four-point star onto a single next step; compact forward-transfer emblem. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "expiry_after_unlock_up",
+      "path": "img/TEST/icon/expiry_after_unlock_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Expiration counts only after unlock test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a simple open padlock joined to a small clock face whose right semicircle is highlighted, single forward tick. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "expiry_including_before_up",
+      "path": "img/TEST/icon/expiry_including_before_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Expiration also includes before unlock test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a simple open padlock joined to a small full clock face with one backward circular arrow around it. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    },
+    {
+      "id": "expiry_rule_up",
+      "path": "img/TEST/icon/expiry_rule_up.png",
+      "prompt": "Use case: logo-brand. Asset: ONE square Another rule stops bonus rewards test-pool icon for a gacha simulation website. Input image is a STYLE REFERENCE ONLY: match its thick charcoal outline, warm gold enamel-like simple highlights, tiny teal accents, and bold friendly geometric silhouette. Create a NEW SYMBOL, not another flask: a small four-point star linked by one short connector to a gift box with two bold pause bars, rule-triggered stop emblem. Readable at 20–24 pixels, compact centered silhouette with even 12% transparent margins, consistent icon scale. Warm gold #dfbf88 dominant, teal #6ac9b5 secondary, charcoal #17202a outline; high contrast on ink-blue and ivory UI themes. Genuine transparent background. No text, letters, digits, watermarks, scene, tile, decorative frame, tiny details or unrelated objects. One finished isolated icon only.",
+      "reference": "img/TEST/icon/game_icon.png"
+    }
+  ]
+}

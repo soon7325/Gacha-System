@@ -1,0 +1,14 @@
+.preset-visibility-picker{position:relative;margin-top:8px;min-width:0}
+.preset-visibility-picker>summary{box-sizing:border-box;display:flex;align-items:center;gap:8px;min-width:0;height:34px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:13px;list-style:none;cursor:pointer}
+.preset-visibility-picker>summary::-webkit-details-marker{display:none}
+.preset-visibility-picker[open]>summary,.preset-visibility-picker>summary:focus-visible{border-color:var(--primary);outline:1px solid var(--primary)}
+#preset-visibility-current{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#preset-visibility-count{flex-shrink:0;font-size:11px;color:#91a1b4}
+.preset-visibility-arrow{font-size:10px;color:#91a1b4}
+.preset-visibility-picker[open] .preset-visibility-arrow{transform:rotate(180deg)}
+.preset-visibility-menu{position:absolute;top:calc(100% + 5px);left:0;right:0;box-sizing:border-box;max-height:340px;overflow:auto;padding:5px 0;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);box-shadow:0 8px 24px #0005;z-index:100030}
+.preset-visibility-menu .preset-visibility-option{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;margin:0;cursor:pointer;font-size:13px;line-height:1.5;color:var(--text)}
+.preset-visibility-option:hover{background:rgba(127,145,169,.08)}
+.preset-visibility-option>input{flex-shrink:0;width:15px;height:15px;margin:2px 0 0;accent-color:var(--primary)}
+.preset-visibility-option>span{min-width:0;overflow-wrap:anywhere}
+.preset-visibility-option small{display:block;margin-top:5px;font-size:11px;line-height:1.6;color:#91a1b4}

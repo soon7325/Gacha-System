@@ -1,0 +1,70 @@
+/* Native number semantics, with a shared full-height split stepper. */
+.number-input {
+    --number-stepper-width: 20px;
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    vertical-align: middle;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 6px;
+}
+.number-input[hidden], .number-input-buttons[hidden] { display: none !important; }
+.number-input > input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding-right: calc(var(--number-stepper-width) + 5px) !important;
+}
+.number-input > input::-webkit-inner-spin-button,
+.number-input > input::-webkit-outer-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
+.number-input-buttons {
+    position: absolute;
+    inset: 1px 1px 1px auto;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    width: var(--number-stepper-width);
+    border-left: 1px solid var(--border, #38404c);
+    border-radius: 0 5px 5px 0;
+    overflow: hidden;
+}
+.number-input-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(127, 140, 160, .06);
+    color: var(--text-secondary, #8c99aa);
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+}
+.number-input-button + .number-input-button { border-top: 1px solid var(--border, #38404c); }
+.number-input-button svg { width: 10px; height: 6px; pointer-events: none; }
+.number-input:hover .number-input-button,
+.number-input:focus-within .number-input-button { color: var(--text, #dce5f0); background: rgba(127, 140, 160, .13); }
+.number-input .number-input-button:hover { color: var(--primary, #1689ff); background: rgba(0, 123, 255, .17); }
+.number-input .number-input-button:active { color: #fff; background: var(--primary, #007bff); }
+.number-input .number-input-button:disabled { opacity: .3; cursor: default; background: transparent; }
+
+/* Preserve the existing responsive layouts now that the input has a wrapper. */
+.sim-start-grid .number-input, .eco-field .number-input { width: 100% !important; }
+.sim-wallet-row > .number-input { width: 90px !important; flex: 0 0 90px; }
+.sim-start-owned .number-input { width: 75px !important; flex-shrink: 0; }
+.eco-table .number-input { width: 88px !important; }
+@media (pointer: coarse) {
+    .number-input { --number-stepper-width: 26px !important; min-width: 68px; }
+    .number-input > input[type="number"] { min-height: 40px; }
+}

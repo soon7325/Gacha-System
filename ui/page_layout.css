@@ -1,0 +1,32 @@
+/* 配置类页面保留原 DOM，顶栏与正文通过网格分别选择宽度和位置。 */
+[data-page-layout="dashboard"][data-page-content="full"] :where(.dashboard-center-wrapper,.dashboard-header-wrapper) { width:100%;max-width:none;margin-left:0;margin-right:0; }
+[data-page-layout="dashboard"][data-page-content="full"] #list-wrap { align-items:stretch; }
+[data-page-layout="dashboard"][data-page-content="full"] .char-row { width:100%;max-width:none;box-sizing:border-box; }
+[data-page-layout="dashboard"][data-page-content="full"] .stats-header { width:100%;justify-content:center; }
+[data-page-layout][data-page-content] .setup-container {
+    --page-track-width:min(100%,var(--page-content-width,1080px));
+    display:grid;grid-template-columns:minmax(0,1fr) var(--page-track-width) minmax(0,1fr);
+    width:100%;max-width:none;margin-left:0;margin-right:0;box-sizing:border-box;
+}
+[data-page-layout="pool_setup"] { --page-content-width:900px; }
+[data-page-layout][data-page-content] .setup-container>* { grid-column:2;min-width:0; }
+[data-page-layout][data-page-content="left"] .setup-container { grid-template-columns:var(--page-track-width) minmax(0,1fr); }
+[data-page-layout][data-page-content="left"] .setup-container>* { grid-column:1; }
+[data-page-layout][data-page-content="right"] .setup-container { grid-template-columns:minmax(0,1fr) var(--page-track-width); }
+[data-page-layout][data-page-content="full"] .setup-container { grid-template-columns:minmax(0,1fr); }
+[data-page-layout][data-page-content="full"] .setup-container>* { grid-column:1; }
+[data-page-layout][data-page-header="full"] .setup-container>.page-layout-header { grid-column:1/-1; }
+.page-layout-header { gap:16px;flex-wrap:wrap;box-sizing:border-box;min-width:0; }
+.page-layout-header>div { min-width:0; }
+.page-layout-header>div:first-child { flex:1 1 320px; }
+.page-layout-header>div:last-child { flex-wrap:wrap; }
+.page-layout-setting { display:flex;flex-direction:column;gap:8px; }
+.page-layout-setting>.custom-select-ui { width:100%!important;min-width:0; }
+/* 模拟器维持纵向空间分配，仅调整各内容区域的宽度和水平对齐。 */
+[data-page-layout="simulator"] { --page-simulator-width:min(100%,1400px); }
+[data-page-layout="simulator"] :where(.sim-main-layout,.pool-config-top-drawer,#sim-economy,.sim-page-header) { width:var(--page-simulator-width);box-sizing:border-box;flex-shrink:0; }
+[data-page-layout="simulator"][data-page-content="center"] :where(.sim-main-layout,.pool-config-top-drawer,#sim-economy,.sim-page-header) { margin-left:auto;margin-right:auto; }
+[data-page-layout="simulator"][data-page-content="left"] :where(.sim-main-layout,.pool-config-top-drawer,#sim-economy,.sim-page-header) { margin-left:0;margin-right:auto; }
+[data-page-layout="simulator"][data-page-content="right"] :where(.sim-main-layout,.pool-config-top-drawer,#sim-economy,.sim-page-header) { margin-left:auto;margin-right:0; }
+[data-page-layout="simulator"][data-page-content="full"] { --page-simulator-width:100%; }
+[data-page-layout="simulator"][data-page-header="full"] .sim-page-header { width:100%;margin-left:0;margin-right:0; }

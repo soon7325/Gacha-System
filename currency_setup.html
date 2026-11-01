@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="logic/version_storage.js"></script>
+    <script src="ui/color_style.js"></script>
+    <script src="logic/test_catalog.js?v=preset-visibility"></script>
+<script src="ui/page_layout.js"></script>
+<script src="ui/panel_defaults.js"></script>
+    <script src="ui/content_columns.js"></script>
+    <link rel="stylesheet" href="ui/content_columns.css">
+<title>Gacha System - 货币规则</title>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('GM_Theme') || 'dark');</script>
+<link rel="stylesheet" href="ui/style.css">
+    <link rel="stylesheet" href="ui/number_input.css">
+    <script src="ui/number_input.js" defer></script><link rel="stylesheet" href="ui/select_ui.css"><link rel="stylesheet" href="ui/bilingual_input.css"><link rel="stylesheet" href="ui/gallery_economy.css?v=reference-dialog">
+<link rel="stylesheet" href="ui/icon_picker.css">
+<link rel="stylesheet" href="ui/page_layout.css">
+    <link rel="stylesheet" href="ui/art-direction.css?v=0.3.6.21">
+</head><body class="currency-page"><div class="sidebar"></div><main class="main-content"><div class="setup-container">
+<header class="currency-header page-layout-header"><div><p id="currency-game-name" class="eco-intro"></p><h1 data-i18n="cs_economy_title">🪙 货币与抽卡资源规则</h1><p class="eco-intro" data-i18n="cs_economy_desc">配置货币、抽卡票的获取、兑换与使用规则。</p></div><div class="currency-actions"><button type="button" class="btn btn-action-gray" id="btn-currency-back" data-i18n="cs_economy_back">返回图鉴</button><button type="button" class="btn btn-action-gray" id="btn-preview-toggle" onclick="togglePreviewMode()" data-i18n="lock_preview">👁️ 锁定预览</button><button type="button" class="btn btn-primary" id="btn-currency-save">💾 保存货币规则</button></div></header>
+<p id="currency-load-error" class="eco-error" role="alert"></p><div id="gallery-economy"></div>
+</div></main>
+    <!-- 全局轻量 Toast 提示框 -->
+    <div id="toast-notification" style="
+        display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: rgba(30, 33, 40, 0.95); border: 1px solid var(--border); color: #fff;
+        padding: 10px 22px; border-radius: 8px; font-size: 13px; z-index: 99999;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.5); pointer-events: none; transition: opacity 0.3s ease;
+    "></div>
+
+    <!-- 三选一退出保存确认弹窗 -->
+    <div id="unsavedModalOverlay" style="
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); z-index: 99999; justify-content: center; align-items: center;
+    ">
+        <div style="
+            background: var(--card-bg, #1a1c23); border: 1px solid var(--border, #444);
+            padding: 24px; border-radius: 12px; width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        ">
+            <h4 style="margin: 0 0 10px 0; color: #f1c40f; font-size: 16px; display: flex; align-items: center; gap: 8px;" data-i18n="cp_unsaved_title">
+                ⚠️ 未保存的修改
+            </h4>
+            <p style="color: #ccc; font-size: 13px; margin-bottom: 22px; line-height: 1.6;" data-i18n="cs_currency_unsaved_desc">
+                检测到你对当前图鉴或引擎设定进行了修改，尚未保存！请选择接下来的操作：
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-action-gray" id="btn-unsaved-stay" style="padding: 6px 12px; font-size: 12px;" data-i18n="cp_btn_unsaved_stay">留在此页</button>
+                <button type="button" class="btn btn-action-gray" id="btn-unsaved-discard" style="padding: 6px 12px; font-size: 12px; color: #ff4757; border-color: rgba(255,71,87,0.3);" data-i18n="discard_and_leave">不保存离开</button>
+                <button type="button" class="btn btn-primary" id="btn-unsaved-save" style="padding: 6px 14px; font-size: 12px;" data-i18n="save_and_leave">保存并离开</button>
+            </div>
+        </div>
+    </div>
+
+
+<div id="customDialogOverlay" class="currency-confirm-overlay" style="display:none">
+    <div id="customDialogBox" class="currency-confirm-box" role="dialog" aria-modal="true" aria-labelledby="customDialogTitle" aria-describedby="customDialogMsg">
+        <h3 id="customDialogTitle"></h3><p id="customDialogMsg"></p>
+        <div class="currency-actions"><button type="button" id="customDialogCancel" class="btn btn-action-gray"></button><button type="button" id="customDialogConfirm" class="btn btn-primary"></button></div>
+    </div>
+</div>
+<script src="Preset_Data/db_hsr.js"></script>
+<script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_test.js"></script>
+<script src="Preset_Data/db_end.js"></script>
+<script src="Preset_Data/db_ark.js"></script>
+<script src="translate/translate_zh.js?v=currency-page-intro"></script>
+<script src="translate/translate_en.js?v=currency-page-intro"></script>
+<script src="translate/translate.js"></script>
+    <script src="ui/icon_render.js"></script>
+<script src="logic/catalog_utils.js"></script>
+<script src="logic/game_data.js"></script>
+<script src="ui/item_format.js"></script>
+<script src="ui/toast.js"></script>
+<script src="ui/dialog.js"></script>
+<script src="logic/list_order.js"></script>
+<script src="logic/app_preferences.js"></script>
+<script src="ui/drag_sort.js"></script>
+<script src="logic/preset_storage.js"></script>
+<script src="ui/layout.js?v=shared-list-order"></script>
+<script src="ui/quick_settings.js?v=shared-preferences"></script>
+<script src="ui/select_ui.js"></script>
+<script src="ui/unsaved_changes.js"></script>
+<script src="ui/preview_lock.js"></script>
+<script src="ui/bilingual_input.js"></script>
+<script src="ui/image_upload.js"></script>
+<script src="ui/icon_picker.js"></script>
+<script src="pages/gallery_economy.js?v=rule-icons"></script>
+<script src="pages/currency_setup.js?v=trim-rule-hints"></script>
+</body></html>

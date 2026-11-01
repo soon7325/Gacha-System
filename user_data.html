@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="logic/version_storage.js"></script>
+    <script src="ui/color_style.js"></script>
+    <script src="logic/test_catalog.js?v=preset-visibility"></script>
+<script src="ui/page_layout.js"></script>
+<script src="ui/panel_defaults.js"></script>
+    <script src="ui/content_columns.js"></script>
+    <link rel="stylesheet" href="ui/content_columns.css">
+<title>Gacha System - 玩家数据</title>
+<link rel="stylesheet" href="ui/select_ui.css">
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('GM_Theme')||'dark');</script>
+<link rel="stylesheet" href="ui/style.css">
+    <link rel="stylesheet" href="ui/number_input.css">
+    <script src="ui/number_input.js" defer></script><link rel="stylesheet" href="ui/bilingual_input.css"><link rel="stylesheet" href="ui/gallery_economy.css"><link rel="stylesheet" href="ui/state_toggle.css"><link rel="stylesheet" href="ui/simulator_wallet.css?v=shared-state-toggle"><link rel="stylesheet" href="ui/user_data.css?v=preview-lock">
+<link rel="stylesheet" href="ui/page_layout.css">
+    <link rel="stylesheet" href="ui/art-direction.css?v=0.3.6.21">
+</head><body class="currency-page user-data-page"><div class="sidebar"></div><main class="main-content"><div class="setup-container">
+<header class="currency-header page-layout-header"><div><p id="data-game-name" class="eco-intro"></p><h1 id="data-title">📁 玩家数据</h1><p id="data-note" class="eco-intro"></p></div><div class="currency-actions"><button type="button" class="btn btn-action-gray" id="data-preview-toggle">👁️ 锁定预览</button><a class="btn btn-action-gray" id="data-rules">🪙 货币规则明细</a><button class="btn btn-action-gray" id="data-merge" hidden>融合数据</button><button class="btn btn-primary" id="data-new" hidden>＋ 新建数据</button></div></header>
+<p id="data-error" class="eco-error" role="alert"></p><fieldset id="data-preview-fields" class="player-preview-fields"><div id="data-list" class="user-data-list"></div></fieldset>
+</div></main><div id="toast-notification" role="status" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--card-bg);border:1px solid var(--border);padding:12px 22px;border-radius:8px;z-index:99999"></div>
+<dialog id="customDialogOverlay" class="currency-confirm-overlay" style="display:none;margin:0;padding:0;border:0;width:100%;height:100%;max-width:none;max-height:none"><div id="customDialogBox" class="currency-confirm-box" role="dialog" aria-modal="true" aria-labelledby="customDialogTitle"><h3 id="customDialogTitle"></h3><p id="customDialogMsg"></p><div class="currency-actions"><button id="customDialogCancel" class="btn btn-action-gray"></button><button id="customDialogConfirm" class="btn btn-primary"></button></div></div></dialog>
+<script src="Preset_Data/db_hsr.js"></script>
+<script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_test.js"></script>
+<script src="Preset_Data/db_end.js"></script>
+<script src="Preset_Data/db_ark.js"></script>
+<script src="translate/translate_zh.js"></script>
+<script src="translate/translate_en.js"></script>
+<script src="translate/translate.js"></script>
+    <script src="ui/icon_render.js"></script>
+<script src="logic/catalog_utils.js"></script>
+<script src="logic/game_data.js"></script>
+<script src="logic/gacha_engine.js"></script>
+<script src="logic/simulator_start.js?v=progress-validation-labels"></script>
+<script src="logic/simulator_economy.js?v=reset-periods"></script>
+<script src="logic/user_data_profiles.js?v=empty-pool-edit"></script>
+<script src="logic/dashboard_validation.js"></script>
+<script src="logic/dashboard_accounts.js"></script>
+<script src="logic/user_data_tools.js?v=legacy-validation-audit"></script>
+<script src="ui/user_data_merge.js?v=account-order-sync"></script>
+<script src="ui/item_format.js"></script>
+<script src="ui/toast.js"></script>
+<script src="ui/dialog.js"></script>
+<script src="logic/list_order.js"></script>
+<script src="logic/app_preferences.js"></script>
+<script src="ui/drag_sort.js"></script>
+<script src="logic/preset_storage.js"></script>
+<script src="ui/layout.js?v=shared-list-order"></script>
+<script src="ui/quick_settings.js?v=shared-preferences"></script>
+<script src="ui/select_ui.js"></script>
+<script src="ui/bilingual_input.js"></script><script src="ui/preview_lock.js"></script>
+<script src="ui/user_data_accounts.js?v=account-order-sync"></script>
+<script src="ui/resource_exchanges.js?v=reset-periods"></script>
+<script src="ui/state_toggle.js"></script><script src="ui/simulator_start.js?v=shared-list-order"></script>
+<script src="pages/user_data.js?v=preview-search"></script>
+</body></html>

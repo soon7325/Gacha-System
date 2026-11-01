@@ -1,0 +1,2661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 必须先加载存储隔离；目录自动识别为 0.1，不与新版共享数据。 -->
+    <script src="../logic/version_storage.js"></script>
+    <title>Gacha System - 抽卡模拟器</title>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('GM_Theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        :root { --primary: #007bff; --gold: #f1c40f; --text: #eee; --card-bg: #2a2a2a; --border: #444; }
+        body { 
+            margin: 0;
+            padding: 0;
+            background-color: #1e2126; 
+            color: var(--text); 
+            height: 100vh; 
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        /* 侧栏由 layout.js 管理；模拟器保留原有的全屏双栏与内部滚动行为。 */
+        .main-content.simulator-main-content {
+            margin-left: var(--sidebar-collapsed-width);
+            padding: 15px 25px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .input-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none; transition: 0.2s; box-sizing: border-box; }
+        .input-box:focus { border-color: var(--primary); }
+        .sim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .sim-grid-new {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)) !important;
+    max-width: calc(15 * 62px + 14 * 8px + 20px); /* 限制单行上限为 15 列卡片 */
+    gap: 8px;
+}
+.sim-pull-row {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px 14px !important;
+    border-radius: 8px;
+    box-sizing: border-box;
+    width: 100%;
+}
+.sim-items-wrap {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    max-width: 630px; 
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+}
+.sim-row-right-area {
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-shrink: 0 !important;
+}
+
+.range-label {
+    position: static !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    color: #888;
+    font-size: 12px;
+    font-family: monospace;
+    white-space: nowrap !important;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 4px;
+    user-select: none;
+    height: fit-content;
+    flex-shrink: 0;
+}
+#sim-result-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 15px;
+    background: #000;
+    border-radius: 8px;
+    border: 1px solid #222;
+    box-sizing: border-box;
+}
+        #sim-results {
+            padding-left: 0 !important; /* 清除历史残留的 75px 偏移 */
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .sim-item {
+            width: 55px;
+            height: 55px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+            flex-direction: column;
+            padding-bottom: 5px;
+            box-sizing: border-box;
+            flex: 0 0 55px; /* 严格固定尺寸，不允许被压缩变形 */
+            transition: 0.15s ease;
+        }
+        .sim-item .pull-num { display: none; position: absolute; top: 2px; left: 3px; font-size: 10px; font-family: monospace; z-index: 5; padding: 0 2px; border-radius: 2px; }
+       .sim-panel-dark, #prob-display-box {
+            max-width: 440px;
+            box-sizing: border-box;
+        }
+
+        .sim-stats-panel { 
+            background: #1a1c20; 
+            border: 1px solid #333; 
+            padding: 10px 15px; 
+            border-radius: 8px; 
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        /* 顶部标题栏 */
+        .sim-header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #333; 
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        /* 核心：左右两列布局 */
+.sim-main-layout {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+}
+        /* 左侧面板：固定宽度范围，内容竖向滚动并显示滚动条 */
+.sim-left-panel {
+    flex: 0 0 auto;
+    /* 15列(62px) + 14个gap(8px) + 左右padding边距 = 约 1080px 上限 */
+    width: 1080px;
+    max-width: calc(100vw - 840px); /* 动态保障：永远为右侧结果保留至少 840px 的完整可视空间 */
+    min-width: 360px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 16px;
+    box-sizing: border-box;
+}
+        /* 右侧面板：撑满剩余空间 */
+.sim-right-panel {
+    flex: 1;
+    min-width: 0; /* 允许弹性收缩 */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+        /* 🌟 抽数标签：紧跟在最后一个格子之后，不再硬性推到最右侧 */
+        .range-label {
+            margin-left: 8px;
+            color: #888;
+            font-size: 12px;
+            font-family: monospace;
+            white-space: nowrap;
+            align-self: center;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+
+        /* 右侧结果黑色大滚动区域：保证低于极限时出现滚动条 */
+        #sim-result-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto; /* 极窄窗口下允许横向拖动 */
+            padding: 15px;
+            background: #000;
+            border-radius: 8px;
+        }
+.spark-slot-holder {
+    width: 55px !important;
+    height: 55px !important;
+    flex: 0 0 55px !important;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.spark-gift-card {
+    position: static !important;
+    transform: none !important;
+    width: 55px !important;
+    height: 55px !important;
+    flex: 0 0 55px !important;
+    border: 2px solid #f1c40f;
+    border-radius: 6px;
+    background: #000;
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
+    z-index: 5;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    margin: 0 !important;
+}
+
+        /* 确保左侧的图鉴列表由父级面板统一切换滚动 */
+.custom-scroll-wrap {
+    max-width: 1060px;             /* 锁死框的最大宽度上限在 15 列之内 */
+    max-height: 275px !important;  /* 锁死最多 3 排卡片高度 */
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    margin-bottom: 20px;
+    margin-right: 8px;             /* 与左侧外层滚动条拉开间隙，防止鼠标误触 */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px 8px;
+    box-sizing: border-box;
+}
+    .sim-left-panel::-webkit-scrollbar { width: 8px; }
+.sim-left-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+.sim-left-panel::-webkit-scrollbar-thumb:hover { background: #666; }
+
+.custom-scroll-wrap::-webkit-scrollbar { width: 6px; }
+.custom-scroll-wrap::-webkit-scrollbar-thumb { background: #666; border-radius: 4px; }
+.custom-scroll-wrap::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+
+        
+        /* 图鉴卡片网格与选择器样式 */
+       .sim-grid-new {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)) !important;
+    gap: 8px;
+}
+        .char-select-card { 
+            width: 100% !important; 
+            height: 85px; 
+            background: #222; 
+            border: 2px solid #333; 
+            border-radius: 8px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; 
+            cursor: pointer; 
+            position: relative; 
+            overflow: hidden; 
+            transition: all 0.2s ease; 
+            user-select: none; 
+            box-sizing: border-box;
+            /* 未选中时半透明变暗 */
+            opacity: 0.45;
+            filter: grayscale(0.5);
+        }
+        .char-select-card.selected { 
+            opacity: 1 !important;
+            filter: none !important;
+            border-color: var(--tier-color, var(--primary)) !important; 
+            box-shadow: 0 0 10px var(--tier-color, rgba(0, 123, 255, 0.6)) !important; 
+            transform: translateY(-2px);
+        }
+        .char-select-card .check-mark { 
+            position: absolute; 
+            top: -18px; 
+            right: -18px; 
+            width: 36px; 
+            height: 36px; 
+            background: var(--tier-color, var(--primary)); 
+            transform: rotate(45deg); 
+            z-index: 10; 
+            display: none; 
+        }
+        .char-select-card.selected .check-mark { 
+            display: block; 
+        }
+        .char-select-card .check-icon { 
+            position: absolute; 
+            top: 17px; 
+            right: 14px; 
+            transform: rotate(-45deg); 
+            color: #000; 
+            font-size: 10px; 
+            font-weight: 900; 
+        }
+        .char-select-img-wrap { width: 100%; height: 60px; position: relative; background: #333; }
+        .char-select-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .char-select-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: bold; }
+        .char-select-name { width: 100%; padding: 4px 2px; text-align: center; font-size: 11px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; background: #1a1a1a; flex: 1; }
+        .char-select-card.selected .char-select-name { color: #fff; background: #111; }
+
+        /* 概率提升红色箭头动画 (为选角卡片专属优化) */
+        .boost-arrow {
+            position: absolute; bottom: 18px; left: 2px; z-index: 10; color: #ff4757; 
+            font-size: 18px; font-weight: 900; line-height: 1; font-family: sans-serif;
+            text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px #ff4757;
+            animation: bounceBoost 1s infinite alternate;
+        }
+        @keyframes bounceBoost { 0% { transform: translateY(0); } 100% { transform: translateY(-3px); } }
+/* 当窗口宽度小于 800px 时（如分屏、手机屏幕），自动切为上下布局 */
+@media (max-width: 800px) {
+    body {
+        min-width: 100%;
+        height: auto;
+        overflow-y: auto;
+    }
+    .sim-main-layout {
+        flex-direction: column; /* 左右分栏变为上下排列 */
+        min-width: 100%;
+    }
+    .sim-left-panel {
+        border-right: none;
+        border-bottom: 1px solid #333;
+        padding-right: 0;
+        padding-bottom: 20px;
+        max-height: 500px;
+    }
+    .sim-right-panel {
+        min-width: 100%;
+        margin-top: 20px;
+        min-height: 500px;
+    }
+    .sim-pull-row {
+        flex-wrap: wrap; /* 窄屏下 10 连抽自动折成 2 行（5+5 排布） */
+    }
+}
+
+/* 细分概率抽屉动画 */
+.sub-prob-drawer {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 10px 8px 14px;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 0 0 4px 4px;
+    border-left: 3px solid var(--tier-color, #444);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 11px;
+}
+/* 鼠标悬浮且未锁定时临时展开 */
+.prob-card-wrap:hover:not(.locked) .sub-prob-drawer {
+    display: flex;
+}
+/* 点击锁定常驻展开 */
+.prob-card-wrap.locked .sub-prob-drawer {
+    display: flex;
+}
+.prob-card-wrap.locked .prob-arrow-icon {
+    transform: rotate(90deg);
+}
+    </style>
+</head>
+<body>
+    <!-- 侧栏容器（由 layout.js 动态渲染） -->
+    <div class="sidebar"></div>
+
+    <!-- 模拟器主内容区 -->
+    <div class="main-content simulator-main-content">
+    <!-- 顶部标题栏 -->
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center; border-bottom: 1px solid #333; padding-bottom: 15px;">
+        <h2 style="margin:0; color: var(--gold);" data-i18n="sim_title">✨ 自定义抽卡模拟器</h2>
+        <button class="btn btn-primary" id="btn-return-dashboard" data-i18n="sim_btn_back">返回看板</button>
+    </div>
+    
+    <!-- 🌟 主体左右分栏布局 -->
+    <div class="sim-main-layout">
+        
+        <!-- 左侧：图鉴库与跃迁操作面板 -->
+        <div class="sim-left-panel">
+            <h4 style="margin:0 0 10px 0;" id="title-up-pool" data-i18n="sim_h_up">1. 选择限定 UP 项目</h4>
+            <div id="sim-up-pool" class="sim-grid"></div>
+
+            <h4 id="title-std-pool" style="margin-top:0;" data-i18n="sim_h_std">2. 选择常驻项目 (默认全选)</h4>
+            <div id="sim-std-pool" class="sim-grid"></div>
+
+            <div class="sim-panel-dark">
+                <h4 style="margin:0 0 15px 0;" data-i18n="sim_h_action">执行跃迁</h4>
+                <div style="display:flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn btn-blue" onclick="doSimPulls(1)" data-i18n="sim_btn_1">单抽</button>
+                    <button class="btn btn-green" onclick="doSimPulls(10)" data-i18n="sim_btn_10">十连</button>
+                    <button class="btn btn-orange" onclick="doSimPulls(100)" data-i18n="sim_btn_100">百连</button>
+                </div>
+                <div style="display:flex; gap: 10px;">
+                    <input type="number" id="input-custom-amount" class="input-box" style="width: 100px;" data-i18n="sim_ph_custom" placeholder="自定义数量">
+                    <button class="btn btn-red" onclick="doSimCustomPulls()" data-i18n="sim_btn_pull">抽！</button>
+                    <button class="btn btn-action-gray" style="margin-left:auto;" onclick="resetSim()" data-i18n="sim_btn_clear">清空记录</button>
+                </div>
+                
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border);">
+                    <h5 style="margin: 0 0 10px 0;" data-i18n="sim_h_nav">便捷查询（跳转到金）</h5>
+                    <div style="display:flex; gap: 10px;">
+                        <button class="btn btn-nav-gold" onclick="scrollToGold('prev')" data-i18n="sim_btn_prev">↑ 寻上一个金</button>
+                        <button class="btn btn-nav-gold" onclick="scrollToGold('next')" data-i18n="sim_btn_next">↓ 寻下一个金</button>
+                    </div>
+                </div>
+                <!-- 🌟 细分重置控制区容器（根据卡池规则动态显隐） -->
+                <div id="sim-reset-actions-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border);">
+                    <button id="btn-reset-spark" class="btn btn-action-gray" style="width: 100%; border-color:#9b59b6; color:#9b59b6; display:none;" onclick="openSparkResetSelector()">⟲ 重置「井」限制</button>
+                    <button id="btn-reset-gift" class="btn btn-action-gray" style="width: 100%; border-color:#2ecc71; color:#2ecc71; display:none;" onclick="openGiftResetSelector()">⟲ 重置「赠送抽」限制</button>
+    
+                    <!-- 阶段2与阶段3预留槽位 -->
+                    <button id="btn-reset-early-up" class="btn btn-action-gray" style="width: 100%; border-color:#f1c40f; color:#f1c40f; display:none;">⟲ 刷新「不歪特权」</button>
+                    <button id="btn-reset-category-seq" class="btn btn-action-gray" style="width: 100%; border-color:#3498db; color:#3498db; display:none;">⟲ 刷新「类型定向」</button>
+                </div>
+                
+                <button id="btn-reopen-custom-up" class="btn btn-action-gray" style="width: 100%; border-color:#9b59b6; color:#9b59b6; margin-top: 10px; display:none;" onclick="openCustomUpModal()" data-i18n="sim_btn_reopen_up">✨ 重新配置自选 UP 神坛</button>
+                <button id="btn-reopen-spec-rate" class="btn btn-action-gray" style="width: 100%; border-color:#3498db; color:#3498db; margin-top: 10px; display:none;" onclick="openSpecRateModal()" data-i18n="sim_btn_reopen_spec">🌟 重新配置特限出货干预</button>
+                <button id="btn-reopen-minor-up" class="btn btn-action-gray" style="width: 100%; border-color:#2ecc71; color:#2ecc71; margin-top: 10px; display:none;" onclick="openMinorUpModal()" data-i18n="sim_btn_reopen_minor_up">🌟 重新配置副产物 UP</button>
+            </div>
+
+            <div id="prob-display-box" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border);">
+                <h5 style="margin: 0 0 10px 0; color: #ccc;">
+                    <span data-i18n="sim_h_prob_1">📊 下一抽实时概率 (当前已垫: </span>
+                    <span id="prob-display-pity" style="color: #f1c40f;">0</span>
+                    <span data-i18n="sim_h_prob_2">)</span>
+                </h5>
+                <div id="prob-display-content" style="display: flex; flex-direction: column; gap: 5px; font-size: 13px;"></div>
+            </div>
+            <div id="tip-hide-low-box" style="margin-top: 15px; padding: 10px 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.15); font-size: 12px; color: #888; line-height: 1.5;">
+               <span id="tip-hide-low-text"></span>
+            </div>
+        </div>
+
+        <!-- 右侧：统计面板与抽卡记录展示区 -->
+        <div class="sim-right-panel">
+            <div class="sim-stats-panel" style="display:flex; justify-content: space-around; gap: 10px; align-items: center;">
+                <div><span data-i18n="sim_stat_total">总计: </span><span id="sim-stat-total">0</span></div>
+                <div><span data-i18n="sim_stat_gold">金: </span><span id="sim-stat-gold" style="color:#f1c40f; font-weight:bold;">0</span></div>
+                <div><span data-i18n="sim_stat_spark_dist">距井: </span><span id="sim-stat-spark-dist" style="color:#3498db; font-weight:bold;">-</span></div>
+                <div><span data-i18n="sim_stat_pity">垫: </span><span id="sim-stat-pity">0</span></div>
+                <div><span data-i18n="sim_stat_guarantee">大保底: </span><span id="sim-stat-guarantee" style="font-weight:bold;" data-i18n="sim_guarantee_no">否</span></div>
+            </div>
+            <div id="sim-result-container">
+                <div id="sim-results" style="display:flex; flex-direction:column; gap: 10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义 UP 神坛弹窗 (已移出左侧面板，归入全局顶层) -->
+    <div id="customUpOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);">
+        <div style="background: var(--card-bg); border: 2px solid #9b59b6; border-radius: 12px; width: 100%; max-width: 800px; padding: 30px; display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 10px 30px rgba(155, 89, 182, 0.3);">
+            <h2 style="color: #9b59b6; margin-top: 0; text-align: center;" data-i18n="sim_modal_up_title">✨ 自建卡池：任命当期 UP ✨</h2>
+            <p style="text-align: center; color: #aaa; font-size: 14px; margin-bottom: 20px;" data-i18n="sim_modal_up_desc">拖拽想要 UP 的角色卡片至上方神坛。</p>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #f1c40f; font-size: 16px; margin-bottom: 10px;" data-i18n="sim_modal_up_altar">🎯 当期 UP 神坛</h3>
+                <div id="up-dropzone" style="min-height: 140px; border: 2px dashed #f1c40f; border-radius: 8px; background: rgba(241, 196, 15, 0.05); display: flex; gap: 15px; padding: 15px; flex-wrap: wrap; align-items: center; justify-content: center; transition: 0.2s;" ondragover="handleSimDragOver(event)" ondrop="handleSimDrop(event, 'up-dropzone')">
+                    <div style="color: #888; pointer-events: none; font-size: 1.2rem; font-weight: bold;" id="up-placeholder" data-i18n="sim_modal_up_ph">⬇️ 拖拽图鉴至此处 ⬇️</div>
+                </div>
+            </div>
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 25px; padding-right: 10px;">
+                <h3 style="color: #3498db; font-size: 16px; margin-bottom: 10px;" data-i18n="sim_modal_up_roster">📦 底池图鉴库</h3>
+                <div id="roster-dragzone" style="min-height: 140px; border: 2px dashed #3498db; border-radius: 8px; background: rgba(52, 152, 219, 0.05); display: flex; gap: 15px; padding: 15px; flex-wrap: wrap; align-content: flex-start;" ondragover="handleSimDragOver(event)" ondrop="handleSimDrop(event, 'roster-dragzone')"></div>
+            </div>
+            <button class="btn btn-primary" style="padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; background: linear-gradient(45deg, #9b59b6, #8e44ad); border: none;" onclick="confirmCustomUpAndStart()" data-i18n="sim_modal_up_btn">🚀 确认神坛编队，启动模拟器！</button>
+        </div>
+    </div>
+
+    <!-- 特限出货干预配置弹窗 (已移出左侧面板，归入全局顶层) -->
+    <div id="specRateOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);">
+        <div style="background: var(--card-bg); border: 2px solid #3498db; border-radius: 12px; width: 100%; max-width: 800px; padding: 30px; display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 10px 30px rgba(52, 152, 219, 0.3);">
+            <h2 style="color: #3498db; margin-top: 0; text-align: center;" data-i18n="sim_modal_spec_title">🌟 特限出货干预配置 🌟</h2>
+            <p style="text-align: center; color: #aaa; font-size: 14px; margin-bottom: 20px;" data-i18n="sim_modal_spec_desc">拖拽常驻角色至干预区，出金歪时将大幅提升选中角色的获取概率。<br><span style="color:#2ecc71;">(提升算法和数值已在配置页设定完毕)</span></p>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #3498db; font-size: 16px; margin-bottom: 10px;" data-i18n="sim_modal_spec_altar">🎯 概率干预神坛</h3>
+                <div id="spec-dropzone" style="min-height: 140px; border: 2px dashed #3498db; border-radius: 8px; background: rgba(52, 152, 219, 0.05); display: flex; gap: 15px; padding: 15px; flex-wrap: wrap; align-items: center; justify-content: center; transition: 0.2s;" ondragover="handleSimDragOver(event)" ondrop="handleSimDrop(event, 'spec-dropzone')">
+                    <div style="color: #888; pointer-events: none; font-size: 1.2rem; font-weight: bold;" id="spec-placeholder" data-i18n="sim_modal_spec_ph">⬇️ 拖拽常驻图鉴至此处 ⬇️</div>
+                </div>
+            </div>
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 10px;">
+                <h3 style="color: #888; font-size: 16px; margin-bottom: 10px;" data-i18n="sim_modal_spec_roster">📦 常驻图鉴库</h3>
+                <div id="spec-roster-dragzone" style="min-height: 140px; border: 2px dashed #666; border-radius: 8px; background: rgba(255,255,255, 0.02); display: flex; gap: 15px; padding: 15px; flex-wrap: wrap; align-content: flex-start;" ondragover="handleSimDragOver(event)" ondrop="handleSimDrop(event, 'spec-roster-dragzone')"></div>
+            </div>
+
+            <button class="btn btn-primary" style="padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; background: linear-gradient(45deg, #3498db, #2980b9); border: none; margin-top:10px;" onclick="confirmSpecRateAndStart()" data-i18n="sim_modal_spec_btn">🚀 确认干预名单，返回模拟器！</button>
+        </div>
+    </div>
+
+    <!-- 四星 / 副产物 UP 神坛弹窗 -->
+<div id="minorUpOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);">
+    <div style="background: var(--card-bg); border: 2px solid #2ecc71; border-radius: 12px; width: 100%; max-width: 800px; padding: 30px; display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 10px 30px rgba(46, 204, 113, 0.3);">
+        <h2 style="color: #2ecc71; margin-top: 0; text-align: center;" data-i18n="sim_modal_minor_up_title">🌟 任命当期副产物 / 四星 UP 🌟</h2>
+        <p style="text-align: center; color: #aaa; font-size: 14px; margin-bottom: 20px;" data-i18n="sim_modal_minor_up_desc">拖拽想要作为当期 UP 的副产物/四星物品至神坛区。<br><span style="color:#2ecc71;">(副产物 UP 概率及大保底已在规则中设定)</span></p>
+
+        <div style="margin-bottom: 20px;">
+            <h3 style="color: #2ecc71; font-size: 16px; margin-bottom: 10px;" data-i18n="sim_modal_minor_up_altar">🎯 四星 / 副产物 UP 神坛</h3>
+            <div id="minor-up-dropzone" style="min-height: 140px; border: 2px dashed #2ecc71; border-radius: 8px; background: rgba(46, 204, 113, 0.05); display: flex; gap: 15px; padding: 15px; flex-wrap: wrap; align-items: center; justify-content: center; transition: 0.2s;" ondragover="handleSimDragOver(event)" ondrop="handleSimDrop(event, 'minor-up-dropzone')">
+                <div style="color: #888; pointer-events: none; font-size: 1.2rem; font-weight: bold;" id="minor-up-placeholder" data-i18n="sim_modal_minor_up_ph">⬇️ 拖拽图鉴至此处 ⬇️</div>
+            </div>
+        </div>
+        <div style="flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 10px;">
+            <h3 style="color: #888; font-size: 16px; margin-bottom: 10px;" data-i18n="sim_modal_minor_up_roster">📦 副产物 / 四星图鉴库</h3>
+            <div id="minor-roster-dragzone" style="min-height: 140px; border: 2px dashed #666; border-radius: 8px; background: rgba(255,255,255, 0.02); display: flex; gap: 15px; padding: 15px; flex-wrap: wrap; align-content: flex-start;" ondragover="handleSimDragOver(event)" ondrop="handleSimDrop(event, 'minor-roster-dragzone')"></div>
+        </div>
+
+        <button class="btn btn-primary" style="padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; background: linear-gradient(45deg, #27ae60, #2ecc71); border: none; margin-top:10px;" onclick="confirmMinorUpAndStart()" data-i18n="sim_modal_minor_up_btn">🚀 确认副产物 UP，返回模拟器！</button>
+    </div>
+</div>
+
+<!-- 🌟 规则精细化单选重置弹窗 -->
+<div id="ruleSelectModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100001; backdrop-filter: blur(4px);">
+    <div style="background: var(--card-bg, #222); border: 1px solid var(--border, #444); border-radius: 12px; padding: 25px; width: 90%; max-width: 480px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
+            <h3 id="ruleSelectModalTitle" style="margin: 0; color: var(--primary); font-size: 1.2rem;">选择要重置的规则</h3>
+            <button onclick="document.getElementById('ruleSelectModalOverlay').style.display='none'" style="background: none; border: none; color: #888; cursor: pointer; font-size: 18px;">✕</button>
+        </div>
+        <p id="ruleSelectModalDesc" style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.4;">请点击想要单独重新启用的规则：</p>
+        
+        <!-- 动态生成的规则选项列表 -->
+        <div id="ruleSelectOptionsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; padding-right: 4px;"></div>
+        
+        <!-- 弹窗底部操作 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 5px;">
+            <button id="btn-reset-all-rules" class="btn btn-action-gray" style="color: #ff4757; border-color: #ff4757;">🔄 全部重置</button>
+            <button class="btn btn-action-gray" onclick="document.getElementById('ruleSelectModalOverlay').style.display='none'">关闭</button>
+        </div>
+    </div>
+</div>
+
+   <!-- 全局弹窗组件 -->
+<div id="customDialogOverlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 100000; backdrop-filter: blur(4px);">
+    <div id="customDialogBox" style="background: var(--card-bg, #222); border: 1px solid var(--border, #444); border-radius: 12px; padding: 25px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <h3 id="customDialogTitle" style="margin: 0 0 10px 0; color: var(--text, #fff); font-size: 1.2rem;"></h3>
+        <p id="customDialogMsg" style="color: #aaa; font-size: 14px; margin-bottom: 25px; line-height: 1.5; white-space: pre-wrap; word-break: break-all;"></p>
+        <div class="dialog-btn-group" style="display: flex; gap: 10px; justify-content: center;">
+            <button id="customDialogCancel" class="btn btn-action-gray" style="display:none;" data-i18n="cd_js_cancel">取消</button>
+            <button id="customDialogConfirm" class="btn btn-primary" data-i18n="cd_js_confirm_btn">确认</button>
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    <script src="Preset_Data/db_hsr.js"></script>
+    <script src="Preset_Data/db_zzz.js"></script>
+    <script src="Preset_Data/db_end.js"></script>
+    <script src="Preset_Data/db_ark.js"></script>
+    <script src="translate.js"></script>
+    <script src="layout.js"></script>
+        
+    <script>
+        // ==========================================
+        // 核心辅助方法与自定弹窗
+        // ==========================================
+        window.customAlert = function(msg) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('customDialogOverlay');
+                const titleEl = document.getElementById('customDialogTitle');
+                const msgEl = document.getElementById('customDialogMsg');
+                const confirmBtn = document.getElementById('customDialogConfirm');
+                const cancelBtn = document.getElementById('customDialogCancel');
+
+                titleEl.innerText = window.getTrans ? window.getTrans('cd_js_alert') : '提示';
+                confirmBtn.innerText = window.getTrans ? window.getTrans('cd_js_confirm_btn') : '确认';
+                msgEl.innerText = msg;
+                cancelBtn.style.display = 'none';
+
+                overlay.style.display = 'flex';
+                confirmBtn.onclick = () => { 
+                    overlay.style.display = 'none'; 
+                    resolve(true); 
+                };
+            });
+        };
+
+        window.customConfirm = function(msg) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('customDialogOverlay');
+                const titleEl = document.getElementById('customDialogTitle');
+                const msgEl = document.getElementById('customDialogMsg');
+                const confirmBtn = document.getElementById('customDialogConfirm');
+                const cancelBtn = document.getElementById('customDialogCancel');
+
+                titleEl.innerText = window.getTrans ? window.getTrans('cd_js_confirm') : '确认操作';
+                confirmBtn.innerText = window.getTrans ? window.getTrans('cd_js_confirm_btn') : '确认';
+                cancelBtn.innerText = window.getTrans ? window.getTrans('cd_js_cancel') : '取消';
+                msgEl.innerText = msg;
+                cancelBtn.style.display = 'block';
+
+                overlay.style.display = 'flex';
+                confirmBtn.onclick = () => { 
+                    overlay.style.display = 'none'; 
+                    resolve(true); 
+                };
+                cancelBtn.onclick = () => { 
+                    overlay.style.display = 'none'; 
+                    resolve(false); 
+                };
+            });
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentPool = urlParams.get('pool') || 'char_up';
+        let currentGameId = urlParams.get('gameId'); 
+        // 存储所有待配置 UP 的副产物规则队列与当前处理进度
+        let pendingMinorUpRules = [];
+        let currentMinorRuleIndex = 0;
+
+        // 校验访问有效性，非法直接踢回看板
+        if (!currentGameId) { 
+            (async () => {
+                await customAlert(window.getTrans ? window.getTrans('sim_js_err_invalid') : 'Invalid Game ID');
+                window.location.href = 'index.html'; 
+            })();
+        }
+        document.getElementById('btn-return-dashboard').onclick = () => { window.location.href = `custom_dashboard.html?gameId=${currentGameId}&pool=${currentPool}`; };
+
+        // 动态加载预设数据（安全方法）
+        const getDynamicVar = (varName) => { try { return new Function(`return typeof ${varName} !== 'undefined' ? ${varName} : undefined`)(); } catch(e) { return undefined; } };
+        const gamePrefix = currentGameId.toUpperCase();
+
+        let roster = JSON.parse(localStorage.getItem('GM_Roster_' + currentGameId)) || {};
+        // layout.js 在全局作用域使用 currentLang；模拟器使用独立名称，避免脚本加载时重复声明。
+        const simulatorLang = localStorage.getItem('GM_Lang') || 'zh';
+
+        // 统一多语言名称获取
+        function getItemName(item) {
+            if (!item) return '?';
+            if (simulatorLang === 'en') { return item.en || item.nameEn || item.name; }
+            return item.name;
+        }
+
+        // 统一多语言简称获取
+        function getItemShort(item) {
+            if (!item) return '?';
+            if (simulatorLang === 'en') { return item.eshort || item.shortEn || item.en || item.nameEn || item.short || item.name; }
+            return item.short || item.name;
+        }
+        
+        const freshUnifiedDB = getDynamicVar(`${gamePrefix}_DB`);
+        const freshCharDB = getDynamicVar(`${gamePrefix}_CHAR_DB`);
+        const freshWepDB = getDynamicVar(`${gamePrefix}_WEAPON_DB`);
+        
+        if (freshUnifiedDB || freshCharDB || freshWepDB) {
+            const freshRoster = {};
+            const processDb = (dbArray, prefix) => {
+                if (!dbArray) return;
+                dbArray.forEach(item => {
+                    let types = Array.isArray(item.type) ? item.type : [item.type];
+                    types.forEach(t => {
+                        let key = (prefix && !t.startsWith(prefix)) ? `${prefix}_${t}` : t;
+                        if (!freshRoster[key]) freshRoster[key] = [];
+                        freshRoster[key].push(item);
+                    });
+                    if (item.tierId) {
+                        let prefixStr = types[0].split('_')[0]; 
+                        let tierKey = `${prefixStr}_${item.tierId}`;
+                        if (!freshRoster[tierKey]) freshRoster[tierKey] = [];
+                        freshRoster[tierKey].push(item);
+                    }
+                });
+            };
+            if (freshUnifiedDB) processDb(freshUnifiedDB, "");
+            else { processDb(freshCharDB, 'char'); processDb(freshWepDB, 'wep'); }
+            
+            if (Object.keys(freshRoster).length > 0) Object.assign(roster, freshRoster);
+        }
+
+        let gameInfo = JSON.parse(localStorage.getItem('GM_Info_' + currentGameId)) || {};
+        // 强制读取预设游戏的流向设定 (修复预设读不到常驻歪池的问题)
+        const freshSetup = getDynamicVar(`${gamePrefix}_SETUP_RULES`);
+        if (freshSetup) {
+            gameInfo = Object.assign({}, gameInfo, freshSetup);
+        }
+
+        // 动态构建常驻混合池内容 (解包 MixedPools 设定)
+        let mixedConfig = gameInfo.mixedPools ? gameInfo.mixedPools.find(p => p.id === currentPool) : null;
+        if (mixedConfig && Array.isArray(mixedConfig.components)) {
+            let combined = [];
+            mixedConfig.components.forEach(compId => {
+                if (roster[compId]) combined = combined.concat(roster[compId]);
+            });
+            roster[currentPool] = combined;
+        } else if (currentPool === 'mixed_std') {
+            roster['mixed_std'] = [...(roster.char_std || []), ...(roster.wep_std || []), ...(roster.pet_std || [])];
+        }
+
+        let rules = JSON.parse(localStorage.getItem(`GM_Rules_${currentGameId}_${currentPool}`));
+        // 若缺少规则，拉取预设兜底
+        if (!rules) {
+            const presetRules = getDynamicVar(`${gamePrefix}_POOL_RULES`);
+            if (presetRules && presetRules[currentPool]) {
+                rules = JSON.parse(JSON.stringify(presetRules[currentPool])); 
+            } else if (typeof getPoolRules === 'function') {
+                rules = getPoolRules(currentGameId, currentPool);
+            }
+            if (!rules) rules = { pity: { hard: 90 }, tiers: [] };
+        }
+
+        let globalTiers = gameInfo.globalTiers || [];
+        if (globalTiers.length === 0) {
+            const presetGlobalTiers = getDynamicVar(`${gamePrefix}_GLOBAL_TIERS`);
+            if (presetGlobalTiers) {
+                globalTiers = JSON.parse(JSON.stringify(presetGlobalTiers));
+            } else {
+                globalTiers = [ { id: 'tier_5', name: '5', color: '#f1c40f' }, { id: 'tier_4', name: '4', color: '#9b59b6' }, { id: 'tier_3', name: '3', color: '#3498db' } ];
+            }
+        }
+
+        let activeTiers = [];
+        let targetGoldIds = [];
+        let minorPities = rules.minorPities || [];
+
+        // 将基础概率梯队 (Tiers) 与全局皮肤颜色匹配
+        if (rules.tiers && Array.isArray(rules.tiers)) {
+            activeTiers = rules.tiers.map(t => {
+                let gt = globalTiers.find(g => g.id === t.id) || { name: '?', color: '#fff' };
+                return { 
+                    id: t.id, 
+                    prob: t.prob, 
+                    name: gt.name, 
+                    color: gt.color,
+                    subProbs: t.subProbs || null // 🌟 关键：把 rules 里的细分数组完整保留下来
+                };
+            });
+            targetGoldIds = rules.targetGoldIds || rules.targetGoldTiers || [];
+        } else {
+            // 兜底旧版 star 逻辑
+            if (!rules.stars) rules.stars = { 3: 94.3, 4: 5.1, 5: 0.6 };
+            const colorMap = { 6: "#ff4757", 5: "#f1c40f", 4: "#9b59b6", 3: "#3498db", 2: "#2ecc71", 1: "#95a5a6" };
+            for(let s in rules.stars) {
+                let match = globalTiers.find(g => g.name === s.toString()) || { id: 't_old_'+s, name: s, color: colorMap[s]||'#fff' };
+                activeTiers.push({ id: match.id, prob: rules.stars[s], name: match.name, color: match.color });
+            }
+            targetGoldIds = (rules.targetGold || [5]).map(num => (globalTiers.find(g => g.name === num.toString()) || {}).id || 't_old_'+num);
+        }
+        activeTiers.sort((a,b) => a.prob - b.prob);
+
+        // 如果没有配置副产物小保底，则从旧版的十连紫机制中继承
+        if (minorPities.length === 0) {
+            if (rules.guarantee10 && rules.guarantee10.enabled !== false && rules.guarantee10.tierId) {
+                minorPities.push({ pulls: 10, tierId: rules.guarantee10.tierId, resetOnHit: true });
+            } else if (rules.tenPityStar !== undefined && rules.tenPityEnabled !== false) {
+                let tenMatch = globalTiers.find(gt => gt.name === rules.tenPityStar.toString());
+                if (tenMatch) minorPities.push({ pulls: 10, tierId: tenMatch.id, resetOnHit: true });
+            }
+        }
+
+        const hardPityLimit = rules.pity?.hard || rules.hardPity || 90;
+        const isSoftEnabled = rules.pity?.softEnabled ?? rules.softEnabled ?? false;
+        const softRulesArray = Array.isArray(rules.pity?.softRules || rules.softRule) ? (rules.pity?.softRules || rules.softRule) : [];
+        let tempUpRate = rules.pity?.upRate ?? rules.upRate ?? 50;
+        if (tempUpRate <= 1) tempUpRate *= 100; 
+        const upProbability = tempUpRate; 
+
+// 初始化模拟器核心计数器数据状态
+let simData = { 
+    pity: 0, 
+    total: 0, 
+    goldCount: 0, 
+    guaranteeCount: 0, 
+    minorPityCounters: Array(minorPities.length).fill(0),
+    minorGuaranteeCounters: {},
+    freeQueue: [], 
+    // 🌟 独立规则生命周期管理
+    sparkState: {}, // 格式: { [idx]: { basePull: 0, cancelled: false, triggeredCount: 0 } }
+    giftState: {},  // 格式: { [idx]: { basePull: 0, triggeredCount: 0 } }
+    events: { pendingGifts: [] } ,
+    earlyUpUsedCount: 0,
+    catSeqUsedCount: 0,
+    consecutiveLosses: 0
+};
+        let dynamicSimRules = null; 
+        let isCustomUpMode = false;
+        let isSpecRateMode = false;
+
+window.addEventListener('DOMContentLoaded', () => {
+    if (typeof renderSidebar === 'function') renderSidebar();
+    initDynamicFeatures(); 
+    initSimulatorPools(); 
+    updateSimStats();
+    updateHideLowTip();
+    updateResetButtonsVisibility(); // 🌟 新增：更新重置按钮显隐
+});
+
+        function renderCheckboxes(wrap, items, poolClass, isUp) {
+            let psEnabled = rules.preSelect && rules.preSelect.enabled;
+            let maxCheck = isUp ? (rules.preSelect?.upMax ?? 999) : (rules.preSelect?.stdMax ?? 999);
+            
+            let boostedNames = [];
+            if (isSpecRateMode) {
+                let currentSpecRate = (dynamicSimRules && dynamicSimRules.specRate) ? dynamicSimRules.specRate : rules.specRate;
+                if (currentSpecRate && currentSpecRate.enabled && Array.isArray(currentSpecRate.items)) {
+                    boostedNames = currentSpecRate.items;
+                }
+            }
+
+            let html = `<div class="sim-grid-new">`;
+            items.forEach((item, idx) => {
+                let isChecked = psEnabled ? idx < maxCheck : (isUp ? (idx === 0) : true);
+                let imgUrl = getImageUrl(item.short) || item.img || "";
+
+                let displayName = getItemName(item);
+                let displayShort = getItemShort(item);
+
+                // 🌟 1. 匹配角色星级颜色
+                let tId = item.tierId;
+                if (!tId && item.star !== undefined) {
+                    let m = globalTiers.find(g => g.name == item.star);
+                    if (m) tId = m.id;
+                }
+                let tierObj = globalTiers.find(g => g.id === tId) || { color: '#f1c40f' };
+                let tierColor = tierObj.color || '#f1c40f';
+
+                let imgContent = imgUrl 
+                    ? `<img src="${imgUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> <div class="char-select-fallback" style="display:none;">${displayShort}</div>`
+                    : `<div class="char-select-fallback">${displayShort}</div>`;
+
+                let isBoosted = !isUp && boostedNames.includes(item.name);
+                let boostArrowHtml = isBoosted ? `<div class="boost-arrow">⇡</div>` : '';
+
+                // 🌟 2. 注入 style="--tier-color: ${tierColor};"
+                html += `
+                    <div class="char-select-card ${isChecked ? 'selected' : ''}" 
+                         style="--tier-color: ${tierColor};" 
+                         onclick="toggleCardSelect(this)">
+                        <input type="checkbox" value="${item.name}" class="${poolClass}" ${isChecked ? 'checked' : ''} style="display:none;">
+                        <div class="check-mark"><div class="check-icon">✓</div></div>
+                        <div class="char-select-img-wrap">${imgContent}</div>
+                        ${boostArrowHtml}
+                        <div class="char-select-name" title="${displayName}">${displayName}</div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            wrap.innerHTML = html;
+        }
+
+        window.toggleCardSelect = function(cardDiv) {
+            const cb = cardDiv.querySelector('input[type="checkbox"]');
+            cb.checked = !cb.checked;
+            if (cb.checked) cardDiv.classList.add('selected'); else cardDiv.classList.remove('selected');
+        };
+
+        function initSimulatorPools() {
+            const upWrap = document.getElementById('sim-up-pool');
+            const stdWrap = document.getElementById('sim-std-pool');
+            const upTitle = document.getElementById('title-up-pool');
+            const stdTitle = document.getElementById('title-std-pool');
+            upWrap.innerHTML = ''; stdWrap.innerHTML = '';
+            upWrap.className = 'custom-scroll-wrap'; stdWrap.className = 'custom-scroll-wrap';
+
+            // 🌟 1. 读取卡池积木设定：优先读本地 LocalStorage（用户自定义），兜底读预设 JS
+            let rosterPoolsConfig = JSON.parse(localStorage.getItem('GM_RosterPools_' + currentGameId)) || [];
+            if (rosterPoolsConfig.length === 0 && typeof freshSetup !== 'undefined' && freshSetup?.rosterPools) {
+                rosterPoolsConfig = freshSetup.rosterPools;
+            }
+
+            // 🌟 2. 收集所有配置了 hideInSimPanel: true 的物品名称
+            const hiddenItemNames = new Set();
+            rosterPoolsConfig
+                .filter(p => p.hideInSimPanel === true)
+                .forEach(p => {
+                    (roster[p.id] || []).forEach(item => hiddenItemNames.add(item.name));
+                });
+
+            // 统一的隐藏项过滤器
+            const filterHidden = (list) => list.filter(item => !hiddenItemNames.has(item.name));
+
+            const isMixedPool = (gameInfo.mixedPools && gameInfo.mixedPools.some(p => p.id === currentPool)) || currentPool === 'mixed_std';
+            let hasCustomUpTargets = isCustomUpMode && dynamicSimRules && dynamicSimRules.targetGold_Names && dynamicSimRules.targetGold_Names.length > 0;
+
+            // ==========================================
+            // 分支 A：全家桶池 (char_all / wep_all)
+            // ==========================================
+            if (currentPool === 'char_all' || currentPool === 'wep_all') {
+                upTitle.style.display = 'block'; upWrap.style.display = 'block';
+                upTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_up_1') : '1. 选择限定 UP 项目'; 
+                stdTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_std_1') : '2. 选择常驻项目';
+
+                const type = currentPool.split('_')[0];
+                let upItems = (roster[type + '_up'] || []).concat(roster[type + '_collab'] || []);
+                let stdItems = [];
+                let allOffRates = new Set();
+                if (gameInfo.offRate) {
+                    for (let key in gameInfo.offRate) {
+                        if (key.startsWith(type) && Array.isArray(gameInfo.offRate[key])) {
+                            gameInfo.offRate[key].forEach(pool => { if(pool) allOffRates.add(pool); });
+                        }
+                    }
+                }
+                allOffRates.forEach(stdName => { if(stdName) stdItems = stdItems.concat(roster[stdName] || []); });
+                
+                // 去重并过滤隐藏项目
+                stdItems = stdItems.filter((item, index, self) => index === self.findIndex(t => t.name === item.name));
+                stdItems = filterHidden(stdItems);
+                upItems = filterHidden(upItems);
+
+                if (hasCustomUpTargets) {
+                    let allItems = [...upItems, ...stdItems];
+                    allItems = allItems.filter((item, index, self) => index === self.findIndex(t => t.name === item.name));
+                    upItems = allItems.filter(item => dynamicSimRules.targetGold_Names.includes(item.name));
+                    stdItems = allItems.filter(item => !dynamicSimRules.targetGold_Names.includes(item.name));
+                }
+
+                renderCheckboxes(upWrap, upItems, 'input-sim-up-cb', true);
+                renderCheckboxes(stdWrap, stdItems, 'input-std-cb', false);
+
+            // ==========================================
+            // 分支 B：常驻池 或 混合常驻池 (char_std / mixed_std 等)
+            // ==========================================
+            } else if (currentPool.includes('std') || isMixedPool) {
+                let stdItems = roster[currentPool] || [];
+                // 去重并过滤隐藏项目
+                stdItems = stdItems.filter((item, index, self) => index === self.findIndex(t => t.name === item.name));
+                stdItems = filterHidden(stdItems);
+
+                if (hasCustomUpTargets) {
+                    upTitle.style.display = 'block'; upWrap.style.display = 'block';
+                    upTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_up_2') : '1. 选择限定 UP 项目';
+
+                    let upItems = stdItems.filter(item => dynamicSimRules.targetGold_Names.includes(item.name));
+                    stdItems = stdItems.filter(item => !dynamicSimRules.targetGold_Names.includes(item.name));
+
+                    renderCheckboxes(upWrap, upItems, 'input-sim-up-cb', true);
+
+                    if (stdItems.length > 0) {
+                        stdTitle.style.display = 'block'; stdWrap.style.display = 'block';
+                        stdTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_std_3') : '2. 选择常驻项目';
+                        renderCheckboxes(stdWrap, stdItems, 'input-std-cb', false);
+                    } else {
+                        stdTitle.style.display = 'none'; stdWrap.style.display = 'none';
+                    }
+                } else {
+                    upTitle.style.display = 'none'; upWrap.style.display = 'none';
+                    stdTitle.style.display = 'block'; stdWrap.style.display = 'block';
+                    stdTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_std_2') : '2. 选择常驻项目 (默认全选)';
+                    renderCheckboxes(stdWrap, stdItems, 'input-std-cb', false);
+                }
+
+            // ==========================================
+            // 分支 C：常规限定 UP 池 (char_up / wep_up 等)
+            // ==========================================
+            } else {
+                upTitle.style.display = 'block'; upWrap.style.display = 'block';
+                upTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_up_2') : '1. 选择限定 UP 项目';
+
+                let upItems = roster[currentPool] || [];
+                const offRateArr = gameInfo.offRate?.[currentPool] || [];
+                let stdItems = [];
+                offRateArr.forEach(stdName => { if (stdName) stdItems = stdItems.concat(roster[stdName] || []); });
+                
+                // 去重并过滤隐藏项目
+                stdItems = stdItems.filter((item, index, self) => index === self.findIndex(t => t.name === item.name));
+                stdItems = filterHidden(stdItems);
+                upItems = filterHidden(upItems);
+
+                if (hasCustomUpTargets) {
+                    let allItems = [...upItems, ...stdItems];
+                    allItems = allItems.filter((item, index, self) => index === self.findIndex(t => t.name === item.name));
+                    upItems = allItems.filter(item => dynamicSimRules.targetGold_Names.includes(item.name));
+                    stdItems = allItems.filter(item => !dynamicSimRules.targetGold_Names.includes(item.name));
+                }
+
+                renderCheckboxes(upWrap, upItems, 'input-sim-up-cb', true);
+
+                if (stdItems.length === 0) {
+                    stdTitle.style.display = 'none'; stdWrap.style.display = 'none';
+                } else {
+                    stdTitle.style.display = 'block'; stdWrap.style.display = 'block';
+                    stdTitle.innerText = window.getTrans ? window.getTrans('sim_js_title_std_3') : '2. 选择常驻项目';
+                    renderCheckboxes(stdWrap, stdItems, 'input-std-cb', false);
+                }
+            }
+        }
+
+        async function validatePreSelect() {
+            if (!rules.preSelect || !rules.preSelect.enabled) return true;
+            let ps = rules.preSelect;
+            if (document.getElementById('sim-up-pool').style.display !== 'none') {
+                let upCount = document.querySelectorAll('.input-sim-up-cb:checked').length;
+                let upMin = ps.upMin ?? 1; let upMax = ps.upMax ?? 999;
+                if (upCount < upMin || upCount > upMax) {
+                    let maxStr = upMax === 999 ? (window.getTrans ? window.getTrans('sim_js_unlimited') : '无上限') : upMax;
+                    let msg = (window.getTrans ? window.getTrans('sim_js_err_pre_up') : '请选择 {min} - {max} 个 UP 项目 (当前 {count} 个)').replace('{min}', upMin).replace('{max}', maxStr).replace('{count}', upCount);
+                    await customAlert(msg);
+                    return false;
+                }
+            }
+            if (document.getElementById('sim-std-pool').style.display !== 'none') {
+                let stdCount = document.querySelectorAll('.input-std-cb:checked').length;
+                let stdMin = ps.stdMin ?? 0; let stdMax = ps.stdMax ?? 999;
+                if (stdCount < stdMin || stdCount > stdMax) {
+                    let maxStr = stdMax === 999 ? (window.getTrans ? window.getTrans('sim_js_unlimited') : '无上限') : stdMax;
+                    let msg = (window.getTrans ? window.getTrans('sim_js_err_pre_std') : '请选择 {min} - {max} 个 常驻 项目 (当前 {count} 个)').replace('{min}', stdMin).replace('{max}', maxStr).replace('{count}', stdCount);
+                    await customAlert(msg);
+                    return false;
+                }
+            }
+            return true; 
+        }
+
+        function findInRoster(name) {
+            for (let k in roster) { 
+                const f = roster[k].find(i => i.name === name || i.short === name); 
+                if(f) return f; 
+            }
+            return null;
+        }
+
+        function getImageUrl(shortName) {
+            let charObj = typeof HSR_CHAR_DB !== 'undefined' ? HSR_CHAR_DB.find(c => c.short === shortName || c.name === shortName) : null;
+            if (charObj && typeof SYS_CONFIG !== 'undefined') return SYS_CONFIG.imgFolder + "hsr_char/" + charObj.eshort + SYS_CONFIG.imgExt; 
+            let wepObj = typeof HSR_WEAPON_DB !== 'undefined' ? HSR_WEAPON_DB.find(w => w.short === shortName || w.name === shortName) : null;
+            if (wepObj && typeof SYS_CONFIG !== 'undefined') return SYS_CONFIG.imgFolder + "hsr_weapon/" + wepObj.eshort + SYS_CONFIG.imgExt;
+            if (typeof SYS_CONFIG !== 'undefined') return SYS_CONFIG.imgFolder + shortName + SYS_CONFIG.imgExt;
+            return "";
+        }
+
+        function initDynamicFeatures() {
+            if (!currentGameId || !currentPool) return; 
+
+            // 🌟 1. 先读取各项基础配置（确保 isColorOnly 优先声明可用）
+            const isColorOnly = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only';
+
+            let pools = JSON.parse(localStorage.getItem('GM_RosterPools_' + currentGameId)) || [];
+            let info = JSON.parse(localStorage.getItem('GM_Info_' + currentGameId)) || { mixedPools: [] };
+            let targetConfig = pools.find(p => p.id === currentPool) || info.mixedPools.find(mp => mp.id === currentPool);
+            
+            // 自选目标金神坛
+            if (targetConfig && targetConfig.enableCustomUp) {
+                isCustomUpMode = true;
+                document.getElementById('btn-reopen-custom-up').style.display = 'block';
+                if (!dynamicSimRules || !dynamicSimRules.targetGold_Names) openCustomUpModal();
+            }
+
+            // 特限出货干预
+            if (rules.specRate && rules.specRate.enabled) {
+                isSpecRateMode = true;
+                document.getElementById('btn-reopen-spec-rate').style.display = 'block';
+                if (!dynamicSimRules) dynamicSimRules = {};
+                if (!dynamicSimRules.specRate) dynamicSimRules.specRate = JSON.parse(JSON.stringify(rules.specRate));
+                
+                if (!dynamicSimRules.specRate.items || dynamicSimRules.specRate.items.length === 0) {
+                    openSpecRateModal();
+                }
+            }
+
+            // 🌟 2. 处理副产物多星级 UP 队列
+            const enabledMinorRules = (rules.minorPities || []).filter(m => 
+                m.enableUp === true || (m.upRate !== null && m.upRate !== undefined && m.upRate > 0)
+            );
+
+            if (enabledMinorRules.length > 0 && !isColorOnly) {
+                document.getElementById('btn-reopen-minor-up').style.display = 'block';
+                if (!dynamicSimRules) dynamicSimRules = {};
+                if (!dynamicSimRules.minorUpByTier) dynamicSimRules.minorUpByTier = {};
+
+                // 检查是否每个开启了 UP 的星级都已经配置了足够数量的目标
+                let needSetup = enabledMinorRules.some(r => 
+                    !dynamicSimRules.minorUpByTier[r.tierId] || 
+                    dynamicSimRules.minorUpByTier[r.tierId].length !== (r.upCount || 2)
+                );
+
+                if (needSetup) {
+                    setTimeout(() => { startAllMinorUpModals(); }, 150);
+                }
+            } else {
+                // 未配置副产物 UP 或处于极简纯色模式时，隐藏按钮与弹窗
+                const minorBtn = document.getElementById('btn-reopen-minor-up');
+                if (minorBtn) minorBtn.style.display = 'none';
+                const minorModal = document.getElementById('minorUpOverlay');
+                if (minorModal) minorModal.style.display = 'none';
+            }
+        }
+
+       // 启动所有星级的配置队列
+window.startAllMinorUpModals = function() {
+    pendingMinorUpRules = (rules.minorPities || []).filter(m => 
+        m.enableUp === true || (m.upRate !== null && m.upRate !== undefined && m.upRate > 0)
+    );
+    currentMinorRuleIndex = 0;
+    if (pendingMinorUpRules.length > 0) {
+        showCurrentMinorModalStep();
+    }
+};
+
+// 兼容按钮点击触发：直接调用队列启动
+window.openMinorUpModal = function() {
+    startAllMinorUpModals();
+};
+
+// 渲染当前星级的神坛界面
+function showCurrentMinorModalStep() {
+    const currentRule = pendingMinorUpRules[currentMinorRuleIndex];
+    if (!currentRule) return;
+
+    const targetTierId = currentRule.tierId;
+    // 🌟 读取最少与最多范围
+    const minCount = currentRule.upMin ?? 0;
+    const maxCount = currentRule.upMax ?? (currentRule.upCount || 6);
+
+    const tierObj = globalTiers.find(g => g.id === targetTierId) || { name: targetTierId, color: '#2ecc71' };
+
+    const modalTitle = document.querySelector('#minorUpOverlay h2');
+    const modalDesc = document.querySelector('#minorUpOverlay p');
+    if (modalTitle) {
+        modalTitle.innerText = `🌟 任命当期【${tierObj.name}】副产物 UP (${currentMinorRuleIndex + 1}/${pendingMinorUpRules.length}) 🌟`;
+        modalTitle.style.color = tierObj.color;
+    }
+    if (modalDesc) {
+        modalDesc.innerHTML = `拖拽想要作为当期 UP 的物品至神坛区。<br><strong style="color:${tierObj.color};">该星级允许指认 ${minCount} 至 ${maxCount} 个目标</strong>（可选 0 个表示本期无副产物 UP；已设不歪率：${(currentRule.upRate <= 1 ? currentRule.upRate * 100 : currentRule.upRate)}%）`;
+    }
+
+    // 1. 读取当前游戏所有卡池积木的配置信息
+    let rosterPoolsConfig = JSON.parse(localStorage.getItem('GM_RosterPools_' + currentGameId)) || [];
+    if (rosterPoolsConfig.length === 0 && typeof freshSetup !== 'undefined' && freshSetup?.rosterPools) {
+        rosterPoolsConfig = freshSetup.rosterPools;
+    }
+
+    // 2. 收集当前卡池允许流向的所有图鉴前缀
+    let poolAllowedKeys = [currentPool];
+    const offRateArr = gameInfo.offRate?.[currentPool] || [];
+    if (Array.isArray(offRateArr)) poolAllowedKeys.push(...offRateArr);
+
+    const allowedCustomUpPoolIds = new Set();
+    rosterPoolsConfig.forEach(p => {
+        if (p.enableCustomUp === true) allowedCustomUpPoolIds.add(p.id);
+    });
+
+    let minorUpCandidates = [];
+    let minorNonUpPool = [];
+
+    for (let k in roster) {
+        if (poolAllowedKeys.includes(k) || k === currentPool) {
+            const canBeUp = allowedCustomUpPoolIds.has(k);
+
+            (roster[k] || []).forEach(item => {
+                let tId = item.tierId;
+                if (!tId && item.star !== undefined) {
+                    let m = globalTiers.find(g => g.name == item.star);
+                    if (m) tId = m.id;
+                }
+
+                // 🌟 严格只收集属于当前这步 targetTierId 的物品
+                if (tId === targetTierId) {
+                    if (canBeUp) {
+                        if (!minorUpCandidates.some(i => i.name === item.name)) {
+                            minorUpCandidates.push(item);
+                        }
+                    } else {
+                        if (!minorNonUpPool.includes(item.name)) {
+                            minorNonUpPool.push(item.name);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    window._tempCurrentMinorNonUpPool = minorNonUpPool;
+
+    // 渲染该星级的图鉴候选库
+    renderDragzoneRoster(minorUpCandidates, 'minor-roster-dragzone');
+    const hintText = window.getTrans ? window.getTrans('sim_modal_minor_up_ph') : '⬇️ 拖拽图鉴至此处 ⬇️';
+    document.getElementById('minor-up-dropzone').innerHTML = `<div style="color: #888; pointer-events: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;" id="minor-up-placeholder">${hintText}</div>`;
+
+    // 还原该星级已选中的角色
+    if (dynamicSimRules && dynamicSimRules.minorUpByTier && dynamicSimRules.minorUpByTier[targetTierId]) {
+        dynamicSimRules.minorUpByTier[targetTierId].forEach(name => {
+            let el = document.querySelector(`#minor-roster-dragzone .char-card[data-name="${name}"]`);
+            if (el) document.getElementById('minor-up-dropzone').appendChild(el);
+        });
+        document.getElementById('minor-up-placeholder').style.display = document.getElementById('minor-up-dropzone').querySelectorAll('.char-card').length > 0 ? 'none' : 'block';
+    }
+
+    // 动态调整底部按钮文本（下一步 / 确认返回）
+    const confirmBtn = document.querySelector('#minorUpOverlay button.btn-primary');
+    if (confirmBtn) {
+        confirmBtn.innerText = (currentMinorRuleIndex < pendingMinorUpRules.length - 1) 
+            ? `➡️ 确认并配置下一个星级 (${currentMinorRuleIndex + 2}/${pendingMinorUpRules.length})` 
+            : `🚀 确认任命，返回模拟器！`;
+    }
+
+    document.getElementById('minorUpOverlay').style.display = 'flex';
+}
+
+// 确认当前星级，并触发下一步或完成
+window.confirmMinorUpAndStart = async function() {
+    const currentRule = pendingMinorUpRules[currentMinorRuleIndex];
+    if (!currentRule) return;
+
+    const targetTierId = currentRule.tierId;
+    const minCount = currentRule.upMin ?? 0;
+    const maxCount = currentRule.upMax ?? (currentRule.upCount || 6);
+    const minorNodes = document.getElementById('minor-up-dropzone').querySelectorAll('.char-card');
+
+    // 🌟 范围判断（支持 0 个）
+    if (minorNodes.length < minCount || minorNodes.length > maxCount) {
+        return await customAlert(`❌ 当前星级要求指认 ${minCount} 至 ${maxCount} 个 UP 目标，当前放入了 ${minorNodes.length} 个！`);
+    }
+
+    let selectedNames = [];
+    minorNodes.forEach(node => selectedNames.push(node.getAttribute('data-name')));
+
+    const rosterNodes = document.getElementById('minor-roster-dragzone').querySelectorAll('.char-card');
+    let remainingStd = [];
+    rosterNodes.forEach(node => remainingStd.push(node.getAttribute('data-name')));
+    if (window._tempCurrentMinorNonUpPool) {
+        remainingStd = [...remainingStd, ...window._tempCurrentMinorNonUpPool];
+    }
+
+    if (!dynamicSimRules) dynamicSimRules = {};
+    if (!dynamicSimRules.minorUpByTier) dynamicSimRules.minorUpByTier = {};
+    if (!dynamicSimRules.minorStdByTier) dynamicSimRules.minorStdByTier = {};
+
+    dynamicSimRules.minorUpByTier[targetTierId] = selectedNames;
+    dynamicSimRules.minorStdByTier[targetTierId] = [...new Set(remainingStd)];
+
+    currentMinorRuleIndex++;
+    if (currentMinorRuleIndex < pendingMinorUpRules.length) {
+        showCurrentMinorModalStep();
+    } else {
+        document.getElementById('minorUpOverlay').style.display = 'none';
+    }
+};
+
+        function renderDragzoneRoster(items, zoneId) {
+            const dragzone = document.getElementById(zoneId);
+            dragzone.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                let domId = 'drag-item-' + Date.now() + '-' + index;
+                
+                let displayShort = getItemShort(item);
+                let displayName = getItemName(item);
+
+                let bgImg = item.img ? `<img src="${item.img}" style="width:100%;height:100%;object-fit:cover;position:absolute;z-index:0;opacity:0.8;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:absolute;z-index:1;">${displayShort}</div>`;
+
+                let html = `
+                <div class="char-card" id="${domId}" draggable="true" data-name="${item.name}"
+                     ondragstart="handleSimDragStart(event)" 
+                     style="position:relative; width:80px; height:100px; background:#222; border:2px solid #555; border-radius:6px; overflow:hidden; cursor:grab;">
+                    ${bgImg}
+                    <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); color:#fff; font-size:12px; text-align:center; padding:2px 0; z-index:2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+                </div>`;
+                dragzone.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        window.handleSimDragStart = function(e) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', e.target.closest('.char-card').id);
+            setTimeout(() => e.target.style.opacity = '0.4', 0);
+        };
+
+        window.handleSimDragOver = function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+
+        window.handleSimDrop = function(e, targetZoneId) {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('text/plain');
+            const el = document.getElementById(id);
+            if (!el) return;
+            
+            el.style.opacity = '1';
+            if(targetZoneId === 'up-dropzone') document.getElementById('up-dropzone').style.background = 'rgba(241, 196, 15, 0.05)';
+            if(targetZoneId === 'spec-dropzone') document.getElementById('spec-dropzone').style.background = 'rgba(52, 152, 219, 0.05)';
+            if(targetZoneId === 'minor-up-dropzone') document.getElementById('minor-up-dropzone').style.background = 'rgba(46, 204, 113, 0.05)';
+
+            const dropzone = document.getElementById(targetZoneId);
+            dropzone.appendChild(el);
+
+            let upHolder = document.getElementById('up-placeholder');
+            if(upHolder) upHolder.style.display = document.getElementById('up-dropzone').querySelectorAll('.char-card').length > 0 ? 'none' : 'block';
+            
+            let specHolder = document.getElementById('spec-placeholder');
+            if(specHolder) specHolder.style.display = document.getElementById('spec-dropzone').querySelectorAll('.char-card').length > 0 ? 'none' : 'block';
+
+            let minorHolder = document.getElementById('minor-up-placeholder');
+            if(minorHolder) minorHolder.style.display = document.getElementById('minor-up-dropzone').querySelectorAll('.char-card').length > 0 ? 'none' : 'block';
+        };
+
+        window.openCustomUpModal = function() {
+            let poolItems = roster[currentPool] || [];
+            let goldItems = poolItems.filter(item => {
+                let tId = item.tierId;
+                if(!tId && item.star !== undefined) { let m = globalTiers.find(g => g.name == item.star); if (m) tId = m.id; }
+                return targetGoldIds.includes(tId);
+            });
+            
+            if (goldItems.length > 0) {
+                renderDragzoneRoster(goldItems, 'roster-dragzone');
+                const hintTextUp = window.getTrans ? window.getTrans('sim_modal_up_ph') : '⬇️ 拖拽图鉴至此处 ⬇️';
+                document.getElementById('up-dropzone').innerHTML = `<div style="color: #888; pointer-events: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;" id="up-placeholder" data-i18n="sim_modal_up_ph">${hintTextUp}</div>`;
+
+                if (dynamicSimRules && dynamicSimRules.targetGold_Names) {
+                    dynamicSimRules.targetGold_Names.forEach(name => {
+                        let el = document.querySelector(`#roster-dragzone .char-card[data-name="${name}"]`);
+                        if (el) document.getElementById('up-dropzone').appendChild(el);
+                    });
+                    document.getElementById('up-placeholder').style.display = document.getElementById('up-dropzone').querySelectorAll('.char-card').length > 0 ? 'none' : 'block';
+                }
+                document.getElementById('customUpOverlay').style.display = 'flex';
+            }
+        };
+
+        window.confirmCustomUpAndStart = async function() {
+            const upNodes = document.getElementById('up-dropzone').querySelectorAll('.char-card');
+            if (upNodes.length === 0) return await customAlert(window.getTrans ? window.getTrans('sim_js_err_up_req') : '必须至少指认一名 UP');
+
+            let targetGoldNames = [];
+            upNodes.forEach(node => { targetGoldNames.push(node.getAttribute('data-name')); });
+
+            if (!dynamicSimRules) dynamicSimRules = JSON.parse(localStorage.getItem(`GM_Rules_${currentGameId}_${currentPool}`)) || {};
+            dynamicSimRules.targetGold_Names = targetGoldNames;
+            
+            if(!dynamicSimRules.pity) dynamicSimRules.pity = {};
+            dynamicSimRules.pity.upRate = 50; 
+            dynamicSimRules.pity.useGuarantee = true;
+            dynamicSimRules.pity.guaranteeLimit = 1;
+
+            document.getElementById('customUpOverlay').style.display = 'none';
+            initSimulatorPools();
+        };
+
+        window.openSpecRateModal = async function() {
+            let stdItems = [];
+            let offRateArr = gameInfo.offRate?.[currentPool] || [];
+            let rosterPoolsConfig = JSON.parse(localStorage.getItem('GM_RosterPools_' + currentGameId)) || [];
+
+            if (offRateArr.length > 0) {
+                offRateArr.forEach(stdName => { 
+                    if (stdName) {
+                        let poolConf = rosterPoolsConfig.find(p => p.id === stdName);
+                        if (poolConf && poolConf.enableSpecRate === true) stdItems = stdItems.concat(roster[stdName] || []); 
+                    }
+                });
+            } else if (currentPool.includes('std')) {
+                let poolConf = rosterPoolsConfig.find(p => p.id === currentPool);
+                if (poolConf && poolConf.enableSpecRate === true) stdItems = roster[currentPool] || [];
+            }
+            
+            stdItems = stdItems.filter((item, index, self) => index === self.findIndex(t => t.name === item.name));
+            let goldStdItems = stdItems.filter(item => {
+                let tId = item.tierId;
+                if(!tId && item.star !== undefined) { let m = globalTiers.find(g => g.name == item.star); if (m) tId = m.id; }
+                return targetGoldIds.includes(tId);
+            });
+
+            if (goldStdItems.length > 0) {
+                renderDragzoneRoster(goldStdItems, 'spec-roster-dragzone');
+                const hintTextSpec = window.getTrans ? window.getTrans('sim_modal_spec_ph') : '⬇️ 拖拽常驻图鉴至此处 ⬇️';
+                document.getElementById('spec-dropzone').innerHTML = `<div style="color: #888; pointer-events: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;" id="spec-placeholder" data-i18n="sim_modal_spec_ph">${hintTextSpec}</div>`;
+
+                let currentSpecRate = dynamicSimRules?.specRate || rules.specRate || {};
+                
+                if (currentSpecRate.items && currentSpecRate.items.length > 0) {
+                    currentSpecRate.items.forEach(name => {
+                        let el = document.querySelector(`#spec-roster-dragzone .char-card[data-name="${name}"]`);
+                        if (el) document.getElementById('spec-dropzone').appendChild(el);
+                    });
+                    document.getElementById('spec-placeholder').style.display = document.getElementById('spec-dropzone').querySelectorAll('.char-card').length > 0 ? 'none' : 'block';
+                }
+                document.getElementById('specRateOverlay').style.display = 'flex';
+            } else {
+                await customAlert(window.getTrans ? window.getTrans('sim_js_err_no_gold') : '没有任何符合条件的图鉴可以干预');
+            }  
+        };
+
+        window.confirmSpecRateAndStart = function() {
+            const specNodes = document.getElementById('spec-dropzone').querySelectorAll('.char-card');
+            let specNames = [];
+            specNodes.forEach(node => { specNames.push(node.getAttribute('data-name')); });
+
+            if (!dynamicSimRules) dynamicSimRules = {};
+            if (!dynamicSimRules.specRate) dynamicSimRules.specRate = JSON.parse(JSON.stringify(rules.specRate || {}));
+            
+            dynamicSimRules.specRate.items = specNames;
+            dynamicSimRules.specRate.enabled = true;
+
+            document.getElementById('specRateOverlay').style.display = 'none';
+            initSimulatorPools();
+        };
+
+
+function resetSim() {
+    simData = { 
+        pity: 0, 
+        total: 0, 
+        goldCount: 0, 
+        guaranteeCount: 0, 
+        minorPityCounters: Array(minorPities.length).fill(0), 
+        minorGuaranteeCounters: {},
+        freeQueue: [], 
+        sparkState: {},
+        giftState: {},
+        events: { pendingGifts: [] } ,
+        earlyUpUsedCount: 0,
+        catSeqUsedCount: 0,
+        consecutiveLosses: 0,
+    };
+    document.getElementById('sim-results').innerHTML = '';
+    updateSimStats();
+    updateResetButtonsVisibility();
+}
+
+// ==========================================
+// 控制左侧细分重置按钮的显隐联动
+// ==========================================
+function updateResetButtonsVisibility() {
+    const groupContainer = document.getElementById('sim-reset-actions-group');
+    const btnSpark = document.getElementById('btn-reset-spark');
+    const btnGift = document.getElementById('btn-reset-gift');
+    const btnEarlyUp = document.getElementById('btn-reset-early-up');
+    const btnCatSeq = document.getElementById('btn-reset-category-seq');
+
+    if (!groupContainer) return;
+
+    // 1. 检查各规则是否存在
+    const hasSpark = Array.isArray(rules.sparkRules) && rules.sparkRules.length > 0;
+    const hasGift = Array.isArray(rules.giftRules) && rules.giftRules.length > 0;
+    const hasEarlyUp = Array.isArray(rules.earlyUpRules) && rules.earlyUpRules.length > 0;
+    const hasCatSeq = Array.isArray(rules.goldCategorySequence) && rules.goldCategorySequence.length > 0;
+
+    // 2. 独立控制每个按钮的显隐与事件绑定
+    if (btnSpark) btnSpark.style.display = hasSpark ? 'block' : 'none';
+    if (btnGift) btnGift.style.display = hasGift ? 'block' : 'none';
+
+    if (btnEarlyUp) {
+        btnEarlyUp.style.display = hasEarlyUp ? 'block' : 'none';
+        btnEarlyUp.onclick = () => resetEarlyUpPrivilege();
+    }
+
+    if (btnCatSeq) {
+        btnCatSeq.style.display = hasCatSeq ? 'block' : 'none';
+        btnCatSeq.onclick = () => resetCategorySeqPrivilege();
+    }
+
+    // 3. 只要开启了任意一项，显示外层边框容器；否则全部隐形
+    groupContainer.style.display = (hasSpark || hasGift || hasEarlyUp || hasCatSeq) ? 'flex' : 'none';
+}
+
+// 🌟 独立刷新「类型定向」处理函数
+window.resetCategorySeqPrivilege = async function() {
+    const totalSeq = (rules.goldCategorySequence || []).length;
+    const used = simData.catSeqUsedCount || 0;
+
+    const confMsg = `确定要刷新【类型定向序列】吗？\n\n当前进度: 已执行 ${used} / ${totalSeq} 次。\n\n刷新后下一次出金将重新从第 1 金的图鉴积木规则开始定向，不影响已垫抽数与大保底！`;
+    if (await customConfirm(confMsg)) {
+        simData.catSeqUsedCount = 0;
+        await customAlert("✅ 「类型定向」已刷新！下一次出金将重新享受第 1 金定向出货。");
+        updateSimStats();
+    }
+};
+
+// 🌟 独立刷新「不歪特权」处理函数
+window.resetEarlyUpPrivilege = async function() {
+    const earlyRules = rules.earlyUpRules || [];
+    const totalPrivileges = earlyRules.length;
+    const usedCount = simData.earlyUpUsedCount || 0;
+
+    const confMsg = `确定要刷新【不歪特权序列】吗？\n\n当前特权进度: 已消耗 ${usedCount} / ${totalPrivileges} 次。\n\n刷新后将重新赋予第 1 金起的不歪资格，且不会影响您当前已垫的抽数与大保底状态！`;
+    if (await customConfirm(confMsg)) {
+        simData.earlyUpUsedCount = 0; // 重置已使用序数，使下一次出金重新从第 1 金特权开始计算
+        await customAlert("✅ 「不歪特权」已刷新！下一次出金将重新享受特权胜率。");
+        updateSimStats();
+    }
+};
+
+// 🌟 打开“井”独立选择重置弹窗
+window.openSparkResetSelector = function() {
+    const sparkRules = rules.sparkRules || [];
+    if (sparkRules.length === 0) return;
+
+    const titleEl = document.getElementById('ruleSelectModalTitle');
+    const descEl = document.getElementById('ruleSelectModalDesc');
+    const listEl = document.getElementById('ruleSelectOptionsList');
+    const allBtn = document.getElementById('btn-reset-all-rules');
+
+    titleEl.innerText = "⟲ 选择要重置的「井」规则";
+    titleEl.style.color = "#9b59b6";
+    descEl.innerText = "点击指定的一条规则将其从当前抽数重新起算，不影响其他规则：";
+
+    let html = '';
+    sparkRules.forEach((rule, idx) => {
+        if (!simData.sparkState[idx]) simData.sparkState[idx] = { basePull: 0, cancelled: false, triggeredCount: 0 };
+        const st = simData.sparkState[idx];
+        const eff = simData.total - st.basePull;
+        
+        let statusTag = '';
+        if (st.cancelled) {
+            statusTag = `<span style="color:#ff4757; font-size:11px; margin-left:auto;">[已命中UP关闭]</span>`;
+        } else if (rule.type === 'once') {
+            statusTag = st.triggeredCount > 0 
+                ? `<span style="color:#2ecc71; font-size:11px; margin-left:auto;">[已兑换完成]</span>`
+                : `<span style="color:#aaa; font-size:11px; margin-left:auto;">进度: ${eff}/${rule.limit}</span>`;
+        } else {
+            let curMod = eff % rule.limit;
+            statusTag = `<span style="color:#3498db; font-size:11px; margin-left:auto;">已循环 ${st.triggeredCount} 次 (当前: ${curMod}/${rule.limit})</span>`;
+        }
+
+        const typeStr = rule.type === 'once' ? '一次性' : '循环';
+
+        html += `
+            <div class="rule-opt-item" onclick="executeSingleSparkReset(${idx})" style="display:flex; align-items:center; background:rgba(255,255,255,0.04); border:1px solid #444; border-radius:8px; padding:12px; cursor:pointer; transition:0.2s;" onmouseover="this.style.borderColor='#9b59b6'; this.style.background='rgba(155,89,182,0.1)';" onmouseout="this.style.borderColor='#444'; this.style.background='rgba(255,255,255,0.04)';">
+                <span style="font-weight:bold; color:#fff; font-size:13px;">【${rule.limit} 抽】【${typeStr}】</span>
+                ${statusTag}
+            </div>
+        `;
+    });
+
+    listEl.innerHTML = html;
+    allBtn.onclick = () => executeAllSparkReset();
+    document.getElementById('ruleSelectModalOverlay').style.display = 'flex';
+};
+
+// 单项重置井
+window.executeSingleSparkReset = async function(idx) {
+    simData.sparkState[idx] = { basePull: simData.total, cancelled: false, triggeredCount: 0 };
+    document.getElementById('ruleSelectModalOverlay').style.display = 'none';
+    await customAlert(`✅ 规则【${rules.sparkRules[idx].limit} 抽】已重置，将以当前第 ${simData.total} 抽为新起点重新计算！`);
+    updateSimStats();
+};
+
+// 全量重置井
+window.executeAllSparkReset = async function() {
+    (rules.sparkRules || []).forEach((_, idx) => {
+        simData.sparkState[idx] = { basePull: simData.total, cancelled: false, triggeredCount: 0 };
+    });
+    document.getElementById('ruleSelectModalOverlay').style.display = 'none';
+    await customAlert(`✅ 所有「井」规则已全量重置为当前抽数起点！`);
+    updateSimStats();
+};
+
+// 🌟 打开“赠送抽”独立选择重置弹窗
+window.openGiftResetSelector = function() {
+    const giftRules = rules.giftRules || [];
+    if (giftRules.length === 0) return;
+
+    const titleEl = document.getElementById('ruleSelectModalTitle');
+    const descEl = document.getElementById('ruleSelectModalDesc');
+    const listEl = document.getElementById('ruleSelectOptionsList');
+    const allBtn = document.getElementById('btn-reset-all-rules');
+
+    titleEl.innerText = "⟲ 选择要重置的「赠送抽」规则";
+    titleEl.style.color = "#2ecc71";
+    descEl.innerText = "点击指定的一条规则将其从当前抽数重新起算，不影响其他规则：";
+
+    let html = '';
+    giftRules.forEach((rule, idx) => {
+        if (!simData.giftState[idx]) simData.giftState[idx] = { basePull: 0, triggeredCount: 0 };
+        const st = simData.giftState[idx];
+        const eff = simData.total - st.basePull;
+        
+        let statusTag = '';
+        if (rule.type === 'once') {
+            statusTag = st.triggeredCount > 0 
+                ? `<span style="color:#2ecc71; font-size:11px; margin-left:auto;">[已赠送]</span>`
+                : `<span style="color:#aaa; font-size:11px; margin-left:auto;">进度: ${eff}/${rule.trigger}</span>`;
+        } else {
+            let curMod = eff % rule.trigger;
+            statusTag = `<span style="color:#3498db; font-size:11px; margin-left:auto;">已送出 ${st.triggeredCount} 次 (当前: ${curMod}/${rule.trigger})</span>`;
+        }
+
+        const typeStr = rule.type === 'once' ? '一次性' : '循环';
+
+        html += `
+            <div class="rule-opt-item" onclick="executeSingleGiftReset(${idx})" style="display:flex; align-items:center; background:rgba(255,255,255,0.04); border:1px solid #444; border-radius:8px; padding:12px; cursor:pointer; transition:0.2s;" onmouseover="this.style.borderColor='#2ecc71'; this.style.background='rgba(46,204,113,0.1)';" onmouseout="this.style.borderColor='#444'; this.style.background='rgba(255,255,255,0.04)';">
+                <span style="font-weight:bold; color:#fff; font-size:13px;">【满 ${rule.trigger} 抽送 ${rule.amount} 抽】【${typeStr}】</span>
+                ${statusTag}
+            </div>
+        `;
+    });
+
+    listEl.innerHTML = html;
+    allBtn.onclick = () => executeAllGiftReset();
+    document.getElementById('ruleSelectModalOverlay').style.display = 'flex';
+};
+
+// 单项重置赠送抽
+window.executeSingleGiftReset = async function(idx) {
+    simData.giftState[idx] = { basePull: simData.total, triggeredCount: 0 };
+    document.getElementById('ruleSelectModalOverlay').style.display = 'none';
+    await customAlert(`✅ 规则【满 ${rules.giftRules[idx].trigger} 抽】已重置，将以当前第 ${simData.total} 抽为新起点！`);
+    updateSimStats();
+};
+
+// 全量重置赠送抽
+window.executeAllGiftReset = async function() {
+    (rules.giftRules || []).forEach((_, idx) => {
+        simData.giftState[idx] = { basePull: simData.total, triggeredCount: 0 };
+    });
+    simData.freeQueue = []; // 清除多余排队
+    document.getElementById('ruleSelectModalOverlay').style.display = 'none';
+    await customAlert(`✅ 所有「赠送抽」规则已全量重置为当前抽数起点！`);
+    updateSimStats();
+};
+
+// 独立重置 1: 仅重置井限制
+async function resetSparkLimit() {
+    const confMsg = window.getTrans ? window.getTrans('sim_js_conf_reset_spark') : '确定要重置所有一次性【井】的兑换记录吗？';
+    if (await customConfirm(confMsg)) {
+        simData.events.sparkCancelled = {};
+        simData.sparkCount = 0; // 重置当前井的累计进度
+        const alertMsg = window.getTrans ? window.getTrans('sim_js_alert_reset_spark') : '✅ 「井」限制已重置！';
+        await customAlert(alertMsg);
+        updateSimStats();
+    }
+}
+
+// 独立重置 2: 仅重置赠送抽限制
+async function resetGiftLimit() {
+    const confMsg = window.getTrans ? window.getTrans('sim_js_conf_reset_gift') : '确定要重置所有一次性【赠送抽】的触发记录吗？';
+    if (await customConfirm(confMsg)) {
+        simData.events.giftTriggered = {};
+        simData.freeQueue = []; // 清理当前排队中的赠送抽
+        const alertMsg = window.getTrans ? window.getTrans('sim_js_alert_reset_gift') : '✅ 「赠送抽」限制已重置！';
+        await customAlert(alertMsg);
+        updateSimStats();
+    }
+}
+
+        function updateSimStats() {
+            document.getElementById('sim-stat-total').innerText = simData.total;
+            document.getElementById('sim-stat-gold').innerText = simData.goldCount; 
+            document.getElementById('sim-stat-pity').innerText = simData.pity;
+            
+            const guaBox = document.getElementById('sim-stat-guarantee');
+            if(guaBox) {
+                const hasGuaranteeRule = rules.pity?.useGuarantee || rules.useGuarantee;
+                if (!hasGuaranteeRule) {
+                    guaBox.innerText = window.getTrans ? window.getTrans('sim_js_inactive') : '未开启'; 
+                    guaBox.style.color = "#555";
+                } else {
+                    const limit = rules.pity?.guaranteeLimit || rules.guaranteeLimit || 1;
+                    if (simData.guaranteeCount >= limit) {
+                        guaBox.innerText = window.getTrans ? window.getTrans('sim_js_yes') : '是'; 
+                        guaBox.style.color = "#e74c3c"; 
+                    } else {
+                        guaBox.innerText = (window.getTrans ? window.getTrans('sim_js_need_miss') : '需歪') + (limit - simData.guaranteeCount) + (window.getTrans ? window.getTrans('sim_js_times') : '次'); 
+                        guaBox.style.color = "#aaa";
+                    }
+                }
+            }
+
+            let minDist = Infinity;
+            const sparkRules = rules.sparkRules || [];
+            const distBox = document.getElementById('sim-stat-spark-dist');
+            if (sparkRules.length === 0) {
+                if (distBox) { distBox.innerText = window.getTrans ? window.getTrans('sim_js_inactive') : '未激活'; distBox.style.color = "#555"; }
+            } else {
+                sparkRules.forEach((rule, idx) => {
+                    if (!simData.sparkState[idx]) simData.sparkState[idx] = { basePull: 0, cancelled: false, triggeredCount: 0 };
+                    const st = simData.sparkState[idx];
+                    if (st.cancelled) return;
+
+                    let eff = simData.total - st.basePull;
+                    let dist = -1;
+                    if (rule.type === 'once') {
+                        if (st.triggeredCount === 0 && eff < rule.limit) dist = rule.limit - eff;
+                    } else if (rule.type === 'loop') {
+                       dist = rule.limit - (eff % rule.limit);
+                    }
+                    if (dist !== -1 && dist < minDist) minDist = dist;
+                });
+                if (distBox) { distBox.innerText = minDist === Infinity ? '-' : minDist; distBox.style.color = "#3498db"; }
+            }
+            updateProbDisplay();
+        }
+
+        // 实时面板推演下一抽的数据概率分布
+        function updateProbDisplay() {
+            const displayBox = document.getElementById('prob-display-content');
+            const pitySpan = document.getElementById('prob-display-pity');
+            if (!displayBox || !pitySpan) return;
+
+           pitySpan.innerText = simData.pity;
+
+            let currentPull = Number(simData.pity) + 1; 
+            let currentProbMap = {};
+    
+            activeTiers.forEach(t => { currentProbMap[t.id] = t.prob || 0; });
+
+            let goldProbBoost = 0;
+            const isSoftOn = rules.pity?.softEnabled === true || rules.softEnabled === true;
+            const isLegacyDB = (!rules.pity?.softRules || rules.pity.softRules.length === 0);
+            const sRules = isLegacyDB ? (Array.isArray(rules.softRule) ? rules.softRule : []) : rules.pity.softRules;
+
+            if (isSoftOn && sRules.length > 0) {
+                sRules.forEach(rule => {
+                    let rStart = Number(rule.start); let rEnd = Number(rule.end); let rInc = Number(rule.inc);
+                    if (isLegacyDB && rInc < 1) rInc = rInc * 100;
+                    if (currentPull >= rStart && currentPull <= rEnd) {
+                        goldProbBoost += (currentPull - rStart + 1) * rInc;
+                    } else if (currentPull > rEnd) {
+                        goldProbBoost += (rEnd - rStart + 1) * rInc;
+                    }
+                });
+            }
+
+            let isHardPity = false;
+            const isHardEnabled = rules.pity?.hardEnabled !== false && rules.hardEnabled !== false;
+            const hardLimit = rules.pity?.hard || rules.hardPity || 90;
+            
+            if (isHardEnabled && currentPull >= hardLimit && targetGoldIds.length > 0) isHardPity = true;
+
+            let validGoldIds = targetGoldIds.filter(id => currentProbMap[id] !== undefined);
+            if (validGoldIds.length > 0) {
+                if (isHardPity) {
+                    activeTiers.forEach(t => currentProbMap[t.id] = 0);
+                    let boostPerGold = 100 / validGoldIds.length;
+                    validGoldIds.forEach(id => currentProbMap[id] = boostPerGold);
+                } else if (goldProbBoost > 0) {
+                    let currentGoldTotal = validGoldIds.reduce((sum, id) => sum + currentProbMap[id], 0);
+                    let actualBoost = Math.min(goldProbBoost, 100 - currentGoldTotal);
+            
+                    let boostPerGold = actualBoost / validGoldIds.length;
+                    validGoldIds.forEach(id => { currentProbMap[id] += boostPerGold; });
+
+                    let remainingDeduction = actualBoost;
+                    let nonGoldTiers = activeTiers.filter(t => !validGoldIds.includes(t.id)).sort((a, b) => currentProbMap[b.id] - currentProbMap[a.id]); 
+
+                    for (let i = 0; i < nonGoldTiers.length; i++) {
+                        let tId = nonGoldTiers[i].id;
+                        if (currentProbMap[tId] >= remainingDeduction) {
+                            currentProbMap[tId] -= remainingDeduction;
+                            remainingDeduction = 0; break;
+                       } else {
+                            remainingDeduction -= currentProbMap[tId];
+                            currentProbMap[tId] = 0;
+                        }
+                    }
+                }
+            }
+
+            let html = '';
+            let sortedTiers = [...activeTiers].reverse(); 
+
+            // 检查之前已经处于锁定状态的 tierId，避免每次抽卡刷新概率时被强制合上
+            const previouslyLockedIds = Array.from(document.querySelectorAll('.prob-card-wrap.locked'))
+                .map(el => el.dataset.tierId);
+
+            sortedTiers.forEach(t => {
+                let probVal = currentProbMap[t.id] || 0;
+                let color = t.color || '#fff';
+                
+                // 🌟 读取该星级是否有配置 subProbs
+                let subProbs = t.subProbs;
+                let hasSub = Array.isArray(subProbs) && subProbs.length > 0;
+                let isLocked = previouslyLockedIds.includes(t.id);
+
+                let subRowsHtml = '';
+                if (hasSub) {
+                    let totalSubBase = subProbs.reduce((sum, sp) => sum + (sp.prob || 0), 0);
+
+                    subProbs.forEach(sp => {
+                        // 动态等比推算当前垫抽下的实际绝对概率
+                        let currentSubProb = totalSubBase > 0 ? (probVal * (sp.prob / totalSubBase)) : 0;
+                        let poolNames = (sp.poolIds || []).map(pid => getPoolBlockName(pid)).join(' / ');
+
+                        subRowsHtml += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; color: #aaa;">
+                                <span>└ ${poolNames}</span>
+                                <span style="font-family: monospace; color: #ddd;">${currentSubProb.toFixed(3)} %</span>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += `
+                    <div class="prob-card-wrap ${isLocked ? 'locked' : ''}" 
+                         data-tier-id="${t.id}" 
+                         style="--tier-color: ${color};" 
+                         ${hasSub ? 'onclick="toggleSubProbLock(this)" style="cursor: pointer;"' : ''}>
+                        
+                        <!-- 主星级行 -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: ${hasSub ? '4px 4px 0 0' : '4px'}; border-left: 3px solid ${color};">
+                            <span style="color: ${color}; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                                ${t.name} ${window.getTrans ? window.getTrans('sim_js_star') : '★'}
+                                ${hasSub ? '<span class="prob-arrow-icon" style="font-size: 10px; transition: transform 0.2s; display: inline-block; color: #888;">▶</span>' : ''}
+                            </span>
+                            <span style="font-family: monospace; color: #fff;">${probVal.toFixed(3)} %</span>
+                        </div>
+
+                        <!-- 细分子概率折叠抽屉 -->
+                        ${hasSub ? `<div class="sub-prob-drawer">${subRowsHtml}</div>` : ''}
+                    </div>
+                `;
+            });
+            displayBox.innerHTML = html;
+        }
+
+        // RNG 单发抽卡引擎
+        function executeSingleRoll(rules) {
+            let currentProbMap = {};
+            let totalBaseProb = 0;
+            let commonTierId = activeTiers[activeTiers.length - 1]?.id || 'unknown'; 
+            
+            activeTiers.forEach(t => {
+                currentProbMap[t.id] = t.prob || 0;
+                totalBaseProb += (t.prob || 0);
+            });
+
+            let goldProbBoost = 0;
+            const isSoftOn = rules.pity?.softEnabled === true || rules.softEnabled === true;
+            const isLegacyDB = (!rules.pity?.softRules || rules.pity.softRules.length === 0);
+            const sRules = isLegacyDB ? (Array.isArray(rules.softRule) ? rules.softRule : []) : rules.pity.softRules;
+
+            if (isSoftOn && sRules.length > 0) {
+                let currentPull = Number(simData.pity) + 1;
+                sRules.forEach(rule => {
+                    let rStart = Number(rule.start); let rEnd = Number(rule.end); let rInc = Number(rule.inc);
+                    if (isLegacyDB && rInc < 1) rInc = rInc * 100;
+                    if (currentPull >= rStart && currentPull <= rEnd) {
+                        goldProbBoost += (currentPull - rStart + 1) * rInc;
+                    } else if (currentPull > rEnd) {
+                        goldProbBoost += (rEnd - rStart + 1) * rInc;
+                    }
+                });
+            }
+
+            let isHardPity = false;
+            const isHardEnabled = rules.pity?.hardEnabled !== false && rules.hardEnabled !== false;
+            const hardLimit = rules.pity?.hard || rules.hardPity || 90;
+            
+            if (isHardEnabled && (simData.pity + 1) >= hardLimit && targetGoldIds.length > 0) isHardPity = true;
+
+            let validGoldIds = targetGoldIds.filter(id => currentProbMap[id] !== undefined);
+            
+            // 级联抽血机制，向金偏斜分配概率
+            if (validGoldIds.length > 0) {
+                if (isHardPity) {
+                    activeTiers.forEach(t => currentProbMap[t.id] = 0);
+                    let boostPerGold = 100 / validGoldIds.length;
+                    validGoldIds.forEach(id => currentProbMap[id] = boostPerGold);
+                } else if (goldProbBoost > 0) {
+                    let currentGoldTotal = validGoldIds.reduce((sum, id) => sum + currentProbMap[id], 0);
+                    let actualBoost = Math.min(goldProbBoost, 100 - currentGoldTotal);
+                    
+                    let boostPerGold = actualBoost / validGoldIds.length;
+                    validGoldIds.forEach(id => { currentProbMap[id] += boostPerGold; });
+
+                    let remainingDeduction = actualBoost;
+                    let nonGoldTiers = activeTiers.filter(t => !validGoldIds.includes(t.id)).sort((a, b) => currentProbMap[b.id] - currentProbMap[a.id]); 
+
+                    for (let i = 0; i < nonGoldTiers.length; i++) {
+                        let tId = nonGoldTiers[i].id;
+                        if (currentProbMap[tId] >= remainingDeduction) {
+                            currentProbMap[tId] -= remainingDeduction; remainingDeduction = 0; break;
+                        } else {
+                            remainingDeduction -= currentProbMap[tId]; currentProbMap[tId] = 0;
+                        }
+                    }
+                }
+            }
+
+            let rollVal = Math.random() * 100; 
+            let cumulative = 0;
+            let rolledTierId = commonTierId;
+
+            for (let t of activeTiers) {
+                cumulative += currentProbMap[t.id];
+                if (rollVal < cumulative) { rolledTierId = t.id; break; }
+            }
+
+            // 执行副产物多级小保底截胡判定
+            let triggeredMinorPities = [];
+            for (let i = 0; i < minorPities.length; i++) {
+                if (simData.minorPityCounters[i] + 1 >= minorPities[i].pulls) triggeredMinorPities.push(minorPities[i]);
+            }
+            
+            if (triggeredMinorPities.length > 0) {
+                triggeredMinorPities.sort((a, b) => {
+                    let idxA = activeTiers.findIndex(t => t.id === a.tierId); let idxB = activeTiers.findIndex(t => t.id === b.tierId);
+                    if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
+                    return idxA - idxB; 
+                });
+                
+                let bestMinorPityTierId = triggeredMinorPities[0].tierId;
+                if (!targetGoldIds.includes(rolledTierId)) {
+                    let rolledIdx = activeTiers.findIndex(t => t.id === rolledTierId);
+                    let minorIdx = activeTiers.findIndex(t => t.id === bestMinorPityTierId);
+                    if (rolledIdx > minorIdx || rolledIdx === -1) rolledTierId = bestMinorPityTierId; 
+                }
+            }
+            
+            // 🌟 修复核心1：声明并计算实际垫抽数
+            let actualPityUsed = simData.pity + 1;
+            let isGold = targetGoldIds.includes(rolledTierId);
+
+            // 更新副产物保底计步器
+            for (let i = 0; i < minorPities.length; i++) {
+                let rule = minorPities[i];
+                let isCurrentTierHigherOrEqual = false;
+                let rolledIdx = activeTiers.findIndex(t => t.id === rolledTierId);
+                let ruleIdx = activeTiers.findIndex(t => t.id === rule.tierId);
+                
+                if (isGold) isCurrentTierHigherOrEqual = true;
+                else if (rolledIdx !== -1 && ruleIdx !== -1 && rolledIdx <= ruleIdx) isCurrentTierHigherOrEqual = true; 
+
+                if (isCurrentTierHigherOrEqual) {
+                    if (rule.resetOnHit !== false) simData.minorPityCounters[i] = 0; 
+                    else {
+                        if (simData.minorPityCounters[i] + 1 >= rule.pulls) simData.minorPityCounters[i] = 0;
+                        else simData.minorPityCounters[i]++;
+                    }
+                } else {
+                    if (simData.minorPityCounters[i] + 1 >= rule.pulls) simData.minorPityCounters[i] = 0;
+                    else simData.minorPityCounters[i]++;
+                }
+            }
+
+            // 🌟 修复核心2：常规垫抽累计（金清零，非金+1）
+            if (isGold) simData.pity = 0; else simData.pity++;
+
+            let isUP = false;
+            let name = window.getTrans ? window.getTrans('sim_js_unknown') : 'Unknown';
+            
+            const upItemsChecked = Array.from(document.querySelectorAll('.input-sim-up-cb:checked')).map(cb => cb.value);
+            const stdItemsChecked = Array.from(document.querySelectorAll('.input-std-cb:checked')).map(cb => cb.value);
+
+            let fullUpItems = []; let fullStdItems = [];
+            
+            for (let k in roster) {
+                roster[k].forEach(item => {
+                    let tId = item.tierId;
+                    if (!tId && item.star !== undefined) { let m = globalTiers.find(g => g.name == item.star); if (m) tId = m.id; }
+                    if (tId === rolledTierId) {
+                        if (upItemsChecked.includes(item.name)) fullUpItems.push(item.name);
+                        if (stdItemsChecked.includes(item.name)) fullStdItems.push(item.name);
+                    }
+                });
+            }
+            fullUpItems = [...new Set(fullUpItems)]; fullStdItems = [...new Set(fullStdItems)];
+
+            if (isCustomUpMode && dynamicSimRules && dynamicSimRules.targetGold_Names && isGold) fullUpItems = dynamicSimRules.targetGold_Names;
+
+            // ==========================================
+            // 出金逻辑处理 (包含阶段3定向 与 阶段2特权)
+            // ==========================================
+            // ==========================================
+            // 出金逻辑处理 (包含阶段3定向、阶段2特权、阶段4捕获明光)
+            // ==========================================
+            if (isGold) {
+                // 1. 检查是否存在「前 N 金类型定向序列」约束
+                const catSeqRules = rules.goldCategorySequence || [];
+                const nextCatOrder = (simData.catSeqUsedCount || 0) + 1;
+                const currentCatRule = catSeqRules.find(r => r.order === nextCatOrder);
+
+                let isUsingCatSeq = false;
+                let allowedPoolIds = null;
+
+                if (currentCatRule && Array.isArray(currentCatRule.poolIds) && currentCatRule.poolIds.length > 0) {
+                    allowedPoolIds = currentCatRule.poolIds;
+                    isUsingCatSeq = true;
+                }
+
+                const filterByAllowedPools = (itemsList) => {
+                    if (!allowedPoolIds) return itemsList;
+                    let matched = [];
+                    allowedPoolIds.forEach(pId => {
+                        (roster[pId] || []).forEach(item => {
+                            if (itemsList.includes(item.name) && !matched.includes(item.name)) {
+                                matched.push(item.name);
+                            }
+                        });
+                    });
+                    return matched.length > 0 ? matched : itemsList;
+                };
+
+                let effectiveFullUp = filterByAllowedPools(fullUpItems);
+                let effectiveFullStd = filterByAllowedPools(fullStdItems);
+
+                const hasGuarRule = rules.pity?.useGuarantee || rules.useGuarantee;
+                const guarLimit = rules.pity?.guaranteeLimit || rules.guaranteeLimit || 1;
+                const isGuaranteedUP = hasGuarRule && simData.guaranteeCount >= guarLimit;
+
+                // 🌟 核心修复点：将 currentUpRate 与特权判定提前到外层，保证全局可见！
+                let currentUpRate = rules.pity?.upRate ?? rules.upRate ?? 50;
+                if (currentUpRate <= 1) currentUpRate *= 100;
+
+                const earlyRules = rules.earlyUpRules || [];
+                const currentGoldOrder = (simData.goldCount || 0) + 1;
+                const currentEarlyRule = earlyRules.find(r => r.order === currentGoldOrder);
+
+                let isUsingEarlyPrivilege = false;
+                if (currentEarlyRule) {
+                    currentUpRate = currentEarlyRule.upRate; // 套用阶段 2 特权胜率
+                    isUsingEarlyPrivilege = true;
+                }
+
+                let isRescued = false;
+
+                // 2. 命中产物分流处理
+                if (effectiveFullUp.length === 0 && effectiveFullStd.length > 0) {
+                    // 纯常驻池 (如 mixed_std)
+                    name = effectiveFullStd[Math.floor(Math.random() * effectiveFullStd.length)];
+                } else if (effectiveFullStd.length === 0 && effectiveFullUp.length > 0) {
+                    // 纯 UP 池 (如 邦布池)
+                    name = effectiveFullUp[Math.floor(Math.random() * effectiveFullUp.length)];
+                    isUP = true;
+                    if (hasGuarRule) simData.guaranteeCount = 0;
+                    simData.consecutiveLosses = 0;
+                } else if (effectiveFullUp.length > 0 && effectiveFullStd.length > 0) {
+                    // 常规限定 UP 池
+                    if (isGuaranteedUP) {
+                        // 优先吃大保底 (不消耗 earlyUp 特权)
+                        name = effectiveFullUp[Math.floor(Math.random() * effectiveFullUp.length)];
+                        isUP = true; 
+                        simData.guaranteeCount = 0;
+
+                        if (!rules.secondaryRescue?.enabled) {
+                                simData.consecutiveLosses = 0;
+                            }
+                    } else {
+                        // 初次判定是否命中 UP
+                        let isHitInitialUP = Math.random() * 100 < currentUpRate;
+
+                        if (isHitInitialUP) {
+                            name = effectiveFullUp[Math.floor(Math.random() * effectiveFullUp.length)];
+                            isUP = true;
+                            if (hasGuarRule) simData.guaranteeCount = 0;
+                            simData.consecutiveLosses = 0;
+                        } else {
+                            // 🌟 阶段 4：捕获明光二次判定截流
+                            const rescueConfig = rules.secondaryRescue;
+                            let didTriggerRescue = false;
+
+                            if (rescueConfig && rescueConfig.enabled && effectiveFullUp.length > 0) {
+                                let forceRescue = simData.consecutiveLosses >= (rescueConfig.hardGuaranteeLosses ?? 3);
+                                let rateRoll = Math.random() * 100 < (rescueConfig.triggerRate ?? 6);
+                                if (forceRescue || rateRoll) didTriggerRescue = true;
+                            }
+
+                            if (didTriggerRescue) {
+                                // 救回成功：扭转为 UP
+                                name = effectiveFullUp[Math.floor(Math.random() * effectiveFullUp.length)];
+                                isUP = true;
+                                isRescued = true;
+                                if (hasGuarRule) simData.guaranteeCount = 0;
+                                simData.consecutiveLosses = 0;
+                            } else {
+                                // 救回失败：正式判定为歪
+                                if (hasGuarRule) simData.guaranteeCount++;
+                                simData.consecutiveLosses++;
+                                name = effectiveFullStd[Math.floor(Math.random() * effectiveFullStd.length)];
+                            }
+                        }
+
+                        // 消耗一次阶段 2 特权
+                        if (isUsingEarlyPrivilege) simData.earlyUpUsedCount++;
+                    }
+                } else {
+                    let matchedTier = activeTiers.find(t => t.id === rolledTierId);
+                    name = matchedTier ? (matchedTier.name + "★") : 'Gold';
+                }
+
+                // 消耗一次阶段 3 类型定向
+                if (isUsingCatSeq) {
+                    simData.catSeqUsedCount++;
+                }
+
+                return { 
+                    tierId: rolledTierId, 
+                    name, 
+                    isGold, 
+                    isUP, 
+                    isRescued, 
+                    total: simData.total, 
+                    pityUsed: actualPityUsed 
+                };
+            } else {
+                // ==========================================
+                // 低星/副产物逻辑
+                // ==========================================
+                let matchedMinorRule = minorPities.find(m => m.tierId === rolledTierId);
+                let minorUpRate = matchedMinorRule?.upRate;
+                if (minorUpRate !== null && minorUpRate !== undefined) {
+                    if (minorUpRate <= 1) minorUpRate *= 100;
+                }
+
+                let minorGuarLimit = matchedMinorRule?.guaranteeLimit || 1;
+                let minorGuarCount = simData.minorGuaranteeCounters[rolledTierId] || 0;
+                let isGuaranteedMinorUP = matchedMinorRule?.useGuarantee && minorGuarCount >= minorGuarLimit;
+
+                let effectiveMinorUpItems = (dynamicSimRules?.minorUpByTier?.[rolledTierId]) || [];
+                if (effectiveMinorUpItems.length === 0) {
+                    effectiveMinorUpItems = fullUpItems;
+                }
+
+                if (minorUpRate !== null && minorUpRate !== undefined && effectiveMinorUpItems.length > 0) {
+                    if (isGuaranteedMinorUP || Math.random() * 100 < minorUpRate) {
+                        name = effectiveMinorUpItems[Math.floor(Math.random() * effectiveMinorUpItems.length)];
+                        isUP = true;
+                        if (matchedMinorRule.useGuarantee) simData.minorGuaranteeCounters[rolledTierId] = 0; 
+                    } else {
+                        if (matchedMinorRule.useGuarantee) {
+                            simData.minorGuaranteeCounters[rolledTierId] = minorGuarCount + 1;
+                        }
+
+                        let tierConfig = activeTiers.find(t => t.id === rolledTierId);
+                        let subProbs = tierConfig?.subProbs;
+
+                        if (Array.isArray(subProbs) && subProbs.length > 0) {
+                            let totalSubProb = subProbs.reduce((sum, g) => sum + (g.prob || 0), 0);
+                            let subRoll = Math.random() * totalSubProb;
+                            let subCumulative = 0;
+                            let selectedGroup = subProbs[0];
+
+                            for (let g of subProbs) {
+                                subCumulative += (g.prob || 0);
+                                if (subRoll < subCumulative) {
+                                    selectedGroup = g;
+                                    break;
+                                }
+                            }
+
+                            let groupCandidateItems = [];
+                            let boundPoolIds = selectedGroup.poolIds || [];
+
+                            boundPoolIds.forEach(pId => {
+                                (roster[pId] || []).forEach(item => {
+                                    let tId = item.tierId;
+                                    if (!tId && item.star !== undefined) {
+                                        let m = globalTiers.find(gt => gt.name == item.star);
+                                        if (m) tId = m.id;
+                                    }
+                                    if (tId === rolledTierId && !effectiveMinorUpItems.includes(item.name)) {
+                                        groupCandidateItems.push(item.name);
+                                    }
+                                });
+                            });
+                            groupCandidateItems = [...new Set(groupCandidateItems)];
+
+                            if (groupCandidateItems.length > 0) {
+                                name = groupCandidateItems[Math.floor(Math.random() * groupCandidateItems.length)];
+                            } else {
+                                name = (dynamicSimRules && dynamicSimRules.minorStdPool && dynamicSimRules.minorStdPool.length > 0)
+                                    ? dynamicSimRules.minorStdPool[Math.floor(Math.random() * dynamicSimRules.minorStdPool.length)]
+                                    : effectiveMinorUpItems[0];
+                            }
+                        } else {
+                            let fallbackPool = (dynamicSimRules?.minorStdByTier?.[rolledTierId]) || [];
+                            if (fallbackPool.length > 0) {
+                                name = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+                            } else {
+                                name = effectiveMinorUpItems[Math.floor(Math.random() * effectiveMinorUpItems.length)];
+                            }
+                        }
+                    }
+                } else {
+                    let combinedChecked = [...fullUpItems, ...fullStdItems];
+                    if (combinedChecked.length > 0) {
+                        name = combinedChecked[Math.floor(Math.random() * combinedChecked.length)];
+                    } else {
+                        let poolAllowedItems = [];
+                        let allowedPoolKeys = [currentPool];
+                        const offRateArr = gameInfo.offRate?.[currentPool] || [];
+                        if (Array.isArray(offRateArr)) allowedPoolKeys.push(...offRateArr);
+
+                        for (let k in roster) {
+                            if (allowedPoolKeys.includes(k) || k === currentPool) {
+                                roster[k].forEach(item => {
+                                    let tId = item.tierId;
+                                    if (!tId && item.star !== undefined) {
+                                        let m = globalTiers.find(g => g.name == item.star);
+                                        if (m) tId = m.id;
+                                    }
+                                    if (tId === rolledTierId && !poolAllowedItems.includes(item.name)) {
+                                        poolAllowedItems.push(item.name);
+                                    }
+                                });
+                            }
+                        }
+
+                        if (poolAllowedItems.length > 0) {
+                            name = poolAllowedItems[Math.floor(Math.random() * poolAllowedItems.length)];
+                        } else {
+                            let matchedTier = activeTiers.find(t => t.id === rolledTierId);
+                            name = matchedTier ? (matchedTier.name + "★") : (window.getTrans ? window.getTrans('sim_js_normal') : 'Normal');
+                        }
+                        
+                    }
+                }
+            }
+            return {
+                tierId: rolledTierId,
+                name,
+                isGold: false,
+                isUP,
+                isRescued: false,
+                total: simData.total,
+                pityUsed: 0
+            };
+        }
+
+        async function doSimPulls(amount) {
+            if (!(await validatePreSelect())) return; 
+            let pullHistory = []; let pullsTodo = amount;
+
+            while (pullsTodo > 0) {
+                if (simData.freeQueue.length > 0) {
+                    let currentFree = simData.freeQueue[0];
+                    if (currentFree.countPity) {
+                        simData.total++; simData.sparkCount++;
+                        let result = executeSingleRoll(rules);
+                        if (result.isGold) simData.goldCount++;
+                        result.pullType = 'free_pity'; pullHistory.push(result);
+                 } else {
+                        let oldPity = simData.pity, oldGuar = simData.guaranteeCount;
+                        let result = executeSingleRoll(rules);
+                        if (result.isGold) simData.goldCount++;
+                        simData.pity = oldPity; simData.guaranteeCount = oldGuar; 
+                        result.pullType = 'free_nopity'; pullHistory.push(result);
+                    }
+                    currentFree.remaining--;
+                    if (currentFree.remaining <= 0) simData.freeQueue.shift(); 
+                    pullsTodo--; 
+                } else {
+                    simData.total++; simData.sparkCount++;
+                    let result = executeSingleRoll(rules);
+                    
+// ----------------------------------------------------
+// 🌟 1. 井 (Spark) / 里程碑出金 严苛防崩溃触发判定
+// ----------------------------------------------------
+(rules.sparkRules || []).forEach((rule, idx) => {
+    if (!simData.sparkState[idx]) {
+        simData.sparkState[idx] = { basePull: 0, cancelled: false, triggeredCount: 0 };
+    }
+    const state = simData.sparkState[idx];
+
+    // 获取当前勾选的限定 UP
+    const upItemsChecked = Array.from(document.querySelectorAll('.input-sim-up-cb:checked')).map(cb => cb.value);
+    
+    let designatedTargetName = null;
+    if (rule.targetType === 'up_index') {
+        const targetIdx = (rule.upIndex || 1) - 1;
+        designatedTargetName = upItemsChecked[targetIdx] || upItemsChecked[0] || null;
+    }
+
+    // 提前出货作废检测
+    if ((rule.cancelOnHit || rule.cancelOnUp) && !state.cancelled) {
+        if (rule.targetType === 'any_gold' && result.isGold) {
+            state.cancelled = true; // 绝区零前50出金作废
+        } else if (rule.targetType === 'up_index' && designatedTargetName && result.name === designatedTargetName) {
+            state.cancelled = true; // 方舟提前抽中该真限定UP作废
+        } else if ((!rule.targetType || rule.targetType === 'random_up') && result.isGold && result.isUP) {
+            state.cancelled = true; // 普通UP提前抽中作废
+        }
+    }
+
+    if (state.cancelled) return;
+
+    let effectiveSparkPulls = simData.total - state.basePull;
+    let isSparkTime = false;
+
+    if (rule.type === 'once') {
+        if (effectiveSparkPulls >= rule.limit && state.triggeredCount === 0) {
+            isSparkTime = true;
+            state.triggeredCount = 1;
+        }
+    } else if (rule.type === 'loop') {
+        let targetCycle = Math.floor(effectiveSparkPulls / rule.limit);
+        if (targetCycle > state.triggeredCount) {
+            isSparkTime = true;
+            state.triggeredCount = targetCycle;
+        }
+    }
+
+    if (isSparkTime) {
+        let sparkName = "";
+        let isForcedUP = false;
+
+        // 🌟 核心修复：无论自然出金还是保底触发，均严格受制于 goldCategorySequence（类型定向序列）
+        if (rule.targetType === 'any_gold') {
+            if (result.isGold) {
+                sparkName = result.name;
+            } else {
+                // 1. 检查是否存在第 N 金类型定向序列约束
+                const catSeqRules = rules.goldCategorySequence || [];
+                const nextCatOrder = (simData.catSeqUsedCount || 0) + 1;
+                const currentCatRule = catSeqRules.find(r => r.order === nextCatOrder);
+
+                let allowedPoolIds = null;
+                if (currentCatRule && Array.isArray(currentCatRule.poolIds) && currentCatRule.poolIds.length > 0) {
+                    allowedPoolIds = currentCatRule.poolIds;
+                }
+
+                // 2. 收集当前常驻选中的所有项目
+                const stdCbs = Array.from(document.querySelectorAll('.input-std-cb:checked')).map(cb => cb.value);
+                let candidateItems = [];
+
+                if (allowedPoolIds && allowedPoolIds.length > 0) {
+                    // 若有类型定向约束（如指定 char_std 常驻角色积木），严格只在定向积木池内挑选
+                    allowedPoolIds.forEach(pId => {
+                        (roster[pId] || []).forEach(item => {
+                            if (stdCbs.includes(item.name) && !candidateItems.includes(item.name)) {
+                                candidateItems.push(item.name);
+                            }
+                        });
+                    });
+                } else {
+                    candidateItems = stdCbs;
+                }
+
+                // 3. 从合规的候选池中出货，若候选为空则兜底
+                if (candidateItems.length > 0) {
+                    sparkName = candidateItems[Math.floor(Math.random() * candidateItems.length)];
+                } else {
+                    sparkName = stdCbs.length > 0 ? stdCbs[Math.floor(Math.random() * stdCbs.length)] : (result.name || "S级角色");
+                }
+
+                // 4. 消耗一次类型定向次数
+                if (allowedPoolIds && allowedPoolIds.length > 0) {
+                    simData.catSeqUsedCount = nextCatOrder;
+                }
+            }
+            isForcedUP = false;
+        } else if (rule.targetType === 'up_index') {
+            // 模式 B：指定第 N 个 UP
+            sparkName = designatedTargetName || upItemsChecked[0] || (result.name || "限定目标");
+            isForcedUP = true;
+        } else {
+            // 模式 C：随机当期 UP（常驻池没有 UP 时安全降级）
+            if (upItemsChecked.length > 0) {
+                sparkName = upItemsChecked[Math.floor(Math.random() * upItemsChecked.length)];
+                isForcedUP = true;
+            } else {
+                sparkName = result.name || "S级代理人";
+                isForcedUP = false;
+            }
+        }
+
+        if (rule.noReset) {
+            // 兑换井模式：外挂送出，不重置普通垫抽进度
+            simData.events.pendingGifts.push({ name: sparkName, atTotal: simData.total });
+            simData.goldCount++;
+        } else {
+            // 里程碑模式：强制本抽为金，重写结果并归零垫抽
+            result = {
+                tierId: targetGoldIds[0] || 'tier_5',
+                name: sparkName,
+                isGold: true,
+                isUP: isForcedUP,
+                total: simData.total,
+                pityUsed: (rule.targetType === 'any_gold' ? "保底" : (window.getTrans ? window.getTrans('sim_js_spark') : '井'))
+            };
+            simData.pity = 0; // 重置垫抽
+            if (isForcedUP) {
+                simData.guaranteeCount = 0;
+                simData.consecutiveLosses = 0;
+            }
+        }
+    }
+});
+
+if (result.isGold && result.pityUsed !== (window.getTrans ? window.getTrans('sim_js_spark') : '井')) simData.goldCount++; 
+else if (result.pityUsed === (window.getTrans ? window.getTrans('sim_js_spark') : '井')) simData.goldCount++;
+
+result.pullType = 'paid'; 
+pullHistory.push(result); 
+pullsTodo--;
+
+// ----------------------------------------------------
+// 🌟 2. 赠送抽机制判定（跨越阈值即送，不再卡 === trigger）
+// ----------------------------------------------------
+(rules.giftRules || []).forEach((rule, idx) => {
+    if (!simData.giftState[idx]) {
+        simData.giftState[idx] = { basePull: 0, triggeredCount: 0 };
+    }
+    const gState = simData.giftState[idx];
+    let effectiveGiftPulls = simData.total - gState.basePull;
+    let isTriggerTime = false;
+
+    if (rule.type === 'once') {
+        if (effectiveGiftPulls >= rule.trigger && gState.triggeredCount === 0) {
+            isTriggerTime = true;
+            gState.triggeredCount = 1;
+        }
+    } else if (rule.type === 'loop') {
+        let targetCycle = Math.floor(effectiveGiftPulls / rule.trigger);
+        if (targetCycle > gState.triggeredCount) {
+            isTriggerTime = true;
+            gState.triggeredCount = targetCycle;
+        }
+    }
+
+    if (isTriggerTime) {
+        simData.freeQueue.push({ countPity: rule.countPity, remaining: rule.amount });
+    }
+});
+                }
+            }
+            
+            let currentChunk = []; let chunks = [];
+            for (let i = 0; i < pullHistory.length; i++) {
+                if (currentChunk.length > 0 && currentChunk[0].pullType !== pullHistory[i].pullType) { chunks.push(currentChunk); currentChunk = []; }
+                currentChunk.push(pullHistory[i]);
+                if (currentChunk.length === 10) { chunks.push(currentChunk); currentChunk = []; }
+            }
+            if (currentChunk.length > 0) chunks.push(currentChunk);
+            chunks.forEach(chunk => { renderSimPulls(chunk, chunk[0].pullType); });
+            simData.events.pendingGifts.forEach(gift => renderExtraGift(gift)); simData.events.pendingGifts = [];
+            updateSimStats();
+        }
+
+function renderSimPulls(batch, pullType) {
+    const resultsWrap = document.getElementById('sim-results');
+    
+    // 单抽累加合并
+    if (batch.length === 1 && pullType === 'paid') {
+        let lastRow = resultsWrap.firstElementChild;
+        let itemsWrap = lastRow ? lastRow.querySelector('.sim-items-wrap') : null;
+        if (lastRow && lastRow.classList.contains('single-row') && lastRow.dataset.pullType === 'paid' && itemsWrap && itemsWrap.querySelectorAll('.sim-item').length < 10) {
+            const item = batch[0];
+            itemsWrap.insertAdjacentHTML('beforeend', buildSingleItemHtml(item));
+            updateRowRangeLabel(lastRow); 
+            return;
+        }
+    }
+
+    const row = document.createElement('div');
+    row.className = 'sim-pull-row';
+    if (batch.length < 10 && pullType === 'paid') row.classList.add('single-row');
+    row.dataset.pullType = pullType; 
+    
+    // 1. 十连抽卡片展示区（左侧纯卡片）
+    let itemsHtml = `<div class="sim-items-wrap">`;
+    itemsHtml += batch.map(p => buildSingleItemHtml(p)).join('');
+    itemsHtml += `</div>`;
+
+    // 2. 右侧固定区：井预留槽位 + 抽数标签
+    let slotHtml = `<div class="spark-slot-holder">`;
+    if (pullType === 'free_pity') {
+        slotHtml += `
+            <div class="spark-gift-card" style="border-color: #2ecc71;">
+                <div style="position:absolute; top:0; left:0; width:100%; background:#2ecc71; color:#000; font-size:10px; font-weight:bold; text-align:center; z-index:5; line-height:1.2;">${window.getTrans ? window.getTrans('sim_js_count_pity') : '计入'}</div>
+                <div style="position:absolute; bottom:2px; left:0; width:100%; text-align:center; color:#fff; font-size:11px;">${window.getTrans ? window.getTrans('sim_js_cur_free') : '当前免费'}</div>
+            </div>`;
+    }
+    slotHtml += `</div>`;
+
+    let labelHtml = '';
+    if (pullType === 'free_nopity') {
+        labelHtml = `<div class="range-label" style="color: #2ecc71; font-weight: bold;">[ ${window.getTrans ? window.getTrans('sim_js_free') : '免费'} ]</div>`;
+    } else {
+        let startNum = batch[0].total; 
+        let endNum = batch[batch.length - 1].total;
+        labelHtml = `<div class="range-label">[ ${window.getTrans ? window.getTrans('sim_js_pull_prefix') : '第'}${startNum}${window.getTrans ? window.getTrans('sim_js_pull_range') : '-'}${endNum}${window.getTrans ? window.getTrans('sim_js_pull_suffix') : '抽'} ]</div>`;
+    }
+
+    let rightAreaHtml = `<div class="sim-row-right-area">${slotHtml}${labelHtml}</div>`;
+
+    // 组合为：卡片区 + 右侧固定区（井槽始终保持在最右边紧跟抽数）
+    row.innerHTML = itemsHtml + rightAreaHtml;
+    resultsWrap.prepend(row);
+}
+
+// 渲染触发的“井”兑换产物：精准注入到该行已预留好的左侧槽位中
+function renderExtraGift(gift) {
+    const targetItem = document.querySelector(`.sim-item[data-total="${gift.atTotal}"]`);
+    if (!targetItem) return;
+    const targetRow = targetItem.closest('.sim-pull-row');
+    if (!targetRow) return;
+
+    const slot = targetRow.querySelector('.spark-slot-holder');
+    if (!slot) return;
+
+    const info = findInRoster(gift.name);
+    let imgHtml = (info && info.img) ? `<img src="${info.img}" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; border-radius:6px; opacity:0.9; z-index:1;">` : '';
+    let simJsSpark = window.getTrans ? window.getTrans('sim_js_spark') : '井';
+
+    slot.innerHTML = `
+        <div class="spark-gift-card">
+            <div style="position:absolute; top:0; left:0; width:100%; background:#f1c40f; color:#000; font-size:10px; font-weight:bold; text-align:center; z-index:5; line-height:1.2; border-radius:6px 6px 0 0;">${simJsSpark}</div>
+            ${imgHtml}
+            <div style="position:absolute; bottom:0; left:0; width:100%; height:60%; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); z-index:2; border-radius:0 0 6px 6px;"></div>
+            <div style="position:relative; z-index:3; color:#fff; text-align:center; font-size:11px; font-weight:bold; padding-bottom:4px; text-shadow:1px 1px 2px #000;">${info ? getItemShort(info) : gift.name}</div>
+        </div>
+    `;
+}
+
+// 更新单抽累加时的标签
+function updateRowRangeLabel(row) {
+    const items = row.querySelectorAll('.sim-item');
+    if (items.length === 0) return;
+    const firstNum = items[0].dataset.total; 
+    const lastNum = items[items.length - 1].dataset.total; 
+    const oldLabel = row.querySelector('.range-label');
+    if (oldLabel) oldLabel.remove();
+    
+    let prefix = window.getTrans ? window.getTrans('sim_js_pull_prefix') : '第';
+    let range = window.getTrans ? window.getTrans('sim_js_pull_range') : '-';
+    let suffix = window.getTrans ? window.getTrans('sim_js_pull_suffix') : '抽';
+    
+    const rightArea = row.querySelector('.sim-row-right-area');
+    if (rightArea) {
+        rightArea.insertAdjacentHTML('beforeend', `<div class="range-label">[ ${prefix}${firstNum}${range}${lastNum}${suffix} ]</div>`);
+    }
+}
+
+        function buildSingleItemHtml(p) {
+            let isGold = p.isGold;
+            let isColorOnly = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only';
+            let tierObj = activeTiers.find(t => t.id === p.tierId) || { name: '?', color: '#555' };
+            let isMinorPityItem = !isGold && minorPities.some(m => m.tierId === p.tierId);
+
+            // 🌟 核心判断：如果开启了纯色模式，且当前不是金，强制剥离头像图片与物品名称
+            let hideImg = isColorOnly && !isGold;
+
+            let info = findInRoster(p.name);
+            let dName = hideImg ? tierObj.name : (info ? getItemShort(info) : (isGold ? p.name : tierObj.name));
+            let imgPath = hideImg ? "" : (getImageUrl(info ? info.short : p.name) || (info && info.img ? info.img : ""));
+            
+            // 金色有强烈光晕；非金纯色块保留纯色背景与边框
+            let boxShadow = isGold ? `0 0 14px ${tierObj.color}cc` : (isMinorPityItem && imgPath ? `0 0 8px ${tierObj.color}66` : 'none');
+            
+            // 如果不显示图片，直接使用对应的星级颜色（紫/蓝）作为整个方块的背景底色！
+            let bgColor = hideImg ? tierObj.color : (!isGold && !imgPath ? tierObj.color : '#222');
+            let borderColor = tierObj.color;
+            let textColor = '#fff';
+            
+            let simJsSpark = window.getTrans ? window.getTrans('sim_js_spark') : '井';
+            let numStyle = isGold ? 'display:block !important; background:#fff; color:#000; font-weight:900; z-index:5; border-radius: 2px; padding: 0 3px;' : 'display:none;';
+            let imgHtml = imgPath ? `<img src="${imgPath}" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;border-radius:4px;z-index:1;" onerror="this.style.display='none';">` : '';
+            let gradientHtml = imgPath ? `<div style="position:absolute; bottom:0; left:0; width:100%; height:50%; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); z-index:2; border-radius:0 0 4px 4px;"></div>` : '';
+
+            // 🌟 识别是否为捕获明光救回的产物
+                let rescueTagHtml = '';
+                if (p.isRescued) {
+                    let tagName = rules.secondaryRescue?.customEffectName || '明光';
+                    rescueTagHtml = `
+                        <span style="position:absolute; top:2px; right:3px; background:linear-gradient(45deg, #e056fd, #f0932b); color:#fff; font-size:9px; font-weight:900; padding:1px 3px; border-radius:3px; z-index:6; box-shadow:0 0 6px #e056fd;">
+                            ${tagName}
+                        </span>
+                    `;
+                    // 救回金给予特殊的洋红/明光多彩光晕
+                    boxShadow = '0 0 16px #e056fd, 0 0 6px #f1c40f';
+                }
+
+            return `
+                <div class="sim-item" data-total="${p.total}" style="background:${bgColor}; border-color:${borderColor}; box-shadow:${boxShadow}; color:${textColor};">
+                    <span class="pull-num" style="${numStyle}">${p.pityUsed === simJsSpark ? simJsSpark : p.pityUsed}</span>
+                    ${imgHtml}
+                    ${gradientHtml}
+                    ${rescueTagHtml}
+                    <div style="position:relative; z-index:3; text-shadow:1px 1px 2px #000, 0 0 4px #000; font-size:12px; font-weight:bold; line-height: 1.2; text-align:center; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; box-sizing:border-box;">${dName}</div>
+                </div>`;
+        }
+
+        function updateHideLowTip() {
+            const tipEl = document.getElementById('tip-hide-low-text');
+            if (!tipEl) return;
+    
+            const isColorOnly = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only';
+    
+            if (isColorOnly) {
+                tipEl.innerHTML = `🎨 当前已开启「极简纯色」展示。若想重新查看低星角色与武器立绘，可前往 <a href="settings.html" style="color: var(--primary); text-decoration: none; font-weight: bold;">设置中心</a> 切换。`;
+            } else {
+                tipEl.innerHTML = `💡 觉得目标金不够突出？前往 <a href="settings.html" style="color: var(--primary); text-decoration: none; font-weight: bold;">设置中心</a> 将低星设为「极简纯色」，仅突出展示目标金立绘。`;
+            }
+        }
+
+        async function doSimCustomPulls() {
+            let val = parseInt(document.getElementById('input-custom-amount').value);
+            if (!val || val <= 0) return await customAlert(window.getTrans ? window.getTrans('sim_js_err_amount') : '无效的抽卡数量');
+            await doSimPulls(val); 
+        }
+
+        async function scrollToGold(direction) {
+            const container = document.getElementById('sim-result-container');
+            const containerRect = container.getBoundingClientRect();
+            
+            const goldRows = Array.from(document.querySelectorAll('#sim-results .sim-pull-row')).filter(row => {
+                return Array.from(row.querySelectorAll('.sim-item')).some(item => {
+                    const pullNumSpan = item.querySelector('.pull-num');
+                    return pullNumSpan && window.getComputedStyle(pullNumSpan).display === 'block';
+                });
+            });
+
+            if (goldRows.length === 0) return await customAlert(window.getTrans ? window.getTrans('sim_js_err_no_gold_rec') : '当前记录中没有金');
+
+            goldRows.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+
+            let targetRow = null;
+
+            if (direction === 'next') { 
+                targetRow = goldRows.find(row => Math.round(row.getBoundingClientRect().top) > Math.round(containerRect.top) + 5);
+                if (!targetRow) await customAlert(window.getTrans ? window.getTrans('sim_js_last_gold') : '已经是最后一个金了');
+            } else { 
+                targetRow = [...goldRows].reverse().find(row => Math.round(row.getBoundingClientRect().top) < Math.round(containerRect.top) - 5);
+                if (!targetRow) await customAlert(window.getTrans ? window.getTrans('sim_js_first_gold') : '上面没有更多金了');
+            }
+
+            if (targetRow) {
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const originalBg = targetRow.style.background || "rgba(0,0,0,0.05)";
+                targetRow.style.transition = "background 0.3s ease";
+                targetRow.style.background = "rgba(243, 156, 18, 0.4)";
+                setTimeout(() => { targetRow.style.background = originalBg; }, 800);
+            }
+        }
+
+        // 获取细分积木池的可视化名称
+function getPoolBlockName(poolId) {
+    let rosterPools = JSON.parse(localStorage.getItem('GM_RosterPools_' + currentGameId)) || [];
+    if (rosterPools.length === 0 && typeof freshSetup !== 'undefined' && freshSetup?.rosterPools) {
+        rosterPools = freshSetup.rosterPools;
+    }
+    let match = rosterPools.find(p => p.id === poolId);
+    if (match) {
+        return (typeof simulatorLang !== 'undefined' && simulatorLang === 'en') ? (match.en || match.name) : match.name;
+    }
+    // 兜底查全局卡池字典，不再硬编码特定游戏
+    if (typeof POOL_NAMES !== 'undefined' && POOL_NAMES[poolId]) {
+        return POOL_NAMES[poolId];
+    }
+    return poolId;
+}
+
+// 点击切换锁定展开状态 (兼容移动端与PC端)
+window.toggleSubProbLock = function(cardWrapEl) {
+    cardWrapEl.classList.toggle('locked');
+};
+
+// 独立重置不歪特权
+async function resetEarlyUpPrivilege() {
+    const totalPrivileges = (rules.earlyUpRules || []).length;
+    const msg = `确定要刷新【不歪特权序列】吗？\n当前已使用: ${simData.earlyUpUsedCount} / ${totalPrivileges} 次。\n刷新后，将重新从第 1 金特权开始享受，且不影响您当前的大保底累计与总抽数！`;
+    if (await customConfirm(msg)) {
+        simData.earlyUpUsedCount = 0;
+        await customAlert("✅ 特权序列已刷新！下一次出金将重新享受第 1 金特权。");
+        updateSimStats();
+    }
+}
+    </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"bceac37f94aa49e39e7285c5fa781796","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
