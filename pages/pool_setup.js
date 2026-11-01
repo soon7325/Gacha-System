@@ -66,7 +66,7 @@ const urlParams = new URLSearchParams(window.location.search);
         window.addEventListener('DOMContentLoaded', initPage);
 
         function initPage() {
-            if (!currentPool || !gameId) { window.location.href = 'index.html'; return; }
+            if (!currentPool || !gameId) { window.location.href = 'html/index.html'; return; }
 
             if (typeof renderSidebar === 'function') renderSidebar();
             loadPureCatalog();
@@ -110,7 +110,7 @@ const urlParams = new URLSearchParams(window.location.search);
         }
 
         function navigateToDashboard() { 
-            safeNavigate(`dashboard.html?gameId=${gameId}&pool=${currentPool}`); 
+            safeNavigate(`html/dashboard.html?gameId=${gameId}&pool=${currentPool}`);
         }
 
         // 预览交互共用；本页提供卡池配置专属文案和原有保存入口保护。
@@ -2826,7 +2826,7 @@ function initDefaultAssemblyRules() {
             const success = executeSavePool(true);
             if (success) {
                 setTimeout(() => {
-                    window.location.href = `dashboard.html?gameId=${gameId}&pool=${currentPool}`;
+                    window.location.href = `html/dashboard.html?gameId=${gameId}&pool=${currentPool}`;
                 }, 600);
             }
         };

@@ -52,10 +52,10 @@ window.customConfirm = settingsDialog.confirm;
             const baseGroup = document.createElement('optgroup');
             baseGroup.label = "📌 " + (lang === 'en' ? "Base & Dev Pages" : "基础与开发者页面");
             baseGroup.innerHTML = `
-                <option value="index.html">🏠 ${t.nav_home || '首页'}</option>
-                <option value="changelog.html">${t.cl_title || '版本详情'}</option>
-                <option value="settings.html">⚙️ ${t.nav_settings || '设置中心'}</option>
-                <option value="gallery_setup.html"> ${t.nav_new_engine || '新建引擎'}</option>
+                <option value="html/index.html">🏠 ${t.nav_home || '首页'}</option>
+                <option value="html/changelog.html">${t.cl_title || '版本详情'}</option>
+                <option value="html/settings.html">⚙️ ${t.nav_settings || '设置中心'}</option>
+                <option value="html/gallery_setup.html"> ${t.nav_new_engine || '新建引擎'}</option>
             `;
             startSelect.appendChild(baseGroup);
 
@@ -97,7 +97,7 @@ window.customConfirm = settingsDialog.confirm;
                     rosterPools.forEach(pool => {
                         if (pool.isStandalone !== false) {
                             const opt = document.createElement('option');
-                            opt.value = `dashboard.html?gameId=${encodeURIComponent(gId)}&pool=${encodeURIComponent(pool.id)}`;
+                            opt.value = `html/dashboard.html?gameId=${encodeURIComponent(gId)}&pool=${encodeURIComponent(pool.id)}`;
                             const displayPoolName = lang === 'en' ? (pool.en || pool.name) : pool.name;
                             const officialIcon = presetIds.includes(gId) ? GameData.getPresetRules(gId)?.[pool.id]?.info?.icon : null;
                             opt.dataset.icon = officialIcon || pool.icon || (pool.type === 'up' ? '✨' : '🎫');
@@ -111,7 +111,7 @@ window.customConfirm = settingsDialog.confirm;
                     let mixedPools = gameInfo.mixedPools || [];
                     mixedPools.forEach(mp => {
                         const opt = document.createElement('option');
-                        opt.value = `dashboard.html?gameId=${encodeURIComponent(gId)}&pool=${encodeURIComponent(mp.id)}`;
+                        opt.value = `html/dashboard.html?gameId=${encodeURIComponent(gId)}&pool=${encodeURIComponent(mp.id)}`;
                         const displayMpName = lang === 'en' ? (mp.en || mp.name) : mp.name;
                         opt.dataset.icon = mp.icon || '🔀';
                         opt.textContent = displayMpName;
@@ -123,13 +123,13 @@ window.customConfirm = settingsDialog.confirm;
                 const setupText = t.nav_game_setup ? t.nav_game_setup.replace('⚙️ ', '') : 'Engine Setup';
 
                 const setupOpt = document.createElement('option');
-                setupOpt.value = `gallery_setup.html?gameId=${encodeURIComponent(gId)}`;
+                setupOpt.value = `html/gallery_setup.html?gameId=${encodeURIComponent(gId)}`;
                 setupOpt.dataset.icon = setupIcon;
                 setupOpt.textContent = setupText;
                 optGroup.appendChild(setupOpt);
 
                 const playerDataOpt = document.createElement('option');
-                playerDataOpt.value = `user_data.html?gameId=${encodeURIComponent(gId)}`;
+                playerDataOpt.value = `html/user_data.html?gameId=${encodeURIComponent(gId)}`;
                 playerDataOpt.dataset.icon = '📁';
                 playerDataOpt.textContent = t.nav_user_data || (lang === 'en' ? 'Player data' : '玩家数据');
                 optGroup.appendChild(playerDataOpt);
@@ -138,11 +138,11 @@ window.customConfirm = settingsDialog.confirm;
             });
 
             // 回显已存的配置
-            const savedPage = localStorage.getItem('GM_Start_Page') || 'index.html';
+            const savedPage = localStorage.getItem('GM_Start_Page')?.replace(/^(?=[a-z_]+\.html(?:[?#]|$))/, 'html/') || 'html/index.html';
             startSelect.value = savedPage;
             if (startSelect.value !== savedPage) {
-                startSelect.value = 'index.html';
-                localStorage.setItem('GM_Start_Page', 'index.html');
+                startSelect.value = 'html/index.html';
+                localStorage.setItem('GM_Start_Page', 'html/index.html');
             }
 
             document.getElementById('themeSelect').value = localStorage.getItem('GM_Theme') || 'dark';

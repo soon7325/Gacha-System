@@ -14,6 +14,8 @@
     function init() {
         const deck = document.getElementById('home-deck');
         if (!deck) return;
+        // Resolve SVG fragments against the page, not the resource base URL.
+        deck.querySelector('[fill="url(#orbit-halo)"]')?.setAttribute('fill', 'url(' + location.href.split('#')[0] + '#orbit-halo)');
         const screens = [...deck.querySelectorAll('.home-screen')];
         const dots = [...document.querySelectorAll('[data-home-target]')];
         let currentScreen = 0;
@@ -63,7 +65,7 @@
             const id = dashboardLink.dataset.gameId;
             const allowed = !!id && (window.TestCatalog?.visible(id) ?? true);
             // A disabled game's context-menu link also stays on the homepage.
-            dashboardLink.href = allowed ? dashboardLink.dataset.destination : '#games';
+            dashboardLink.href = allowed ? dashboardLink.dataset.destination : 'html/index.html#games';
             dashboardLink.setAttribute('aria-disabled', String(!allowed));
             return allowed;
         }
@@ -142,7 +144,7 @@
             const pools = window.GameData?.loadPoolIds(game.id, { standaloneOnly: true }) || [];
             const pool = pools.includes('char_up') ? 'char_up' : pools[0];
             dashboardLink.dataset.gameId = game.id;
-            dashboardLink.dataset.destination = 'dashboard.html?gameId=' + encodeURIComponent(game.id) +
+            dashboardLink.dataset.destination = 'html/dashboard.html?gameId=' + encodeURIComponent(game.id) +
                 (pool ? '&pool=' + encodeURIComponent(pool) : '');
             updateDashboardAccess();
             renderIcons();

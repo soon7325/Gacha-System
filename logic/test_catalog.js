@@ -10,13 +10,13 @@
     function guard(){
         if(hiddenUrl(window.location.href)){
             document.documentElement.hidden=true;
-            window.location.replace('index.html');return false;
+            window.location.replace('html/index.html');return false;
         }
         return true;
     }
     function normalizeStart(){
         const start=localStorage.getItem('GM_Start_Page');
-        if(start&&hiddenUrl(start))localStorage.setItem('GM_Start_Page','index.html');
+        if(start&&hiddenUrl(start))localStorage.setItem('GM_Start_Page','html/index.html');
     }
     function refresh(){normalizeStart();if(guard())window.renderSidebar?.();}
     window.TestCatalog=Object.freeze({key,presetKeys,isVisibilityKey,enabled,visible,hiddenUrl,guard,normalizeStart,refresh});

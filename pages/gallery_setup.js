@@ -1223,7 +1223,7 @@ window.deleteEntireGame = async function() {
 
     setTimeout(() => {
         galleryChangeTracker.reset();
-        window.location.href = 'index.html';
+        window.location.href = 'html/index.html';
     }, 800); 
 };
 

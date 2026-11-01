@@ -10,7 +10,7 @@
         currency_setup: { title: 'set_currency_page', prefix: 'GM_Currency', content: 'center', header: 'follow', control: 'currency' },
         simulator: { title: 'set_simulator_page', prefix: 'GM_Simulator', content: 'full', header: 'full', control: 'simulator' }
     };
-    const currentPage = () => (location.pathname.replace(/\/+$/, '').split('/').pop() || 'index').replace(/\.html$/i, '');
+    const currentPage = () => (location.pathname.split('/').pop() || 'index').replace(/\.html$/i, '');
     const key = (page, part) => definitions[page].prefix + (part === 'header' ? '_Header_Layout' : '_Layout');
     const choices = (page, part) => part === 'header' ? ['full', 'follow'] : definitions[page].fullContent === false ? ['center', 'left', 'right'] : ['center', 'left', 'right', 'full'];
     function read(page, part) {

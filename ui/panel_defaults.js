@@ -60,7 +60,7 @@
         if (!definitions[page]) return null;
         if (active) active(false);
         const previousFocus = trigger || document.activeElement;
-        const fallbackFocus = document.querySelector('.sidebar a[href="settings.html"]');
+        const fallbackFocus = document.querySelector('.sidebar a[href$="settings.html"]');
         // The quick popover gives way to the modal; closing it must not remove this dialog.
         document.dispatchEvent(new CustomEvent('panel-defaults-open'));
         const dialog = document.createElement('dialog');

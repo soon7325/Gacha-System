@@ -9,7 +9,7 @@
         dashboard: {container:'.dashboard-center-wrapper', items:'#list-wrap', footer:'.dashboard-fixed-footer'},
         changelog: {container:'.changelog-container', items:'.changelog-content-wrapper', footer:'#pagination-controls-bottom'}
     };
-    const currentPage = () => (location.pathname.replace(/\/+$/, '').split('/').pop() || 'index').replace(/\.html$/i, '');
+    const currentPage = () => (location.pathname.split('/').pop() || 'index').replace(/\.html$/i, '');
     const keyFor = page => 'GM_Content_Columns_' + page;
     const columnOptions = ['1','2','3','4','5','6','auto'];
     const arrangements = ['continuous','row','column','category'], scrollModes = ['linked','independent'];
@@ -151,7 +151,7 @@
         const finish = () => {
             if (finished) return; finished = true; closeDialog = null;
             dialog.dispatchEvent(new Event('close')); if (dialog.open) dialog.close(); dialog.remove();
-            (focus?.isConnected ? focus : document.querySelector('.sidebar a[href="settings.html"]'))?.focus({preventScroll:true});
+            (focus?.isConnected ? focus : document.querySelector('.sidebar a[href$="settings.html"]'))?.focus({preventScroll:true});
         };
         closeDialog = finish; close.onclick = finish; dialog.oncancel = event => { event.preventDefault(); finish(); }; dialog.onclose = finish;
         document.body.append(dialog); dialog.showModal(); window.refreshCustomDropdowns?.(dialog,false); close.focus({preventScroll:true});

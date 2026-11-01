@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <!-- 页面集中于 html/；资源和预设图片仍以项目根目录为基准。 -->
+    <base href="../">
     <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
     <script src="logic/version_storage.js"></script>
     <script src="ui/color_style.js"></script>
@@ -161,7 +163,7 @@
                     <label data-i18n="set_start_page">默认启动页</label>
                     <button id="start-page-picker-button" type="button" class="input-box start-page-summary" onclick="StartPagePicker.open()" aria-haspopup="dialog"></button>
                     <select id="startPageSelect" data-no-custom hidden>
-                        <option value="index.html" data-i18n="opt_home">🏠 首页 / 关于</option>
+                        <option value="html/index.html" data-i18n="opt_home">🏠 首页 / 关于</option>
                     </select>
                 </div>
                 <div id="settings-popup-preference"></div>
@@ -405,7 +407,7 @@
                     <button type="submit" class="btn-auth-submit" id="btn-auth-submit" data-i18n="login">登录</button>
                 </form>
                 <div style="text-align: center; margin-top: 15px;">
-                    <a data-cloud-unavailable href="#" style="color: var(--primary); font-size: 12px; text-decoration: none;" onclick="handleForgotPassword()" data-i18n="auth_forgot">忘记密码？</a>
+                    <a data-cloud-unavailable href="html/settings.html#" style="color: var(--primary); font-size: 12px; text-decoration: none;" onclick="handleForgotPassword()" data-i18n="auth_forgot">忘记密码？</a>
                 </div>
                 <div class="auth-divider" data-i18n="auth_or">OR</div>
                 <button data-cloud-unavailable class="btn-google" type="button" onclick="realGoogleLogin()">

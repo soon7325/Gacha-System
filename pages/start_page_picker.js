@@ -10,7 +10,7 @@
         const gameRanks = new Map();
         const pageRanks = new Map();
         function identity(href) {
-            const url = new URL(href, window.location.href);
+            const url = new URL(href, document.baseURI);
             const page = url.pathname.replace(/\/+$/, '').split('/').pop().replace(/\.html$/i, '');
             return [page, url.searchParams.get('gameId') || '', url.searchParams.get('pool') || ''].join('|');
         }
@@ -29,7 +29,7 @@
             options.sort((a, b) => {
                 // 卡池后依次放游戏配置、玩家数据，与侧栏入口顺序一致。
                 const tailRank = value => {
-                    const path = new URL(value, window.location.href).pathname;
+                    const path = new URL(value, document.baseURI).pathname;
                     if (/(?:^|\/)user_data(?:\.html)?\/?$/i.test(path)) return 2;
                     return /(?:^|\/)gallery_setup(?:\.html)?\/?$/i.test(path) ? 1 : 0;
                 };

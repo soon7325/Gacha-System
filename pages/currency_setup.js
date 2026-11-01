@@ -33,7 +33,7 @@ window.markPageDirty = () => currencyTracker.markDirty();
 function currencyReturnUrl() {
     const params = new URLSearchParams();
     if (gameId) params.set('gameId', gameId);
-    return 'user_data.html' + (params.size ? '?' + params : '');
+    return 'html/user_data.html' + (params.size ? '?' + params : '');
 }
 function syncGalleryReadonlyControls() {
     const locked = !!currencyLoadError || galleryPreviewLock.isLocked();

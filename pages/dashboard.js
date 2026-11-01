@@ -19,7 +19,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
         if (!currentGameId) {
             alert(typeof getTrans === 'function' ? getTrans('invalid_game_channel') : "游戏参数无效，返回首页");
-            window.location.href = 'index.html';
+            window.location.href = 'html/index.html';
         }
 
         let dashboardAccountId=null,dashboardAccountRows=[],dashboardInputSnapshot=null;
@@ -27,7 +27,7 @@ const urlParams = new URLSearchParams(window.location.search);
         const inputSyncEnabled=()=>localStorage.getItem('GM_Dashboard_Sync_Player')==='true';
         window.openDashboardSimulator=()=>{
             const params=new URLSearchParams({gameId:currentGameId,pool:currentPool});if(dashboardAccountId)params.set('data',dashboardAccountId);
-            window.location.href='simulator.html?'+params;
+            window.location.href='html/simulator.html?'+params;
         };
         function readDashboardRecords(){return DashboardAccounts.read(currentGameId,currentPool,dashboardAccountId).records;}
         function accountError(error){

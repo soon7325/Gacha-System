@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <!-- 页面集中于 html/；资源和预设图片仍以项目根目录为基准。 -->
+    <base href="../">
     <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
     <script src="logic/version_storage.js"></script>
     <script src="ui/color_style.js"></script>
@@ -880,7 +882,7 @@ body.is-delete-mode .box-add-more {
                         <div id="dashboard-account-bar" class="dashboard-account-bar" hidden></div>
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-action-gray" onclick="window.location.href='pool_setup.html?gameId=' + currentGameId + '&pool=' + currentPool" data-i18n="cd_btn_edit_rules">⚙️ 修改卡池概率</button>
+                        <button class="btn btn-action-gray" onclick="window.location.href='html/pool_setup.html?gameId=' + currentGameId + '&pool=' + currentPool" data-i18n="cd_btn_edit_rules">⚙️ 修改卡池概率</button>
                         <button class="btn btn-sim-open" style="background-color: #8e44ad;" onclick="openDashboardSimulator()" data-i18n="cd_btn_sim">✨ 模拟抽卡</button>
                         <button class="btn btn-primary" onclick="openModal()" data-i18n="cd_btn_input">录入数据</button>
                     </div>

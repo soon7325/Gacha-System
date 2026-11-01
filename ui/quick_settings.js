@@ -85,7 +85,7 @@
     }
     function open(entry) {
         close(); anchor = entry; if (!anchor) return;
-        const file = (location.pathname.replace(/\/+$/, '').split('/').pop() || 'index').replace(/\.html$/i, '') + '.html';
+        const file = (location.pathname.split('/').pop() || 'index').replace(/\.html$/i, '') + '.html';
         const home = file === 'index.html';
         panel = document.createElement('section'); panel.id = 'quick-settings-popover'; panel.className = 'quick-settings-popover';
         panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-labelledby', 'quick-settings-title');
@@ -160,7 +160,7 @@
         exit.focus({ preventScroll: true });
     }
     document.addEventListener('click', event => {
-        const entry = event.target.closest?.('.sidebar a[href="settings.html"]');
+        const entry = event.target.closest?.('.sidebar a[href$="settings.html"]');
         if (entry && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button === 0) {
             if (localStorage.getItem(popupKey) === 'false') return;
             if (panel) { close(); return; }

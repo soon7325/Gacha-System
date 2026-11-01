@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <!-- 页面集中于 html/；资源和预设图片仍以项目根目录为基准。 -->
+    <base href="../">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- 版本存储隔离必须先于主题、翻译、重定向及所有业务脚本。 -->
     <script src="logic/version_storage.js"></script>
@@ -19,9 +21,10 @@
             }
             if (!sessionStorage.getItem('GM_HasRedirected')) {
                 sessionStorage.setItem('GM_HasRedirected', 'true');
-                const startPage = localStorage.getItem('GM_Start_Page');
+                const savedStartPage = localStorage.getItem('GM_Start_Page');
+                const startPage = savedStartPage?.replace(/^(?=[a-z_]+\.html(?:[?#]|$))/, 'html/');
                 // 如果用户在设置中配置了默认打开非首页的其他页面，则立即跳转
-                if (startPage && startPage !== 'index.html') {
+                if (startPage && startPage !== 'html/index.html') {
                     window.location.replace(startPage);
                 }
             }
@@ -160,7 +163,7 @@
                 <p class="home-eyebrow">YOUR LUCK. YOUR RULES.</p><h1>Gacha<br><span>System</span><span class="home-title-dot">.</span></h1>
                 <p style="color:#888; font-size: 1.2rem; margin-bottom: 30px;" data-i18n="index_desc">专注于实时的抽卡数据分析与运气追踪</p>
                 
-                <a href="#games" class="home-primary" data-home-explore data-i18n="home_start">进入我的抽卡空间 ↗</a>
+                <a href="html/index.html#games" class="home-primary" data-home-explore data-i18n="home_start">进入我的抽卡空间 ↗</a>
                 <!-- 游客模式下展示的登录按钮面板 -->
                 <div id="guest-panel">
                     <button data-cloud-unavailable class="btn-start" onclick="openAuthModal()" data-i18n="btn_login_reg">🔑 登录 / 注册账号</button>
@@ -247,7 +250,7 @@
         <p class="home-eyebrow" id="home-game-prefix">GAME ARCHIVE</p>
         <h2 id="home-game-name">Gacha System</h2>
         <p data-i18n="home_game_desc">每一份期待，都值得被记录。</p>
-        <a class="home-primary" id="home-game-link" href="#games" aria-disabled="true" data-i18n="home_game_open">查看游戏看板 ↗</a>
+        <a class="home-primary" id="home-game-link" href="html/index.html#games" aria-disabled="true" data-i18n="home_game_open">查看游戏看板 ↗</a>
     </div>
     <div class="home-game-footer"><span id="home-image-kind"></span><div class="home-rotation"><span class="home-rotation-track"><span id="home-rotation-progress"></span></span><span data-i18n="home_auto">每分钟随机切换</span><div class="home-rotation-actions"><button type="button" id="home-rotation-toggle" aria-pressed="false" data-i18n="home_pause">暂停</button><button type="button" id="home-image-next" disabled data-i18n="home_next_image" data-i18n-title="home_next_image_hint" data-i18n-aria-label="home_next_image_hint">下一张</button></div></div></div>
 </section>
@@ -272,7 +275,7 @@
                     </div>
                 </details>
 
-                <a href="changelog.html" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; box-sizing: border-box; font-weight: bold; padding: 10px 0; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #6c5ce7); border: none; box-shadow: 0 4px 14px rgba(0, 123, 255, 0.25);" data-i18n="idx_version_page_link">
+                <a href="html/changelog.html" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; box-sizing: border-box; font-weight: bold; padding: 10px 0; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #6c5ce7); border: none; box-shadow: 0 4px 14px rgba(0, 123, 255, 0.25);" data-i18n="idx_version_page_link">
                     📜 前往版本更新详情 / 历史
                 </a>
             </div></div>

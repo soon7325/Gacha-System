@@ -237,7 +237,7 @@
             node('data-title').textContent=tr('📁 玩家数据','📁 Player data');node('data-new').textContent=tr('＋ 新建数据','＋ New data');
             node('data-merge').textContent=tr('融合数据','Merge data');
             const merger=UserDataMergeUI.mount({gameId:game,hasDrafts,afterSave:render});node('data-merge').onclick=()=>{if(!preview.isLocked())merger.open();};
-            node('data-rules').textContent=window.getTrans('nav_currency_setup');node('data-rules').href='currency_setup.html?'+new URLSearchParams({gameId:game});
+            node('data-rules').textContent=window.getTrans('nav_currency_setup');node('data-rules').href='html/currency_setup.html?'+new URLSearchParams({gameId:game});
             node('data-note').textContent=tr('填写整个游戏账号的货币与持有，各卡池进度按启用的规则分别填写。','Enter shared account currencies and copies, plus progress for each pool’s enabled rules.');
             node('data-new').onclick=()=>{if(preview.isLocked()||UserDataProfiles.mode()!=='multi')return;node('data-list').querySelector('.user-data-empty')?.remove();addEditor(null,true);};render();
         }catch(error){node('data-new').disabled=true;report(error);}

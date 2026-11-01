@@ -138,7 +138,7 @@ function renderSidebar() {
     
     const t = (typeof UI_LIB !== 'undefined' && UI_LIB[currentLang]) ? UI_LIB[currentLang] : {};
     
-    const currentFile = (window.location.pathname.replace(/\/+$/, '').split('/').pop() || 'index').replace(/\.html$/i, '') + '.html';
+    const currentFile = (window.location.pathname.split('/').pop() || 'index').replace(/\.html$/i, '') + '.html';
     const urlParams = new URLSearchParams(window.location.search);
     const currentPool = urlParams.get('pool');
     const currentGameId = urlParams.get('gameId');
@@ -168,7 +168,7 @@ function renderSidebar() {
 
     sidebar.innerHTML = `
         <div class="sidebar-header">
-            <a href="index.html" class="sidebar-brand" title="${t.nav_home || '首页 / 关于'}">${t.brand || 'Gacha System'}</a>
+            <a href="html/index.html" class="sidebar-brand" title="${t.nav_home || '首页 / 关于'}">${t.brand || 'Gacha System'}</a>
             <button class="sidebar-toggle-btn" id="sidebar-toggle" title="${isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -181,11 +181,11 @@ function renderSidebar() {
         <div id="games-container"></div>
         
         <div class="sidebar-bottom-nav">
-            <a href="settings.html" class="sidebar-item ${currentFile === 'settings.html' ? 'active' : ''}" title="${window.getTrans ? window.getTrans('nav_settings') : (t.nav_settings || '设置中心')}">
+            <a href="html/settings.html" class="sidebar-item ${currentFile === 'settings.html' ? 'active' : ''}" title="${window.getTrans ? window.getTrans('nav_settings') : (t.nav_settings || '设置中心')}">
                 <span class="sidebar-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m9 3-1 3-3 1-2 4 2 2v3l4 3 3-1 3 1 4-3v-3l2-2-2-4-3-1-1-3Z"/><circle cx="12" cy="11.5" r="3"/></svg></span>
                 <span class="sidebar-item-text">${window.getTrans ? window.getTrans('nav_settings') : (t.nav_settings || '设置中心')}</span>
             </a>
-            <a href="gallery_setup.html" class="sidebar-item ${currentFile === 'gallery_setup.html' && !currentGameId ? 'active' : ''}" title="${t.nav_new_engine || '新建游戏引擎'}">
+            <a href="html/gallery_setup.html" class="sidebar-item ${currentFile === 'gallery_setup.html' && !currentGameId ? 'active' : ''}" title="${t.nav_new_engine || '新建游戏引擎'}">
                 <span class="sidebar-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7v10M7 12h10"/></svg></span>
                 <span class="sidebar-item-text">${t.nav_new_engine || '新建游戏引擎'}</span>
             </a>
@@ -400,7 +400,7 @@ function renderSidebar() {
             const translatedName = getLocalizedName(gameId, pool.id, currentLang === 'en' ? pool.en : pool.name);
 
             const itemEl = document.createElement('a');
-            itemEl.href = `dashboard.html?gameId=${gameId}&pool=${pool.id}`;
+            itemEl.href = `html/dashboard.html?gameId=${gameId}&pool=${pool.id}`;
             itemEl.className = `sidebar-item ${isActive}`;
             itemEl.title = `${translatedName} (可拖拽微调排序)`;
             itemEl.draggable = true;
@@ -454,7 +454,7 @@ function renderSidebar() {
         poolList.appendChild(divider);
 
         const setupLink = document.createElement('a');
-        setupLink.href = `gallery_setup.html?gameId=${gameId}`;
+        setupLink.href = `html/gallery_setup.html?gameId=${gameId}`;
         setupLink.className = `sidebar-item ${isGameSetupActive}`;
         setupLink.style.color = '#aaa';
         setupLink.innerHTML = `
@@ -472,7 +472,7 @@ function renderSidebar() {
         setupChildren.hidden = !setupExpanded;
         setupChildren.id = 'sidebar-setup-' + gameIdx;
         const currencyLink = document.createElement('a');
-        currencyLink.href = `user_data.html?gameId=${encodeURIComponent(gameId)}`;
+        currencyLink.href = `html/user_data.html?gameId=${encodeURIComponent(gameId)}`;
         currencyLink.className = `sidebar-item ${currencyActive ? 'active' : ''}`;
         const currencyIcon = document.createElement('span');
         currencyIcon.className = 'sidebar-item-icon'; currencyIcon.textContent = '📁';
@@ -552,7 +552,7 @@ function renderSidebar() {
         if (!link) {
             link = document.createElement('a');
             link.id = 'updates-shortcut'; link.className = 'updates-shortcut';
-            link.href = 'changelog.html';
+            link.href = 'html/changelog.html';
             link.setAttribute('data-i18n-title', 'updates_shortcut');
             link.setAttribute('data-i18n-aria-label', 'updates_shortcut');
             const icon = document.createElement('span');

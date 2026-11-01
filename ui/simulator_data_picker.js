@@ -37,7 +37,7 @@
                 if(UserDataProfiles.mode()==='multi')button(tr('新建数据','New data'),()=>create(useCurrency));
                 applyButton=button(tr('使用所选数据','Use selected data'),()=>apply(rows.find(r=>r.id===select.value),useCurrency),true);applyButton.disabled=!rows.length;
                 dialog.append(actions);
-                const manage=document.createElement('a');manage.href='user_data.html?'+new URLSearchParams({gameId,pool:poolId});manage.textContent=tr('管理玩家数据与货币规则','Manage player data and currency rules');dialog.append(manage);
+                const manage=document.createElement('a');manage.href='html/user_data.html?'+new URLSearchParams({gameId,pool:poolId});manage.textContent=tr('管理玩家数据与货币规则','Manage player data and currency rules');dialog.append(manage);
                 if(!dialog.open)dialog.showModal();
             }catch(error){showToast(tr('无法读取模拟数据，请检查本机存储。','Unable to read simulation data. Check local storage.'),'danger');return false;}
             return true;

@@ -18,7 +18,7 @@
                 sessionStorage.setItem(modeKey, temporary ? 'temporary' : 'preserve');
                 // Reset on Home, after Settings' pagehide handlers have finished.
                 sessionStorage.setItem(replayKey, 'true');
-                window.location.assign('index.html');
+                window.location.assign('html/index.html');
             });
             return;
         }
@@ -69,9 +69,10 @@
         document.body.append(layer);
         const card = layer.querySelector('.language-guide-card');
         const line = layer.querySelector('.language-guide-line');
+        line.setAttribute('marker-end', 'url(' + location.href.split('#')[0] + '#language-guide-tip)');
         function position() {
             syncLanguage();
-            const entry = sidebar.querySelector('a[href="settings.html"]');
+            const entry = sidebar.querySelector('a[href$="settings.html"]');
             if (!entry) { layer.hidden = true; return; }
             const r = entry.getBoundingClientRect();
             layer.hidden = !r.width || !r.height || r.bottom <= 0 || r.top >= innerHeight;

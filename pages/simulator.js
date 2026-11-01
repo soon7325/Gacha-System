@@ -70,10 +70,10 @@ function getGoldRowsList() {
         if (!currentGameId) { 
             (async () => {
                 await customAlert(window.getTrans ? window.getTrans('invalid_game_channel') : 'Invalid Game ID');
-                window.location.href = 'index.html'; 
+                window.location.href = 'html/index.html';
             })();
         }
-        document.getElementById('btn-return-dashboard').onclick = () => { window.location.href = `dashboard.html?gameId=${currentGameId}&pool=${currentPool}`; };
+        document.getElementById('btn-return-dashboard').onclick = () => { window.location.href = `html/dashboard.html?gameId=${currentGameId}&pool=${currentPool}`; };
 
         // 一次读取模拟器需要的公共数据，抽卡状态和页面渲染仍由本页管理。
         const gameContext = GameData.loadContext({ gameId: currentGameId, poolId: currentPool });

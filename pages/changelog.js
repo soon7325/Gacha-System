@@ -485,7 +485,7 @@ function getVersionDirectory(version) {
 
 function inferVersionFromPath(path) {
     const match = String(path || '').match(/(?:^|\/)v?(\d+(?:\.\d+)*)\s+old\//i);
-    return match ? match[1] : (path === 'index.html' ? 'latest' : 'latest');
+    return match ? match[1] : (path === 'html/index.html' ? 'latest' : 'latest');
 }
 
 function isCurrentVersion(version) {
@@ -498,7 +498,7 @@ function getVersionHomeUrl(version, legacyPath) {
     if (directory) return `${directory}index.html`;
     // The root site is always the current release.  Retain a non-home legacy URL
     // only when no version metadata was provided.
-    return version === 'latest' || version === window.GACHA_LATEST_VERSION || !legacyPath ? 'index.html' : legacyPath;
+    return version === 'latest' || version === window.GACHA_LATEST_VERSION || !legacyPath ? 'html/index.html' : legacyPath;
 }
 
 function applyChangelogLayout() {
@@ -598,7 +598,7 @@ function renderTocSidebar() {
 
     // 所有旧通道由同一份配置生成，新增版本无需再维护另一份按钮清单。
     const channels = [
-        { labelKey: 'cl_channel_modern', version: window.GACHA_LATEST_VERSION, path: 'index.html' },
+        { labelKey: 'cl_channel_modern', version: window.GACHA_LATEST_VERSION, path: 'html/index.html' },
         ...Object.entries(window.GACHA_VERSION_CHANNELS).map(([version, config]) => ({
             labelKey: config.labelKey, version, path: config.directory + 'index.html'
         }))
