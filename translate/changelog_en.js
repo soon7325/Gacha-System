@@ -30,31 +30,33 @@ Other Previews:
 `
     },
     {
+        version: "v0.3.6.23",
+        title: "Homepage layout improvements and privacy policy",
+        date: "16/11/2026",
+        tag: [{ scope: "Home", type: ["Improvement", "Update"] }],
+        author: "ChatGPT & Zhi Siong",
+        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
+        content: `1. Improved the homepage by removing prominent panels and borders around content, using whitespace to separate sections.
+2. Fixed the positions of the title, release highlights, and update history button on the fifth page so collapsing the content does not shift the layout. Limited the content area's size to prevent long notes from pushing the layout to the top and bottom of the page.
+2.1 An internal scrollbar appears only when the release notes exceed the available height. When all content fits, internal scrolling is disabled so scrolling over the content can continue down the homepage. This is recalculated when the window size or language changes.
+3. Added a Privacy policy button to the fourth page that opens a dialog on the current page. It explains browser storage, importing, exporting and clearing data, hosting services, cookies and advertising, feedback emails, and external links. Close it using the Close button, Escape, or by clicking outside the dialog.
+3.1 Added a GitHub source button to the fourth page that opens the GitHub link in a new tab.
+4. Added a notice below Afdian on the sixth page explaining that verification has not been completed, the service is currently unavailable, and there is no need to open it. Verification may be attempted again in the future. Ko-fi remains unchanged.
+4.1 Replaced the unhelpful linked email address with plain text and added a Copy email button beside it. Successful copying displays “Copied”; if copying fails, it displays “Could not copy automatically. Please select and copy the email address.”`
+    },
+    {
         "version": "v0.3.6.22",
         "title": "First-visit language guide and replay",
         "date": "09/11/2026",
         "tag": [
-            {
-                "scope": "Home",
-                "type": [
-                    "Addition"
-                ]
-            },
-            {
-                "scope": "Settings",
-                "type": [
-                    "Addition"
-                ]
-            }
+            {"scope": "Home","type": ["Addition"]},
+            {"scope": "Settings","type": ["Addition"]}
         ],
         "author": "ChatGPT & Zhi Siong",
-        "channel": {
-            "enabled": true,
-            "targetVer": "0.3",
-            "text": "Go to the latest v0.3 channel",
-            "path": "index.html"
-        },
-        "content": "1. First-time Home visitors see an arrow to Settings and guidance for changing language; the bilingual hint preference controls whether both languages or only the current language are shown. Close it with × at the top right; refreshing or returning Home does not automatically repeat it.\n2. Quick Settings opens above the arrow guide. Click Settings again to enter Settings.\n3. A First-visit experience panel below Version Details in Settings offers a confirmed replay. Confirm to return Home and replay the guide, including the language-option hint in Settings; cancel to stay in Settings.\n4. Replay preserves bilingual hints if already enabled. Otherwise it enables them temporarily until you leave Settings. The original first-visit automatic shutoff is unchanged. Replay keeps the current language, start page, other preferences, and user data."
+        "content": `1. First-time Home visitors see an arrow to Settings and guidance for changing language; the bilingual hint preference controls whether both languages or only the current language are shown. Close it with × at the top right; refreshing or returning Home does not automatically repeat it.
+        2. Quick Settings opens above the arrow guide. Click Settings again to enter Settings.
+        3. A First-visit experience panel below Version Details in Settings offers a confirmed replay. Confirm to return Home and replay the guide, including the language-option hint in Settings; cancel to stay in Settings.
+        4. Replay preserves bilingual hints if already enabled. Otherwise it enables them temporarily until you leave Settings. The original first-visit automatic shutoff is unchanged. Replay keeps the current language, start page, other preferences, and user data.`
     },
     {
         version: "v0.3.6.21",

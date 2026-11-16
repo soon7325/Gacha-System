@@ -54,7 +54,7 @@ window.UI_LIB.en = {
     sim_empty_title: "Every encounter starts here",
     sim_empty_desc: "Choose your targets and make your first pull. Your pull history will unfold here.",
     // === 常改版本信息：先版本标题，后更新内容 ===
-    idx_version_title: "Current Version :Beta v0.3.6.22",
+    idx_version_title: "Current Version :Beta v0.3.6.23",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "Updates:<br>" +
@@ -66,9 +66,10 @@ window.UI_LIB.en = {
         "6. v0.3 inherits data from the previous version once, then stores its data independently.<br>" +
         "<br>" +
         "Minor updates:<br>" +
-        "1. First-time Home visitors see an arrow to Settings with language guidance that follows the bilingual hint preference and a close button.<br>" +
-        "2. Quick Settings appears above the guide. Later visits do not show it automatically.<br>" +
-        "3. Settings adds First-visit experience: confirm to return Home and replay the language guide.<br>" +
+        "1. Improved homepage visuals and release highlights.<br>" +
+        "2. Added a privacy policy dialog and a GitHub link.<br>" +
+        "3. Added a notice that Afdian has not passed verification.<br>" +
+        "4. Added a Copy email button.<br>" +
         "<br>" +
         "Gallery updates:<br>" +
         "1. Added fixed IDs and legacy-data compatibility to all four supported game galleries.<br>" +
@@ -880,6 +881,15 @@ window.UI_LIB.en = {
     home_games: "Explore the games",
     home_notice: "About this project",
     home_updates: "Always evolving",
+    home_afdian_note: "Afdian has not passed verification and is currently unavailable. No need to open it. I may try verification again in the future.",
+    home_copy_email: "Copy email",
+    home_email_copied: "Copied",
+    home_email_copy_failed: "Could not copy automatically. Please select and copy the email address.",
+    home_privacy_title: "Privacy policy",
+    home_privacy_close: "Close",
+    home_github: "View source on GitHub ↗",
+    home_update_summary: "Current release highlights",
+    home_privacy_content: "<p>Updated: 16 November 2026. This policy covers the features currently provided by Gacha System.</p><h3>1. Data in your browser</h3><p>This site uses localStorage and sessionStorage for language, theme, interface preferences, and game configurations, player data and pull records you create or import. These are different from cookies. Sign-in, registration and cloud sync are currently disabled; the app does not automatically upload your local records through these features.</p><h3>2. Import, export and deletion</h3><p>Imported files are read in your browser; exported files are saved to your device. Keep your own backups and check files for private information before sharing. Use the relevant in-app delete or reset controls, or clear this site's data in your browser settings. Export a backup first. Browser cleanup, ending private sessions or changing devices may cause local data loss.</p><h3>3. Site visits and external resources</h3><p>The online site uses Cloudflare hosting and network services. To deliver pages, maintain security and operate services, providers may process IP addresses, browser information, access times and request information. This is distinct from uploading your local pull records. See the <a href=\"https://www.cloudflare.com/privacypolicy/\" target=\"_blank\" rel=\"noopener noreferrer\">Cloudflare Privacy Policy</a>. If you configure external image URLs, loading them also sends network requests to their providers.</p><h3>4. Cookies and advertising</h3><p>This version has no live AdSense ads or added advertising-tracking cookie code. Browser storage is still used for the features described above, and hosting security mechanisms may separately use cookies or similar technologies. Before introducing advertising, analytics or cloud services, this policy will be updated and notices, choices and consent mechanisms will be provided where required.</p><h3>5. Contact and external links</h3><p>If you send feedback by email, the author receives your email address, message and attachments to handle and respond to your feedback. Do not send passwords, verification codes or unnecessary sensitive information. You may use the address below for queries or deletion requests concerning feedback emails. External sites such as GitHub, Ko-fi and Afdian are operated independently and have their own privacy policies.</p><h3>6. Changes and contact</h3><p>This policy and its update date will change when features or data handling change. For privacy questions or requests, contact <span class=\"home-email-row\"><span class=\"home-email-address\">gachasystem.feedback@gmail.com</span><button type=\"button\" class=\"home-copy-email\" data-copy-email data-i18n=\"home_copy_email\">Copy email</button><span class=\"home-email-status\" role=\"status\" aria-live=\"polite\"></span></span></p>",
     home_support: "Stay connected",
     home_start: "Enter your gacha space ↗",
     home_live: "GAME ARCHIVE",

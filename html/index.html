@@ -258,46 +258,43 @@
                 <p style="color: #9ca3af; margin: 0 0 10px 0;">
                     <em data-i18n="beta_warning">"注意，该网站仍处于 Beta 开发阶段。由于是本人的首个作品，自然是想到哪儿做到哪儿。可能会有一些 Bug，但也充满了各种硬核的尝试。"</em>
                 </p>
+<div class="home-about-actions"><button type="button" class="home-action-button secondary" data-open-privacy data-i18n="home_privacy_title">隐私政策</button><a class="home-action-button secondary" href="https://github.com/soon7325/Gacha-System" target="_blank" rel="noopener noreferrer" data-i18n="home_github">在 GitHub 查看源码 ↗</a></div>
             </div></div>
         </section>
-        <section class="home-screen home-updates" id="updates" aria-labelledby="updates-label"><div class="home-screen-inner"><div class="home-section-heading"><span class="home-section-number">05</span><span id="updates-label" data-i18n="home_updates">持续进化</span></div><div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
-                <h3 style="color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 8px;">
-                    📦 <span data-i18n="idx_version_title">当前版本:</span>
-                </h3>
-                
-                <details open style="margin-bottom: 20px; cursor: pointer; outline: none;">
-                    <summary style="color: var(--text); font-weight: bold; margin-bottom: 10px; user-select: none;" data-i18n="idx_version_detail">点击查看当前版本更新简要</summary>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 13px; color: #aaa; line-height: 1.6; cursor: text;" data-i18n="idx_version_content">
-                        - 🚀 首次发布 Gacha System 核心引擎<br>
-                        - ✨ 支持多游戏卡池自定义拼装与基础配置<br>
-                        - 📊 实装数据看板与抽卡记录云端同步<br>
-                        - 🌍 完善中英文多语言无缝切换功能
-                    </div>
-                </details>
-
-                <a href="html/changelog.html" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; box-sizing: border-box; font-weight: bold; padding: 10px 0; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #6c5ce7); border: none; box-shadow: 0 4px 14px rgba(0, 123, 255, 0.25);" data-i18n="idx_version_page_link">
-                    📜 前往版本更新详情 / 历史
-                </a>
-            </div></div>
-        </section>
+        <section class="home-screen home-updates" id="updates" aria-labelledby="updates-label">
+  <div class="home-screen-inner home-updates-layout">
+    <header class="home-updates-heading">
+      <div class="home-section-heading"><span class="home-section-number">05</span><span id="updates-label" data-i18n="home_updates">持续进化</span></div>
+      <h3>📦 <span data-i18n="idx_version_title">当前版本</span></h3>
+      <button type="button" class="home-update-toggle" id="home-update-toggle" aria-expanded="true" aria-controls="home-update-content"><span data-i18n="idx_version_detail">点击查看当前版本更新简要</span></button>
+    </header>
+    <div class="home-update-scroll" id="home-update-content" tabindex="-1" role="region" aria-label="当前版本更新简要" data-i18n-aria-label="home_update_summary">
+      <div data-i18n="idx_version_content"></div>
+    </div>
+    <footer class="home-update-footer"><a href="html/changelog.html" class="home-action-button" data-i18n="idx_version_page_link">前往版本更新详情 / 历史</a></footer>
+  </div>
+</section>
         <section class="home-screen home-support" id="support" aria-labelledby="support-label"><div class="home-screen-inner"><div class="home-section-heading"><span class="home-section-number">06</span><span id="support-label" data-i18n="home_support">保持联系</span></div><div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
                 <h3 style="color: #f1c40f; margin-top: 0;" data-i18n="idx_support_title">💬 反馈与赞助</h3>
                 
                 <p style="color: #aaa; font-size: 14px; margin-bottom: 5px;" data-i18n="idx_support_desc">如遇到 Bug 或有新功能建议，欢迎通过邮件联系我：</p>
-                <a href="mailto:gachasystem.feedback@gmail.com" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 15px;">gachasystem.feedback@gmail.com</a>
+                <span class="home-email-row"><span class="home-email-address">gachasystem.feedback@gmail.com</span><button type="button" class="home-copy-email" data-copy-email data-i18n="home_copy_email">复制邮箱</button><span class="home-email-status" role="status" aria-live="polite"></span></span>
 
                 <hr style="border: 0; border-top: 1px dashed var(--border); margin: 20px 0;">
 
                 <p style="color: #aaa; font-size: 14px; margin-bottom: 15px;" data-i18n="idx_sponsor_desc">如果觉得这个项目对你有帮助，可以请作者喝杯咖啡 ☕</p>
                 
-                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="home-support-links">
     
+                    <div class="home-afdian">
                     <a href="https://ifdian.net/a/gachasystem" target="_blank" class="btn btn-primary" style="text-decoration: none; background: #ff82ab; border-color: #ff82ab; color: white; display: flex; align-items: center; gap: 8px; font-weight: bold; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(255, 130, 171, 0.3); transition: 0.3s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M13 2.05v7.95h6l-8 12v-7.95H5l8-12z"/>
                         </svg>
                         <span data-i18n="idx_sponsor_afdian">前往爱发电</span>
                     </a>
+<p class="home-afdian-note" data-i18n="home_afdian_note">爱发电未通过认证，暂时无法正常使用，无需点进去。未来也许会再次尝试通过认证。</p>
+</div>
 
                     <a href="https://ko-fi.com/gachasystem" target="_blank" class="btn btn-primary" style="text-decoration: none; background: #29abe0; border-color: #29abe0; color: white; display: flex; align-items: center; gap: 8px; font-weight: bold; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(41, 171, 224, 0.3); transition: 0.3s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -309,9 +306,13 @@
                 </div>
         </div></div>
         </section>
-    </main>
+</main>
 <nav class="home-pagination" aria-label="首页章节" data-i18n-aria-label="home_chapters"><button type="button" data-home-target="welcome" data-i18n-title="home_welcome" title="欢迎" data-i18n-aria-label="home_welcome" aria-label="欢迎"><span></span></button><button type="button" data-home-target="features" data-i18n-title="home_features" title="功能" data-i18n-aria-label="home_features" aria-label="功能"><span></span></button><button type="button" data-home-target="games" data-i18n-title="home_games" title="游戏" data-i18n-aria-label="home_games" aria-label="游戏"><span></span></button><button type="button" data-home-target="notice" data-i18n-title="home_notice" title="说明" data-i18n-aria-label="home_notice" aria-label="说明"><span></span></button><button type="button" data-home-target="updates" data-i18n-title="home_updates" title="版本" data-i18n-aria-label="home_updates" aria-label="版本"><span></span></button><button type="button" data-home-target="support" data-i18n-title="home_support" title="联系" data-i18n-aria-label="home_support" aria-label="联系"><span></span></button></nav>
     <div id="home-toast" class="home-toast" role="status" aria-live="polite" aria-atomic="true" style="display:none"></div>
+    <dialog id="home-privacy-dialog" class="home-privacy-dialog" aria-labelledby="home-privacy-title">
+      <header><h2 id="home-privacy-title" data-i18n="home_privacy_title">隐私政策</h2><button type="button" class="home-text-link" data-close-privacy data-i18n="home_privacy_close" autofocus>关闭</button></header>
+      <div class="home-privacy-body" tabindex="0" data-i18n="home_privacy_content"></div>
+    </dialog>
     <!-- 🔑 身份认证 (登录/注册) 悬浮弹窗容器 -->
     <div id="authModalOverlay" class="modal-overlay" style="display:none; backdrop-filter: blur(5px);">
         <div class="modal-content auth-modal">
@@ -409,6 +410,9 @@
     <script src="pages/home-assets.js"></script>
     <script src="pages/home-showcase.js"></script>
     <script src="pages/index.js"></script>
+    <script src="pages/home-privacy.js"></script>
+    <script src="pages/home-email.js"></script>
+    <script src="pages/home-updates.js"></script>
     
     <!-- 保留账号入口，暂时仅显示关闭提示，不加载云端 SDK。 -->
     <script src="ui/dialog.js"></script>
