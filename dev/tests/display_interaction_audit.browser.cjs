@@ -1,0 +1,18 @@
+const path=require('path'),assert=require('node:assert/strict');
+const {chromium}=require(path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright'));
+const url=name=>require('url').pathToFileURL(path.join(process.cwd(),name+'.html')).href;
+(async()=>{const b=await chromium.launch({channel:'chrome',headless:true}),results=[];try{const p=await b.newPage({viewport:{width:1600,height:950},reducedMotion:'reduce'});const check=async(name,fn)=>{try{await fn();results.push({name,ok:true});}catch(e){results.push({name,ok:false,error:e.message});}};
+ await p.goto(url('pool_setup')+'?gameId=hsr&pool=char_up');await p.waitForTimeout(400);await p.evaluate(()=>ContentColumns.set('pool_setup','browsing','single'));await p.waitForTimeout(180);
+ await check('legacy confirmation overlay blocks page arrows',async()=>{await p.evaluate(()=>{document.getElementById('confirmModalOverlay').style.display='flex';document.getElementById('btn-confirm-cancel').focus();});await p.keyboard.press('ArrowRight');await p.waitForTimeout(120);assert.equal(await p.locator('.content-single-nav').getAttribute('data-index'),'0');});
+ await p.evaluate(()=>document.getElementById('confirmModalOverlay').style.display='none');await p.locator('.content-single-dots button').first().click();await p.waitForTimeout(120);
+ await check('nested accordion stays interactive within a large panel',async()=>{await p.evaluate(()=>{const detail=document.createElement('details');detail.id='audit-inner-detail';detail.innerHTML='<summary>Inner accordion</summary><p>Content</p>';document.querySelector('.content-fixed-column [id$="-body"]').prepend(detail);});await p.locator('#audit-inner-detail summary').click();assert.ok(await p.locator('#audit-inner-detail').evaluate(n=>n.open));});
+ await p.goto(url('changelog'));await p.waitForTimeout(300);await p.evaluate(()=>{onLineLimitChanged('150');ContentColumns.set('changelog','browsing','scroll');ContentColumns.set('changelog','columns','1');});await p.waitForTimeout(150);
+ await check('bottom batch navigation starts the new batch at the top',async()=>{await p.locator('#pagination-controls-bottom button').last().click();await p.waitForTimeout(180);assert.ok(await p.locator('.main-content').evaluate(n=>n.scrollTop<=2));});
+ await p.evaluate(()=>{ContentColumns.set('changelog','browsing','single');ContentColumns.set('changelog','singleFill','fit');});await p.waitForTimeout(180);
+ await check('version jump stays on the target after resize and regrouping',async()=>{await p.evaluate(()=>jumpToVersion('v0.2.5.12'));await p.waitForTimeout(150);await p.setViewportSize({width:1000,height:700});await p.waitForTimeout(600);assert.ok(await p.locator('.content-fixed-column .log-card').evaluateAll(nodes=>nodes.some(n=>n.dataset.version==='v0.2.5.12')));});
+ await p.goto(url('index'));await p.waitForTimeout(350);
+ await check('homepage overlay blocks section shortcuts',async()=>{await p.evaluate(()=>{const modal=document.getElementById('authModalOverlay');modal.style.display='flex';modal.querySelector('button').focus();});await p.keyboard.press('ArrowRight');await p.waitForTimeout(150);assert.equal(await p.locator('[data-home-target][aria-current=true]').getAttribute('data-home-target'),'welcome');});
+ await p.goto(url('settings'));await p.waitForTimeout(250);
+ await check('global control includes whole-panel packing',async()=>{assert.equal(await p.locator('#global-alignment option[value=packed]').count(),1);});
+ console.log(JSON.stringify(results,null,2));assert.ok(results.every(x=>x.ok),'Audit regression failures');
+}finally{await b.close();}})().catch(e=>{console.error(e.message);process.exitCode=1});

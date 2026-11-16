@@ -1,4 +1,8 @@
 # Compatibility entry points after moving current pages into html/.
+# Legacy bookmarks (encoded spaces) retain their version and relative target.
+/0.0%20old/* /old_version/0.0/:splat 302
+/0.1%20old/* /old_version/0.1/:splat 302
+/0.2%20old/* /old_version/0.2/:splat 302
 / /html/ 302
 /changelog.html /html/changelog 302
 /changelog /html/changelog 302

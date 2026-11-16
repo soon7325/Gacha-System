@@ -1,7 +1,7 @@
 /**
  * 必须在页面任何存储读取之前加载。按版本隔离存储，业务脚本仍使用原来的 GM_* key。
  * 补丁更新不会换库；以后通道升级只需修改 DEFAULT_VERSION，新通道首次复制上一通道。
- * 旧版页面复制本文件并在 head 引入，可由“0.1 old”等目录自动识别版本。
+ * 旧版页面复制本文件并在 head 引入，可由“old_version/0.1”等目录自动识别版本。
  */
 (function () {
     'use strict';
@@ -9,7 +9,7 @@
     const rawLocal = window.localStorage;
     const rawSession = window.sessionStorage;
     const path = decodeURIComponent(window.location.pathname);
-    const archived = path.match(/\/(\d+\.\d+(?:\.\d+)*)\s+old\//);
+    const archived = path.match(/\/old_version\/(\d+\.\d+(?:\.\d+)*)\//) || path.match(/\/(\d+\.\d+(?:\.\d+)*)\s+old\//);
     const params = new URLSearchParams(window.location.search);
     const legacyChannel = params.get('channel') || params.get('from');
     const channelVersion = !archived && /(?:^|\/)changelog(?:\.html)?\/?$/i.test(path) && legacyChannel

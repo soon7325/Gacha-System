@@ -1,0 +1,12 @@
+# Local artifacts; reusable tests and tools in dev/ remain versioned.
+/dev/output/
+/dev/local/
+/.wrangler/
+/node_modules/
+# Local credentials and machine-specific settings, including archived copies.
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+.wrangler/
+node_modules/

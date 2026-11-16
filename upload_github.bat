@@ -12,6 +12,8 @@ set "IN_PROJECT=1"
 echo ==========================================
 echo   GitHub 一键上传
 echo   将提交所有未被 Git 忽略的新增、修改和删除。
+echo   包含网站、历史版本、文档、规则、测试和工具。
+echo   排除临时输出、本机资料、缓存和本地环境变量文件。
 echo ==========================================
 echo.
 
@@ -42,6 +44,17 @@ if errorlevel 1 (
 echo.
 
 echo [1/3] 收集项目修改...
+if not exist ".gitignore" (
+    echo [失败] 缺少 .gitignore，上传已停止。
+    goto finish
+)
+:: Only remove ignored files from the index; keep all local files.
+:: Use PowerShell for NUL-delimited names so spaces and Chinese paths remain intact.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0dev\tools\untrack_ignored.ps1"
+if errorlevel 1 (
+    echo [失败] 清理已跟踪的忽略文件失败，上传已停止。
+    goto finish
+)
 git add -A
 if errorlevel 1 (
     echo [失败] 收集修改失败，上传已停止。

@@ -1,0 +1,40 @@
+const assert=require('node:assert/strict');const {test}=require('node:test');
+const fs=require('node:fs');const path=require('node:path');const vm=require('node:vm');
+test('货币页确认取消、成功提示、重复点击、引用保护及等待期间只读保护',async()=>{
+    let locked=false,dirty=0,answer=false,requests=[],toasts=[];
+    const root={innerHTML:'',querySelectorAll:()=>[]};
+    const dialog={create:()=>({confirm:(message,options)=>{requests.push({message,options});return typeof answer==='function'?answer():Promise.resolve(answer);}})};
+    const context=require('./icon_test_context.cjs').createContext({window:{Dialog:dialog},document:{getElementById:()=>root},getLang:()=> 'zh',gameId:'confirm',
+        gameInfo:{categories:[],globalTiers:[]},readEngineEdit:()=> '[]',GameData:{getPresetRules:()=>null},sessionStorage:{getItem:()=>null},
+        galleryPreviewLock:{isLocked:()=>locked},markPageDirty:()=>dirty++,showToast:(...args)=>toasts.push(args)});
+    vm.runInContext(fs.readFileSync(path.join(__dirname,'../../pages/gallery_economy.js'),'utf8'),context);
+    context.window.GalleryEconomy.render();
+    const click=(action,list,id,extra=null)=>root.onclick({target:{closest:selector=>selector==='[data-eco-action]'?{dataset:{ecoAction:action}}:selector==='[data-eco-list]'?{dataset:{ecoList:list,ecoId:id}}:extra}});
+    const m=context.gameInfo.economy;
+    await click('example');assert.equal(m.resources.length,0);assert.equal(dirty,0);assert.equal(toasts.length,0);
+    assert.match(requests[0].message,/多组资源/);
+    answer=true;await click('example');assert.equal(m.resources.length,7);assert.equal(dirty,1);assert.equal(toasts.at(-1)[1],'success');
+    const resource=m.resources[0];const count=requests.length;
+    await click('remove','resources',resource.id);
+    assert.equal(requests.length,count+1,'被引用资源通过弹窗列出引用并阻止删除');assert.match(requests.at(-1).message,/兑换规则/);assert.equal(requests.at(-1).options.okText,'查看引用规则');assert.equal(m.resources.length,7);
+    const exchange=m.exchanges[0];answer=false;await click('remove','exchanges',exchange.id);assert.equal(m.exchanges.length,4);
+    answer=true;await click('remove','exchanges',exchange.id);assert.equal(m.exchanges.length,3);
+    const staged=m.exchanges.find(row=>row.mode==='staged');
+    await click('remove-stage','exchanges',staged.id,{dataset:{ecoStage:'0'}});assert.equal(staged.stages.length,4);
+    let resolve;answer=()=>new Promise(done=>{resolve=done;});
+    const pending=click('example');const pendingCount=requests.length;
+    await click('example');assert.equal(requests.length,pendingCount,'重复点击只显示一次确认');
+    locked=true;resolve(true);await pending;assert.equal(m.resources.length,7,'确认前锁定后不允许写入');
+    let blocked=0;
+    const multiTarget={closest:selector=>selector==='.eco-multi > summary'?{}:null};
+    await root.onclick({target:multiTarget,preventDefault(){blocked++;}});
+    root.onkeydown({key:'Enter',target:multiTarget,preventDefault(){blocked++;}});
+    root.onkeydown({key:' ',target:multiTarget,preventDefault(){blocked++;}});
+    assert.equal(blocked,3,'多选入口同时拦截鼠标、Enter 和空格');
+    const snapshot=JSON.stringify(m),previousDirty=dirty;
+    await click('example');await click('remove','incomes',m.incomes[0].id);
+    assert.equal(JSON.stringify(m),snapshot);assert.equal(dirty,previousDirty);
+    locked=false;answer=()=>new Promise(done=>{resolve=done;});
+    const removing=click('remove','exchanges',staged.id);locked=true;resolve(true);await removing;
+    assert.ok(m.exchanges.includes(staged),'删除确认同样重新检查锁定');
+});

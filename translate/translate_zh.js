@@ -54,7 +54,7 @@ window.UI_LIB.zh = {
     sim_empty_title: "每一次相遇，都从这里开始",
     sim_empty_desc: "选好目标，开始第一次抽卡。你的抽卡轨迹将在这里展开。",
     // === 常改版本信息：先版本标题，后更新内容 ===
-    idx_version_title: "当前版本:Beta v0.3.6.22",
+    idx_version_title: "当前版本:Beta v0.3.6.23",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "更新：<br>" +
@@ -66,9 +66,10 @@ window.UI_LIB.zh = {
         "6.v0.3首次继承上一版本数据，之后各版本独立保存。<br>" +
         "<br>" +
         "小版本更新：<br>" +
-        "1：首次进入首页时显示指向设置的箭头及语言提示（跟随双语开关），可通过右上角 × 关闭。<br>" +
-        "2：设置快捷弹窗覆盖引导；后续进入首页不再自动显示。<br>" +
-        "3：设置页新增“首次进入体验”，确认后返回首页重新体验语言引导。<br>" +
+        "1：优化首页美术与更新简要展示。<br>" +
+        "2：添加隐私政策弹窗和 GitHub 入口。<br>" +
+        "3：补充爱发电未通过认证的说明。<br>" +
+        "4：添加复制邮箱按钮。<br>" +
         "<br>" +
         "图鉴更新：<br>" +
         "1：四个正式游戏图鉴补充固定 ID 与旧数据兼容。<br>" +
@@ -880,6 +881,15 @@ window.UI_LIB.zh = {
     home_games: "探索游戏",
     home_notice: "关于这个项目",
     home_updates: "持续进化",
+    home_afdian_note: "爱发电未通过认证，暂时无法正常使用，无需点进去。未来也许会再次尝试通过认证。",
+    home_copy_email: "复制邮箱",
+    home_email_copied: "已复制",
+    home_email_copy_failed: "未能自动复制，请选中邮箱文字手动复制。",
+    home_privacy_title: "隐私政策",
+    home_privacy_close: "关闭",
+    home_github: "在 GitHub 查看源码 ↗",
+    home_update_summary: "当前版本更新简要",
+    home_privacy_content: "<p>更新日期：2026 年 11 月 16 日。本政策适用于 Gacha System 当前提供的功能。</p><h3>1. 浏览器中的数据</h3><p>本站使用浏览器本地存储（localStorage）和会话存储（sessionStorage），保存语言、主题、界面偏好，以及你创建或导入的游戏配置、玩家资料和抽卡记录等数据。它们不等同于 Cookie。当前版本的登录、注册和云端同步功能已关闭，应用不会通过这些功能自动上传你的本地记录。</p><h3>2. 导入、导出与清除</h3><p>导入文件由浏览器读取，导出文件保存到你的设备。请自行保管备份，分享文件前检查是否包含不希望公开的信息。你可以通过站内对应的删除或重置功能管理数据，也可在浏览器设置中清除本站的网站数据；清除前请先导出备份。浏览器清理、无痕会话结束或更换设备可能使本地数据丢失。</p><h3>3. 网站访问与第三方资源</h3><p>线上网站使用 Cloudflare 托管和网络服务。为传输网页、保障安全和运行服务，服务提供方可能处理 IP 地址、浏览器信息、访问时间和请求信息；这与上传你的本地抽卡记录不同。相关处理请参阅 <a href=\"https://www.cloudflare.com/privacypolicy/\" target=\"_blank\" rel=\"noopener noreferrer\">Cloudflare 隐私政策</a>。如果你配置外部图片地址，加载图片也会向该地址的服务方发送网络请求。</p><h3>4. Cookie 与广告</h3><p>当前版本未接入 AdSense 真实广告，也未加入用于广告追踪的 Cookie 代码。本地存储仍用于上述功能，托管服务的安全机制可能另行使用 Cookie 或类似技术。未来如果接入广告、统计或云端服务，会在启用相关处理前更新本政策，并在适用要求下提供告知、选择及同意机制。</p><h3>5. 联系与外部链接</h3><p>如果你主动发送反馈邮件，作者会收到你的邮箱地址、邮件内容及附件，并用于处理反馈和回复。请勿发送密码、验证码或不必要的敏感信息。你可以通过下方邮箱提出与反馈邮件有关的查询或删除请求。GitHub、Ko-fi、爱发电等外部网站由各自运营方管理，打开后适用其隐私政策。</p><h3>6. 政策更新与联系</h3><p>功能或数据处理方式变化时，本政策及更新日期会相应调整。隐私问题或请求请联系：<span class=\"home-email-row\"><span class=\"home-email-address\">gachasystem.feedback@gmail.com</span><button type=\"button\" class=\"home-copy-email\" data-copy-email data-i18n=\"home_copy_email\">复制邮箱</button><span class=\"home-email-status\" role=\"status\" aria-live=\"polite\"></span></span></p>",
     home_support: "保持联系",
     home_start: "进入我的抽卡空间 ↗",
     home_live: "游戏档案 / GAME ARCHIVE",

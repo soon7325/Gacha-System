@@ -30,9 +30,9 @@
     <script>
     (function () {
         const VERSION_CHANNELS = {
-            '0.2': { directory: '0.2 old/', labelKey: 'cl_channel_v02_archive', modernShell: true },
-            '0.1': { directory: '0.1 old/', labelKey: 'cl_channel_v02' },
-            '0.0': { directory: '0.0 old/', labelKey: 'cl_channel_v00' }
+            '0.2': { directory: 'old_version/0.2/', labelKey: 'cl_channel_v02_archive', modernShell: true },
+            '0.1': { directory: 'old_version/0.1/', labelKey: 'cl_channel_v02' },
+            '0.0': { directory: 'old_version/0.0/', labelKey: 'cl_channel_v00' }
         };
         const params = new URLSearchParams(window.location.search);
         const requestedVersion = (params.get('channel') || params.get('from') || '')

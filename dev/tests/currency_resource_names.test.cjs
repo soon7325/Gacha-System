@@ -1,0 +1,34 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
+let language='zh',binding,dirty=0,locked=false;
+const option={value:'b',textContent:'旧票'},choice={querySelector:()=>({value:'b'}),lastChild:{textContent:'旧票'}};
+const targetSummary={textContent:'旧票',title:'旧票'},total={textContent:''},icon={title:''};
+const exchangeCard={dataset:{ecoId:'x'},querySelector:s=>s==='.eco-summary'?total:icon};
+const group={querySelectorAll:()=>[choice],querySelector:()=>targetSummary,closest:s=>s==='[data-eco-list]'?exchangeCard:s==='[data-eco-stage]'?{dataset:{ecoStage:'0'}}:null};
+const root={innerHTML:'',querySelectorAll:s=>s.startsWith('select[data-eco-field="from"]')?[option]:s==='[data-eco-multi="toIds"]'?[group]:s==='[data-eco-list="exchanges"]'?[exchangeCard]:[]};
+const bilingual={install:options=>{binding=options;return {};}};
+const context=require('./icon_test_context.cjs').createContext({window:{BilingualInput:bilingual},BilingualInput:bilingual,document:{getElementById:()=>root},getLang:()=>language,gameId:'names',
+    gameInfo:{categories:[],globalTiers:[],economy:{resources:[{id:'a',name:'代币',icon:'🪙'},{id:'b',name:'旧票',icon:'🎫'}],exchanges:[{id:'x',name:'兑换',from:'a',toIds:['b'],mode:'staged',stages:[{cost:20,gain:1,toIds:[]}]}],payments:[{id:'pay',name:'支付',resourceId:'b',cost:1,pulls:1}]}},
+    readEngineEdit:()=> '[]',GameData:{getPresetRules:()=>null},sessionStorage:{getItem:()=>null},galleryPreviewLock:{isLocked:()=>locked},markPageDirty:()=>dirty++});
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../../pages/gallery_economy.js'),'utf8'),context);
+context.window.GalleryEconomy.render();
+const before=root.innerHTML, heading={textContent:''};
+const resourceCard={dataset:{ecoList:'resources',ecoId:'b'},querySelector:s=>s==='strong'?heading:null};
+const control={type:'text',tagName:'INPUT',value:'新票',dataset:{ecoField:'name'},setCustomValidity(){},closest:s=>s==='[data-eco-field]'?control:s==='[data-eco-list]'?resourceCard:null};
+root.oninput({type:'input',target:control});
+assert.equal(option.textContent,'🎫 新票');
+assert.equal(choice.lastChild.textContent,'🎫 新票');
+assert.equal(targetSummary.textContent,'🎫 新票');
+assert.match(total.textContent,/新票/);
+assert.equal(icon.title,'代币 → 新票');
+assert.equal(root.innerHTML,before,'改名不重建表单，不打断输入及保存点击');
+const nameBinding=binding.resolve({closest:()=>resourceCard});
+language='en';nameBinding.setValue('en','New ticket');
+assert.equal(option.textContent,'🎫 New ticket');
+assert.equal(targetSummary.textContent,'🎫 New ticket');
+assert.match(total.textContent,/New ticket/);
+assert.equal(context.gameInfo.economy.resources[1].name,'新票');
+assert.equal(JSON.parse(JSON.stringify(context.gameInfo.economy)).resources[1].en,'New ticket');
+locked=true;const previous=dirty;nameBinding.setValue('en','Blocked');
+assert.equal(dirty,previous);assert.equal(option.textContent,'🎫 New ticket');
+console.log('PASS：资源改名即时更新单选、多选、兑换汇总与提示，中英独立且保留表单');

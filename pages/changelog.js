@@ -484,7 +484,7 @@ function getVersionDirectory(version) {
 }
 
 function inferVersionFromPath(path) {
-    const match = String(path || '').match(/(?:^|\/)v?(\d+(?:\.\d+)*)\s+old\//i);
+    const match = String(path || '').match(/(?:^|\/)old_version\/v?(\d+(?:\.\d+)*)\//i) || String(path || '').match(/(?:^|\/)v?(\d+(?:\.\d+)*)\s+old\//i);
     return match ? match[1] : (path === 'html/index.html' ? 'latest' : 'latest');
 }
 

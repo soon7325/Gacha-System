@@ -1,0 +1,30 @@
+# Only website directories and routing files are published.
+/*
+!/html/
+!/pages/
+!/logic/
+!/ui/
+!/Preset_Data/
+!/translate/
+!/img/
+!/old_version/
+!/_redirects
+!/_headers
+# Exclude development material even inside archived versions.
+**/tests/
+**/tools/
+**/output/
+**/dev/
+**/docs/
+**/node_modules/
+**/.git/
+**/.wrangler/
+**/.env
+**/.env.*
+**/.dev.vars
+**/.dev.vars.*
+**/*.md
+**/*.bat
+**/wrangler.jsonc
+**/.gitignore
+**/.assetsignore
