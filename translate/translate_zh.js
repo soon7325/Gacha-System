@@ -54,7 +54,8 @@ window.UI_LIB.zh = {
     sim_empty_title: "每一次相遇，都从这里开始",
     sim_empty_desc: "选好目标，开始第一次抽卡。你的抽卡轨迹将在这里展开。",
     // === 常改版本信息：先版本标题，后更新内容 ===
-    idx_version_title: "当前版本:Beta v0.3.7.23",
+    idx_version_title: "当前版本:Beta",
+    idx_version_title_number: "v0.3.7.23",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "更新：<br>" +
@@ -68,6 +69,9 @@ window.UI_LIB.zh = {
         "中版本更新：<br>" +
         "1：新增“用您的AI制作图鉴”入口，支持复制提示词与下载模板。<br>" +
         "2：支持语言、收录范围、偏好设置与资料链接。<br>" +
+        "<br>" +
+        "小更新：<br>" +
+        "1：修复首页第一页的版本号展示问题。<br>" +
         "<br>" +
         "图鉴更新：<br>" +
         "1：四个正式游戏图鉴补充固定 ID 与旧数据兼容。<br>" +

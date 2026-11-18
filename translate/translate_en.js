@@ -54,7 +54,8 @@ window.UI_LIB.en = {
     sim_empty_title: "Every encounter starts here",
     sim_empty_desc: "Choose your targets and make your first pull. Your pull history will unfold here.",
     // === 常改版本信息：先版本标题，后更新内容 ===
-    idx_version_title: "Current Version :Beta v0.3.7.23",
+    idx_version_title: "Current Version :Beta",
+    idx_version_title_number: "v0.3.7.23",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "Updates:<br>" +
@@ -68,6 +69,9 @@ window.UI_LIB.en = {
         "Medium updates:<br>" +
         "1. Added catalog creation with your own AI, including prompt copying and template downloads.<br>" +
         "2. Supports language, scope, preferences, and source links.<br>" +
+        "<br>" +
+        "Minor update:<br>" +
+        "1. Fixed the version number displayed on the first homepage section.<br>" +
         "<br>" +
         "Gallery updates:<br>" +
         "1. Added fixed IDs and legacy-data compatibility to all four supported game galleries.<br>" +

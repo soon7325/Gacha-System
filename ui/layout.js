@@ -528,8 +528,8 @@ function renderSidebar() {
 (function installUpdatesShortcut() {
     const seenKey = 'GM_Changelog_Last_Seen';
     const isUpdatesPage = () => /(?:^|\/)changelog(?:\.html)?\/?$/i.test(window.location.pathname);
-    // Reuse the maintained version title instead of introducing another version number.
-    const release = () => window.UI_LIB?.zh?.idx_version_title?.match(/\d+(?:\.\d+)+/)?.[0] || null;
+    // Share the maintained version number with the homepage and settings footer.
+    const release = () => window.UI_LIB?.zh?.idx_version_title_number?.match(/\d+(?:\.\d+)+/)?.[0] || null;
     function text(key, fallback) {
         const value = window.getTrans?.(key);
         return value && value !== key ? value : fallback;

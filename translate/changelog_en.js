@@ -33,7 +33,7 @@ Other Previews:
         version: "v0.3.7.23",
         title: "Create game catalogs with your own AI",
         date: "18/11/2026",
-        tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }],
+        tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }, { scope: "Home", type: ["Fix"] }],
         author: "ChatGPT & Zhi Siong",
         channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
         content: `1. Added Create a catalog with your own AI to Gallery Setup, with prompt preview, copying, and example-template downloads. Send the prompt to your own AI, then import the generated JSON here, review it, and save the catalog.
@@ -41,6 +41,7 @@ Other Previews:
 2.1 Choose Chinese only, English only, or both, defaulting to the interface language. Gender/form preferences default to omitting gender labels and including all released combat forms; sorting defaults to first-release order, oldest first. These values can be edited.
 3. Generation requirements cover characters and forms, names and abbreviations, acquisition tags, and entry order. Default search targets include the game's official wiki and Bilibili BWIKI, with support for user-provided source links.
 4. The dialog title and top-right close button stay at the top, while copy, template download, and close buttons stay at the bottom. Content scrolls independently, with single-line input fields.
+5. Fixed the version number displayed on the first homepage section; it now shows the current version.
 
 Notes and outstanding issues:
 1. Only catalog-generation prompts are currently available. Users still need to configure pool rules and probabilities themselves. Future updates will continue exploring AI-assisted catalogs, pool rules, probabilities, and related content.
