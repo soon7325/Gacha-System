@@ -364,7 +364,7 @@ window.UI_LIB.zh = {
     cs_ai_version_hint: "当前最新版本（含此前版本）",
     cs_ai_server: "服务器／运营地区（可选）",
     cs_ai_server_hint: "国服／国际服",
-    cs_ai_feature_note: "目前仅提供图鉴提示词，卡池规则与概率仍需自行配置；后续将继续更新。",
+    cs_ai_feature_note: "目前仅提供图鉴提示词，卡池规则与概率仍需自行配置；后续将继续更新。目前不提供图片下载，生成图鉴的图片字段留空，图片需自行添加。",
     cs_ai_sources: "Wiki／资料链接（可选）",
     cs_ai_sources_default: "默认查找对应游戏的官方 Wiki（含可用国服／海外入口）及哔哩哔哩 BWIKI；也可补充其他资料链接。",
     cs_ai_sources_hint: "粘贴链接；多个链接用空格分隔",

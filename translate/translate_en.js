@@ -364,7 +364,7 @@ window.UI_LIB.en = {
     cs_ai_version_hint: "Latest released version (including earlier versions)",
     cs_ai_server: "Server / region (optional)",
     cs_ai_server_hint: "CN / Global",
-    cs_ai_feature_note: "Currently supports catalog prompts only. Configure pool rules and probabilities yourself; further updates are planned.",
+    cs_ai_feature_note: "Currently supports catalog prompts only. Configure pool rules and probabilities yourself; further updates are planned. Image downloads are not provided. Generated catalog image fields are left empty; add images yourself.",
     cs_ai_sources: "Wiki / source links (optional)",
     cs_ai_sources_default: "Defaults to the game’s official wiki (available CN/overseas editions) and Bilibili BWIKI. You can add other source links.",
     cs_ai_sources_hint: "Paste links; separate multiple URLs with spaces",

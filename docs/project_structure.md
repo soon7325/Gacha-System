@@ -12,6 +12,7 @@ Gacha System Update/
 ├─ wrangler.jsonc                  Cloudflare 正式站与测试站部署配置
 ├─ .assetsignore                  网站发布排除规则，排除开发目录与维护文档
 ├─ .gitignore                     Git 排除规则，排除临时输出与本机缓存
+├─ .gitattributes                  固定 Windows 批处理脚本的 CRLF 换行格式
 ├─ upload.bat                      发布正式网站
 ├─ upload_test.bat                 发布测试网站
 ├─ upload_github.bat               上传代码到 GitHub
