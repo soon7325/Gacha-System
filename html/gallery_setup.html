@@ -252,11 +252,12 @@
                     <p style="color: #888; margin: 5px 0 0 0;" data-i18n="cs_hub_desc">纯粹的物品仓库体系，支持多标签复合属性与自由图鉴库扩展</p>
                 </div>
                 <!-- 顶部操作按钮组 -->
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                     <button class="btn btn-action-gray" id="btn-preview-toggle" onclick="togglePreviewMode()" data-i18n="lock_preview">👁️ 锁定预览</button>
                     <button class="btn btn-action-gray" id="btn-export-config" onclick="exportCurrentEngineConfig()" data-i18n="cs_btn_export_config">📥 导出配置</button>
                     <input type="file" id="file-import-config" accept=".zip,.json" style="display: none;" onchange="handleEngineConfigImport(event)">
                     <button class="btn btn-action-gray" id="btn-import-config" onclick="document.getElementById('file-import-config').click()" data-i18n="cs_btn_import_config">📤 导入配置</button>
+                    <button type="button" class="btn btn-action-gray" id="btn-ai-catalog" data-i18n="cs_ai_title">✨ 用您的AI制作图鉴</button>
                     <button class="btn btn-primary" id="btn-save-all" onclick="saveAllAndGenerate()" style="padding: 10px 22px; font-weight: bold;" data-i18n="cs_btn_save_config">💾 保存图鉴与引擎配置</button>
                 </div>
             </div>
@@ -524,5 +525,6 @@
     <link rel="stylesheet" href="ui/bilingual_input.css">
     <script src="ui/bilingual_input.js"></script>
     <script src="pages/gallery_bilingual.js"></script>
+    <script src="pages/gallery_ai.js"></script>
 </body>
 </html>

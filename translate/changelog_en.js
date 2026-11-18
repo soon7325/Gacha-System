@@ -30,12 +30,32 @@ Other Previews:
 `
     },
     {
+        version: "v0.3.7.23",
+        title: "Create game catalogs with your own AI",
+        date: "18/11/2026",
+        tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }],
+        author: "ChatGPT & Zhi Siong",
+        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
+        content: `1. Added Create a catalog with your own AI to Gallery Setup, with prompt preview, copying, and example-template downloads. Send the prompt to your own AI, then import the generated JSON here, review it, and save the catalog.
+2. Supports game name, version, server, scope, gender/form preferences, sorting, and wiki/source links. Version defaults to the latest released version including earlier versions; server and source links are optional and start blank.
+2.1 Choose Chinese only, English only, or both, defaulting to the interface language. Gender/form preferences default to omitting gender labels and including all released combat forms; sorting defaults to first-release order, oldest first. These values can be edited.
+3. Generation requirements cover characters and forms, names and abbreviations, acquisition tags, and entry order. Default search targets include the game's official wiki and Bilibili BWIKI, with support for user-provided source links.
+4. The dialog title and top-right close button stay at the top, while copy, template download, and close buttons stay at the bottom. Content scrolls independently, with single-line input fields.
+
+Notes and outstanding issues:
+1. Only catalog-generation prompts are currently available. Users still need to configure pool rules and probabilities themselves. Future updates will continue exploring AI-assisted catalogs, pool rules, probabilities, and related content.
+1.1 Future AI-assisted catalog features will be recorded as minor updates. Although the actual workload may reach the scale of a medium-sized release, these changes can still be considered part of the 0.3.7 series.
+2. Testing has so far been limited to ChatGPT Temporary Chat, ChatGPT Work mode, and the free version of Gemini. Other AI services and environments have not been covered.
+3. Game catalog testing used Genshin Impact and Wuthering Waves. Special-mode character improvements specifically targeted Genshin Impact's Manekin/Manekina (奇偶) only. Due to my unfamiliarity with similar cases in other games, corresponding tests have not yet been possible.
+4. This site provides only prompts and templates; it does not call AI services or provide or pay for users' AI credits, subscriptions, or fees.
+5. Results may vary by AI service, model version, and browsing capabilities. Fully accurate, consistent, and omission-free output cannot be guaranteed. Review results before importing, and export a backup before importing into an existing catalog.`
+    },
+    {
         version: "v0.3.6.23",
         title: "Homepage layout improvements and privacy policy",
         date: "16/11/2026",
         tag: [{ scope: "Home", type: ["Improvement", "Update"] }],
         author: "ChatGPT & Zhi Siong",
-        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
         content: `1. Improved the homepage by removing prominent panels and borders around content, using whitespace to separate sections.
 2. Fixed the positions of the title, release highlights, and update history button on the fifth page so collapsing the content does not shift the layout. Limited the content area's size to prevent long notes from pushing the layout to the top and bottom of the page.
 2.1 An internal scrollbar appears only when the release notes exceed the available height. When all content fits, internal scrolling is disabled so scrolling over the content can continue down the homepage. This is recalculated when the window size or language changes.

@@ -35,6 +35,7 @@ Gacha System Update/
 │  ├─ home-privacy.js              首页隐私政策弹窗
 │  ├─ home-email.js                首页及隐私政策中的复制邮箱操作
 │  ├─ gallery_setup.js             图鉴物品、分类、标签与配置保存
+│  ├─ gallery_ai.js                用户自有 AI 的图鉴提示词、模板与说明弹窗
 │  ├─ gallery_bilingual.js         图鉴编辑字段的双语接线
 │  ├─ gallery_economy.js           图鉴经济配置相关编辑逻辑
 │  ├─ pool_setup.js                卡池规则编辑、候选预览与保存
