@@ -97,15 +97,14 @@
         body.preview-mode .btn-pool-del,
         body.preview-mode button[onclick^="removeCustomTag"],
         body.preview-mode button[onclick*="addCustomTag"],
-        body.preview-mode button[onclick^="openAddPoolModal"],
-        body.preview-mode button[onclick^="saveAllAndGenerate"] { display: none !important; }
+        body.preview-mode button[onclick^="openAddPoolModal"] { display: none !important; }
         
-        body.preview-mode .input-box { pointer-events: none !important; border-color: transparent !important; background: transparent !important; padding: 0 !important; cursor: default !important; user-select: none; }
+        body.preview-mode .input-box:not(#ai-catalog-panel *) { pointer-events: none !important; border-color: transparent !important; background: transparent !important; padding: 0 !important; cursor: default !important; user-select: none; }
         body.preview-mode .color-picker { pointer-events: none !important; opacity: 0.8 !important; cursor: default !important; }
         body.preview-mode .char-card { cursor: default !important; }
         body.preview-mode .char-card:hover { transform: none !important; box-shadow: none !important; border-color: #444 !important; }
         /* 美化下拉与图标按钮是独立节点，也必须遵守只读模式。 */
-        body.preview-mode .setup-container .custom-select-ui,
+        body.preview-mode .setup-container .custom-select-ui:not(#ai-catalog-panel *),
         body.is-preset-game .setup-container .custom-select-ui,
         body.preview-mode .cat-icon-badge,
         body.is-preset-game .cat-icon-badge { pointer-events: none !important; cursor: default !important; }
@@ -144,7 +143,7 @@
             border-color: #444 !important;
         }
 
-        body.is-preset-game #btn-save-all {
+        #btn-save-all:disabled {
             pointer-events: none !important;
             cursor: default !important;
             opacity: 0.65;
@@ -199,6 +198,7 @@
 }
 /* 落点提示不改边框尺寸；悬停缩放也不能改变拖拽目标的命中范围。 */
 .char-card.drag-over-left, .char-card.drag-over-right { transform: none !important; }
+.tier-accordion.tier-drop-target { outline: 2px solid var(--primary); outline-offset: -2px; }
 
         /* 大类名称直接可编辑样式 */
         .cat-name-input {
@@ -235,6 +235,29 @@
         .game-name-row .input-box { flex: 1; min-width: 0; }
         .game-icon-button { background: transparent; border: 0; color: inherit; flex-shrink: 0; }
         .game-icon-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .gallery-tools { padding: 0; margin-bottom: 24px; overflow: hidden; }
+        .gallery-tools summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; cursor: pointer; background: var(--art-inset); color: var(--primary); font-size: 15px; }
+        .gallery-tools summary::-webkit-details-marker { display: none; }
+        .gallery-tools summary > span { font-size: 12px; font-weight: bold; }
+        .gallery-tools:not([open]) .tools-close, .gallery-tools[open] .tools-open,
+        .gallery-tools [hidden], body.preview-mode #config-import-options, body.preview-mode #btn-import-config, body.preview-mode #preset-import-bar { display: none !important; }
+        .tools-content { display: grid; gap: 14px; padding: 16px 20px; border-top: 1px solid var(--border); }
+        .tools-row, #preset-import-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+        #config-import-options { background: var(--art-inset); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+        .gallery-tools fieldset { margin: 0 0 12px; padding: 0 0 10px; border: 0; border-bottom: 1px solid var(--border); min-width: 0; }
+        .gallery-tools legend { padding: 0; margin-bottom: 6px; color: var(--primary); font-size: 13px; font-weight: bold; }
+        .gallery-tools label { cursor: pointer; font-size: 13px; padding: 3px 0; }
+        .gallery-tools input[type=radio] { accent-color: var(--primary); vertical-align: middle; }
+        .gallery-tools label:has(input[type=radio]:disabled) { opacity: .55; cursor: default; }
+        .gallery-tools small, .tools-hint { color: var(--text-muted); font-size: 12px; }
+        .tools-hint { margin: 5px 0 0; line-height: 1.5; }
+        #preset-import-bar { margin: 0 !important; }
+        body.preview-mode #btn-quick-init, .gallery-tools[hidden] { display: none !important; }
+        #ai-catalog-panel { min-width: 0; padding: 16px; border: 1px solid var(--border); background: var(--art-inset); border-radius: 8px; }
+        #ai-catalog-panel .input-box { display: block; width: 100%; box-sizing: border-box; margin: 5px 0 12px; }
+        #ai-catalog-preview { height: min(60dvh, 613px); max-height: min(60dvh, 613px); overflow: auto; resize: vertical; }
+        #ai-catalog-panel [role=status]:empty { display: none; }
+        .preset-export { margin: 0 0 20px; }
     </style>
 <link rel="stylesheet" href="ui/page_layout.css">
     <link rel="stylesheet" href="ui/art-direction.css?v=0.3.6.21">
@@ -254,10 +277,7 @@
                 <!-- 顶部操作按钮组 -->
                 <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                     <button class="btn btn-action-gray" id="btn-preview-toggle" onclick="togglePreviewMode()" data-i18n="lock_preview">👁️ 锁定预览</button>
-                    <button class="btn btn-action-gray" id="btn-export-config" onclick="exportCurrentEngineConfig()" data-i18n="cs_btn_export_config">📥 导出配置</button>
-                    <input type="file" id="file-import-config" accept=".zip,.json" style="display: none;" onchange="handleEngineConfigImport(event)">
-                    <button class="btn btn-action-gray" id="btn-import-config" onclick="document.getElementById('file-import-config').click()" data-i18n="cs_btn_import_config">📤 导入配置</button>
-                    <button type="button" class="btn btn-action-gray" id="btn-ai-catalog" data-i18n="cs_ai_title">✨ 用您的AI制作图鉴</button>
+
                     <button class="btn btn-primary" id="btn-save-all" onclick="saveAllAndGenerate()" style="padding: 10px 22px; font-weight: bold;" data-i18n="cs_btn_save_config">💾 保存图鉴与引擎配置</button>
                 </div>
             </div>
@@ -271,23 +291,72 @@
                 </div>
             </div>
 
-<!-- 唯一的快速初始化栏 -->
-<div class="pool-section" id="preset-import-bar" style="background: rgba(0,123,255,0.06); border: 1px dashed var(--primary); padding: 12px 18px; margin-bottom: 20px; display: none; align-items: center; justify-content: space-between;">
-    <div>
-        <span style="font-weight: bold; color: var(--primary);" data-i18n="cs_preset_import_title">📦 快速基于已有游戏初始化：</span>
-        <span style="font-size: 12px; color: #aaa;" data-i18n="cs_preset_import_desc">复制已有预设的星级、分类及全套物品图鉴到当前引擎</span>
-    </div>
-    <div style="display: flex; gap: 8px;">
-        <select id="select-preset-template" class="input-box" style="width: 155px; padding: 4px 8px; font-size: 12px;">
-            <option value="test" data-i18n="game_test" selected>测试专用</option>
-            <option value="hsr" data-i18n="game_hsr">崩坏：星穹铁道 (HSR)</option>
-            <option value="zzz" data-i18n="game_zzz">绝区零 (ZZZ)</option>
-            <option value="ark" data-i18n="game_ark">明日方舟 (Arknights)</option>
-            <option value="end" data-i18n="game_end">明日方舟：终末地 (Endfield)</option>
-        </select>
-        <button type="button" class="btn btn-action-gray" onclick="importFromExistingPreset()" style="font-size: 12px; padding: 4px 12px;" data-i18n="cs_btn_load_preset">载入该游戏图鉴</button>
-    </div>
-</div>
+            <details class="pool-section gallery-tools">
+                <summary><strong>🧰 <span data-i18n="cs_tools_tools">配置与图鉴工具</span></strong><span class="tools-open" data-i18n="cs_expand_cfg_btn">▼ 展开配置</span><span class="tools-close" data-i18n="cs_collapse_cfg_btn">▲ 收起配置</span></summary>
+                <div class="tools-content">
+                    <div class="tools-row">
+                        <button type="button" class="btn btn-action-gray" id="btn-import-config" aria-expanded="false" aria-controls="config-import-options" onclick="toggleGalleryTool(this)" data-i18n="cs_btn_import_config">📤 导入配置</button>
+                        <button class="btn btn-action-gray" id="btn-export-config" onclick="exportCurrentEngineConfig()" data-i18n="cs_btn_export_config">📥 导出配置</button>
+                        <button type="button" class="btn btn-action-gray" id="btn-ai-catalog" aria-controls="ai-catalog-panel" aria-expanded="false" onclick="toggleGalleryTool(this)" data-i18n="cs_ai_title">✨ 用您的AI制作图鉴</button>
+                        <button type="button" class="btn btn-action-gray" id="btn-quick-init" aria-controls="preset-import-bar" aria-expanded="false" onclick="toggleGalleryTool(this)" data-i18n="cs_tools_quick" hidden>📦 快速初始化</button>
+                    </div>
+                    <div id="config-import-options" onchange="refreshImportOptions()" hidden>
+                        <fieldset data-group="mode">
+                            <legend><span data-i18n="cs_tools_mode">导入方式</span></legend>
+                            <div class="tools-row"><label><input type="radio" name="mode" value="latest" checked> <span data-i18n="cs_tools_latest">只用本次导入的配置</span></label>
+                                <label><input type="radio" name="mode" value="overwrite"> <span data-i18n="cs_tools_overwrite">覆盖</span></label>
+                                <label><input type="radio" name="mode" value="add"> <span data-i18n="cs_tools_add">添加差异</span></label></div>
+                            <p class="tools-hint" aria-live="polite" data-i18n="cs_tools_latest_hint">用本次文件替换整份配置，保存后生效。</p>
+                        </fieldset>
+                        <fieldset data-group="match" hidden>
+                            <legend><span data-i18n="cs_tools_match">图鉴匹配依据</span></legend>
+                            <div class="tools-row"><label><input type="radio" name="match" value="name" checked> <span data-i18n="cs_tools_name">图鉴名称</span></label>
+                                <label><input type="radio" name="match" value="id"> <span data-i18n="cs_tools_id">图鉴 ID</span></label></div>
+                            <p class="tools-hint" aria-live="polite" data-i18n="cs_tools_name_hint">同一分类内优先比较中文全名；一方缺少中文名时，才比较英文全名。</p>
+                        </fieldset>
+                        <fieldset data-group="identity" hidden>
+                            <legend><span data-i18n="cs_tools_identity">同名图鉴的 ID 不同时</span></legend>
+                            <div class="tools-row"><label><input type="radio" name="identity" value="keep" checked> <span data-i18n="cs_tools_keep">保留原 ID</span> <small><span data-i18n="cs_tools_recommend">← 建议保留</span></small></label>
+                                <label><input type="radio" name="identity" value="replace"> <span data-i18n="cs_tools_replace">替换为新 ID</span></label></div>
+                            <p class="tools-hint" aria-live="polite" data-i18n="cs_tools_keep_hint">更新内容时沿用本地图鉴的 ID。</p>
+                        </fieldset>
+                        <fieldset data-group="overwriteBlanks" hidden>
+                            <legend data-i18n="cs_tools_incoming_blanks">新图鉴中的空白字段</legend>
+                            <div class="tools-row">
+                                <label><input type="radio" name="overwriteBlanks" value="as_file" checked> <span data-i18n="cs_tools_as_file">沿用新文件的空白</span></label>
+                                <label><input type="radio" name="overwriteBlanks" value="from_old"> <span data-i18n="cs_tools_from_old">用旧值补齐</span></label>
+                            </div>
+                            <p class="tools-hint" aria-live="polite" data-i18n="cs_tools_as_file_hint">新文件中缺少的字段保持空白。</p>
+                        </fieldset>
+                        <fieldset data-group="blanks" hidden>
+                            <legend><span data-i18n="cs_tools_blanks">已匹配的图鉴</span></legend>
+                            <div class="tools-row"><label><input type="radio" name="blanks" value="fill" checked> <span data-i18n="cs_tools_fill">补齐空白</span></label>
+                                <label><input type="radio" name="blanks" value="skip"> <span data-i18n="cs_tools_skip">跳过已匹配图鉴</span></label></div>
+                            <p class="tools-hint" aria-live="polite" data-i18n="cs_tools_fill_hint">仅补入旧图鉴缺少的内容，已有内容保留。</p>
+                        </fieldset>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('file-import-config').click()" data-i18n="cs_tools_choose">选择配置文件…</button>
+                        <input type="file" id="file-import-config" accept=".zip,.json" style="display: none;" onchange="handleEngineConfigImport(event)">
+                    </div>
+                    <section id="ai-catalog-panel" aria-labelledby="btn-ai-catalog" hidden></section>
+                    <div class="pool-section" id="preset-import-bar" hidden style="background: rgba(0,123,255,0.06); border: 1px dashed var(--primary); padding: 12px 18px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+                        <div>
+                            <span style="font-weight: bold; color: var(--primary);" data-i18n="cs_preset_import_title">📦 快速基于已有游戏初始化：</span>
+                            <span style="font-size: 12px; color: #aaa;" data-i18n="cs_preset_import_desc">复制已有预设的星级、分类及全套物品图鉴到当前引擎</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="select-preset-template" class="input-box" style="width: 155px; padding: 4px 8px; font-size: 12px;">
+                                <option value="test" data-i18n="game_test" selected>测试专用</option>
+                                <option value="hsr" data-i18n="game_hsr">崩坏：星穹铁道 (HSR)</option>
+                                <option value="zzz" data-i18n="game_zzz">绝区零 (ZZZ)</option>
+                                <option value="ark" data-i18n="game_ark">明日方舟 (Arknights)</option>
+                                <option value="end" data-i18n="game_end">明日方舟：终末地 (Endfield)</option>
+                            </select>
+                            <button type="button" class="btn btn-action-gray" onclick="importFromExistingPreset()" style="font-size: 12px; padding: 4px 12px;" data-i18n="cs_btn_load_preset">载入该游戏图鉴</button>
+                        </div>
+                    </div>
+
+                </div>
+            </details>
 
             <!-- 卡池管理手风琴卡片 (预设游戏同样展示以供拖拽排序) -->
             <div class="pool-section" id="custom-pools-section" style="border-top: 4px solid #f1c40f; padding: 0; overflow: hidden; margin-bottom: 25px; background: rgba(0,0,0,0.18);">
@@ -517,6 +586,7 @@
     <script src="ui/dialog.js"></script>
     <script src="ui/unsaved_changes.js"></script>
     <script src="logic/import_export.js"></script>
+    <script src="logic/gallery_import.js"></script>
     <script src="ui/image_upload.js"></script>
     <script src="ui/preview_lock.js"></script>
     <link rel="stylesheet" href="ui/icon_picker.css">

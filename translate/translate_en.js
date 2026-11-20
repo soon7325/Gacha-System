@@ -55,7 +55,7 @@ window.UI_LIB.en = {
     sim_empty_desc: "Choose your targets and make your first pull. Your pull history will unfold here.",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "Current Version :Beta",
-    idx_version_title_number: "v0.3.7.23",
+    idx_version_title_number: "v0.3.7.24",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "Updates:<br>" +
@@ -71,7 +71,8 @@ window.UI_LIB.en = {
         "2. Supports language, scope, preferences, and source links.<br>" +
         "<br>" +
         "Minor update:<br>" +
-        "1. Fixed the version number displayed on the first homepage section.<br>" +
+        "1. New catalog configuration tools let you merge entries by name or ID and choose whether to use incoming values or keep existing ones.<br>" +
+        "2. Drag cards to change their rarity and catalog category. The save button stays in place when you lock the preview.<br>" +
         "<br>" +
         "Gallery updates:<br>" +
         "1. Added fixed IDs and legacy-data compatibility to all four supported game galleries.<br>" +
@@ -340,6 +341,39 @@ window.UI_LIB.en = {
     cs_btn_add_tag_gene: "➕ New Tag",
     cs_btn_add_tier_gene: "➕ Add Rarity",
     cs_btn_confirm_import: "Confirm Import",
+    cs_tools_tools: "Catalog configuration tools",
+    cs_tools_quick: "📦 Quick setup",
+    cs_tools_incoming_blanks: "Empty fields in incoming entries",
+    cs_tools_as_file: "Keep incoming blanks",
+    cs_tools_from_old: "Fill from saved values",
+    cs_tools_as_file_hint: "Leave missing or empty incoming fields blank.",
+    cs_tools_from_old_hint: "Use incoming values where present. Fill missing fields such as short names or images from the matched local entry.",
+    cs_tools_choose: "Choose configuration file…",
+    cs_tools_mode: "Import mode",
+    cs_tools_latest: "Use only this file",
+    cs_tools_overwrite: "Overwrite matches",
+    cs_tools_add: "Add differences",
+    cs_tools_match: "Match catalog entries by",
+    cs_tools_name: "Name",
+    cs_tools_id: "ID",
+    cs_tools_identity: "When names match but IDs differ",
+    cs_tools_keep: "Keep current ID",
+    cs_tools_replace: "Use incoming ID",
+    cs_tools_recommend: "← Recommended",
+    cs_tools_blanks: "Matched entries",
+    cs_tools_fill: "Fill empty fields",
+    cs_tools_skip: "Skip matched entries",
+    cs_tools_latest_hint: "Replace the entire configuration with this file when saved.",
+    cs_tools_first_save_hint: "Importing again replaces the current draft. Save the game configuration once to unlock Overwrite matches and Add differences.",
+    cs_tools_overwrite_hint: "Update matches and add new entries. Local-only entries are kept.",
+    cs_tools_add_hint: "Add entries missing locally and keep existing content.",
+    cs_tools_name_hint: "Compare full English names within the same category. If either entry lacks an English name, compare their Chinese names.",
+    cs_tools_id_hint: "Match IDs within the same category, even when names differ.",
+    cs_tools_keep_hint: "Update the content and retain the local ID.",
+    cs_tools_replace_hint: "Use the ID from the file. Settings that reference the old ID may need updating.",
+    cs_tools_fill_hint: "Fill only empty fields using the file. Keep existing values.",
+    cs_tools_skip_hint: "Leave matched entries untouched and add only unmatched entries.",
+    cs_tools_conflict: "Conflicting names or IDs prevent a unique match. Check the file or try another matching option.",
     cs_btn_confirm_load: "Confirm Load",
     cs_btn_export_config: "📥 Export Config",
     cs_ai_title: "✨ Create a catalog with your own AI",
@@ -410,7 +444,7 @@ window.UI_LIB.en = {
     cs_modal_del_item_title: "Delete Item [{name}]?",
     cs_modal_edit_item: "✏️ Edit Archive Item",
     cs_modal_err_name: "Please enter the full name!",
-    cs_modal_import_cfg_msg: "Importing will <span style=\"color:#f1c40f; font-weight:bold;\">overwrite current unsaved archives and settings</span>.<br>Do you want to continue?",
+    cs_modal_import_cfg_msg: "Build a new draft using the saved local configuration? This replaces any unsaved edits.",
     cs_modal_import_cfg_title: "Import Configuration?",
     cs_modal_lbl_cat: "Belongs to Archive",
     cs_modal_lbl_img: "Avatar / Image (auto-compressed upon upload)",

@@ -55,7 +55,7 @@ window.UI_LIB.zh = {
     sim_empty_desc: "选好目标，开始第一次抽卡。你的抽卡轨迹将在这里展开。",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "当前版本:Beta",
-    idx_version_title_number: "v0.3.7.23",
+    idx_version_title_number: "v0.3.7.24",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "更新：<br>" +
@@ -70,8 +70,9 @@ window.UI_LIB.zh = {
         "1：新增“用您的AI制作图鉴”入口，支持复制提示词与下载模板。<br>" +
         "2：支持语言、收录范围、偏好设置与资料链接。<br>" +
         "<br>" +
-        "小更新：<br>" +
-        "1：修复首页第一页的版本号展示问题。<br>" +
+        "小版本更新：<br>" +
+        "1：新增图鉴配置工具，导入图鉴支持按名称或 ID 融合导入，可优先采用新内容或保留旧内容。<br>" +
+        "2：支持拖拽卡片更改星级与所属图鉴库；锁定预览时保存按钮保持原位。<br>" +
         "<br>" +
         "图鉴更新：<br>" +
         "1：四个正式游戏图鉴补充固定 ID 与旧数据兼容。<br>" +
@@ -340,6 +341,39 @@ window.UI_LIB.zh = {
     cs_btn_add_tag_gene: "➕ 新建标签",
     cs_btn_add_tier_gene: "➕ 添加稀有度",
     cs_btn_confirm_import: "确认导入",
+    cs_tools_tools: "配置图鉴工具",
+    cs_tools_quick: "📦 快速初始化",
+    cs_tools_incoming_blanks: "新图鉴中的空白字段",
+    cs_tools_as_file: "沿用新文件的空白",
+    cs_tools_from_old: "用旧值补齐",
+    cs_tools_as_file_hint: "新文件中缺少的字段保持空白。",
+    cs_tools_from_old_hint: "新文件有值时用新值，缺少简称、图片等内容时沿用已匹配图鉴的旧值。",
+    cs_tools_choose: "选择配置文件…",
+    cs_tools_mode: "导入方式",
+    cs_tools_latest: "只用本次导入的配置",
+    cs_tools_overwrite: "覆盖",
+    cs_tools_add: "添加差异",
+    cs_tools_match: "图鉴匹配依据",
+    cs_tools_name: "图鉴名称",
+    cs_tools_id: "图鉴 ID",
+    cs_tools_identity: "同名图鉴的 ID 不同时",
+    cs_tools_keep: "保留原 ID",
+    cs_tools_replace: "替换为新 ID",
+    cs_tools_recommend: "← 建议保留",
+    cs_tools_blanks: "已匹配的图鉴",
+    cs_tools_fill: "补齐空白",
+    cs_tools_skip: "跳过已匹配图鉴",
+    cs_tools_latest_hint: "用本次文件替换整份配置，保存后生效。",
+    cs_tools_first_save_hint: "再次导入会替换当前草稿。首次点击「保存游戏配置」并保存成功后，即可使用「覆盖」和「添加差异」。",
+    cs_tools_overwrite_hint: "更新匹配项并加入新项，本地独有的内容会保留。",
+    cs_tools_add_hint: "加入本地尚未收录的图鉴，已有内容会保留。",
+    cs_tools_name_hint: "同一分类内优先比较中文全名；一方缺少中文名时，才比较英文全名。",
+    cs_tools_id_hint: "在同一分类内按图鉴 ID 识别，即使名称不同也能匹配。",
+    cs_tools_keep_hint: "更新内容时沿用本地图鉴的 ID。",
+    cs_tools_replace_hint: "更新内容并采用文件里的 ID，依赖原 ID 的配置可能需要调整。",
+    cs_tools_fill_hint: "仅补入旧图鉴缺少的内容，已有内容保留。",
+    cs_tools_skip_hint: "保留整条已匹配图鉴，仅加入未匹配的新图鉴。",
+    cs_tools_conflict: "图鉴名称或 ID 有冲突，无法唯一匹配。请检查文件，或更换匹配依据后重试。",
     cs_btn_confirm_load: "确认载入",
     cs_btn_export_config: "📥 导出配置",
     cs_ai_title: "✨ 用您的AI制作图鉴",
@@ -410,7 +444,7 @@ window.UI_LIB.zh = {
     cs_modal_del_item_title: "删除物品【{name}】？",
     cs_modal_edit_item: "✏️ 编辑图鉴物品",
     cs_modal_err_name: "请输入物品全名！",
-    cs_modal_import_cfg_msg: "导入配置将<span style=\"color:#f1c40f; font-weight:bold;\">覆盖当前未保存的图鉴与设置</span>，是否继续？",
+    cs_modal_import_cfg_msg: "将根据本地已保存的配置重新生成草稿。当前未保存的编辑会被替换，是否继续？",
     cs_modal_import_cfg_title: "导入配置？",
     cs_modal_lbl_cat: "所属图鉴库",
     cs_modal_lbl_img: "头像/图片 (支持本地上传自动压缩)",

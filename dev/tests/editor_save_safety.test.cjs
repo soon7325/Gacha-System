@@ -16,7 +16,8 @@ const elements = {
 };
 const classes = new Set(['preview-mode']);
 const context = require('./icon_test_context.cjs').createContext({
-    window: { getTrans: key => key }, console,
+    window: { getTrans: key => key }, console, structuredClone,
+    defaultGameInfo: { categories: [], globalTiers: [] }, ImportExport: { isObject: value => value && typeof value === 'object' && !Array.isArray(value) },
     document: { getElementById: id => elements[id], body: { classList: { contains: name => classes.has(name) } } },
     localStorage: {
         getItem: key => stored.get(key) ?? null,
@@ -63,7 +64,7 @@ function importDraft() {
         info: { gameName: 'Imported Game' }, catalog: { char: [{ name: 'Item', tags: ['up'] }] },
         rosterPools: [{ id: 'p', name: 'Imported Pool' }], poolOrder: ['p'],
         poolRules: { p: { info: { name: 'Imported Pool' }, tiers: [] } }
-    }, {})`, context);
+    }, { rosterPools: [{ id: 'p' }] })`, context);
 }
 seed(); const before = [...stored]; importDraft();
 assert.deepEqual([...stored], before); // 导入不写正式卡池、规则或图鉴。

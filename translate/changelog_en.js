@@ -30,12 +30,26 @@ Other Previews:
 `
     },
     {
+        version: "v0.3.7.24",
+        title: "Catalog import merging and drag-and-drop editing",
+        date: "20/11/2026",
+        tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }],
+        author: "ChatGPT & Zhi Siong",
+        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
+        content: `1. New catalogs can initially use only the configuration from the imported file. After the first save, Overwrite matches and Add differences become available. Both merge against the last saved configuration and keep entries unique to either side.
+1.1 Overwrite matches uses incoming values and can fill empty incoming fields from saved entries. Add differences keeps saved values and can either fill empty fields from the file or skip matched entries entirely.
+1.2 Entries match by name within the same category by default, with ID matching also available. Name matching uses full names in the interface language and checks the other language only when either name is missing. When overwriting by name, you can keep the original ID or use the incoming ID.
+2. Custom catalogs now group import, export and AI tools under Catalog configuration tools. Quick setup is available when creating a catalog and disappears after importing a configuration. Preset catalogs show Export directly.
+2.1 The AI catalog form now opens inline, with prompt copying and example downloads at the top. Collapsing the panel or switching tools keeps the form entries. The output preview scrolls independently.
+3. Drag cards to a rarity section in the same or another catalog category, including collapsed or empty sections. The item editor shows the updated rarity and category and still lets you change both.
+4. Locking preview disables the save button in place. Unlocking preview enables it again.`
+    },
+    {
         version: "v0.3.7.23",
         title: "Create game catalogs with your own AI",
         date: "18/11/2026",
         tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }, { scope: "Home", type: ["Fix"] }],
         author: "ChatGPT & Zhi Siong",
-        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
         content: `1. Added Create a catalog with your own AI to Gallery Setup, with prompt preview, copying, and example-template downloads. Send the prompt to your own AI, then import the generated JSON here, review it, and save the catalog.
 2. Supports game name, version, server, scope, gender/form preferences, sorting, and wiki/source links. Version defaults to the latest released version including earlier versions; server and source links are optional and start blank.
 2.1 Choose Chinese only, English only, or both, defaulting to the interface language. Gender/form preferences default to omitting gender labels and including all released combat forms; sorting defaults to first-release order, oldest first. These values can be edited.

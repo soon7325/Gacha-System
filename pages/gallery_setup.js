@@ -19,7 +19,7 @@ const urlParams = new URLSearchParams(window.location.search);
             normal: { name: "常规副产物", en: "Regular", color: "#95a5a6", textColor: "#000" }
         };
 
-        let gameInfo = {
+        const defaultGameInfo = {
             gameName: '',
             enGameName: '',
             globalTiers: [],
@@ -31,6 +31,7 @@ const urlParams = new URLSearchParams(window.location.search);
             ]
         };
 
+        let gameInfo = structuredClone(defaultGameInfo);
         let catalog = {};
         let tierOpenState = {};
         let tierFilterState = {};
@@ -54,7 +55,10 @@ const urlParams = new URLSearchParams(window.location.search);
         function commitEngineEdits(writes, removedKeys = []) {
             const previous = new Map([...writes.keys(), ...removedKeys].map(key => [key, localStorage.getItem(key)]));
             try {
-                for (const [key, value] of writes) localStorage.setItem(key, value);
+                for (const [key, value] of writes) {
+                    if (value === null) localStorage.removeItem(key);
+                    else localStorage.setItem(key, value);
+                }
                 for (const key of removedKeys) localStorage.removeItem(key);
             } catch (error) {
                 // 先释放本次新增/增大的内容，再恢复旧值，降低配额不足时的回滚风险。
@@ -306,7 +310,8 @@ const urlParams = new URLSearchParams(window.location.search);
         const readonlyControlStates = new WeakMap();
         function syncGalleryReadonlyControls() {
             const locked = galleryPreviewLock.isLocked();
-            document.querySelectorAll('.setup-container input, .setup-container select, .setup-container textarea, .setup-container .paint-swatch, #itemModalOverlay input, #itemModalOverlay select').forEach(control => {
+            document.querySelectorAll('#btn-save-all, .setup-container input, .setup-container select, .setup-container textarea, .setup-container .paint-swatch, #itemModalOverlay input, #itemModalOverlay select').forEach(control => {
+                if (control.closest?.('#ai-catalog-panel')) return;
                 if (locked) {
                     if (!readonlyControlStates.has(control)) readonlyControlStates.set(control, control.disabled);
                     // 重复写入 disabled 也会触发属性监听；下拉框重建后会再次调用这里。
@@ -323,7 +328,7 @@ const urlParams = new URLSearchParams(window.location.search);
         for (const eventName of ['click', 'keydown']) document.addEventListener(eventName, event => {
             if (!galleryPreviewLock.isLocked()) return;
             const control = event.target.closest('.setup-container .custom-select-ui, #itemModalOverlay .custom-select-ui');
-            if (control) { event.preventDefault(); event.stopImmediatePropagation(); }
+            if (control && !control.closest('#ai-catalog-panel')) { event.preventDefault(); event.stopImmediatePropagation(); }
         }, true);
         // 动态重绘的控件也要锁住，不依赖页面是否再次切换预览。
         new MutationObserver(syncGalleryReadonlyControls).observe(document.body, { childList: true, subtree: true });
@@ -626,7 +631,7 @@ window.updateCustomTag = function(tagKey, prop, value, language) {
 
                         const itemDisplayName = getLocalizedItemName(item);
                         let imgHtml = item.img 
-                            ? `<img src="${item.img}" class="char-img" loading="lazy" decoding="async">` 
+                            ? `<img src="${item.img}" class="char-img" draggable="false" loading="lazy" decoding="async">`
                             : `<div style="color:#777; font-weight:bold; font-size:18px;">${(isEn && item.eshort) ? item.eshort : (item.short || itemDisplayName)}</div>`;
 
                         let clickAttr = isPreset ? '' : `onclick="openEditItemModal('${cat.id}', '${item.id}')"`;
@@ -665,7 +670,7 @@ window.updateCustomTag = function(tagKey, prop, value, language) {
                     });
 
                     tiersAccordionsHtml += `
-                    <div class="tier-accordion">
+                    <div class="tier-accordion" data-drop-tier="${escapeEditorAttribute(tier.id)}">
                         <div class="tier-header" onclick="toggleTierAccordion('${stateKey}')">
                             <div class="tier-badge-label">
                                 <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${ColorStyle.background(tier)};"></span>
@@ -827,7 +832,7 @@ window.updateCustomTag = function(tagKey, prop, value, language) {
         // ==========================================
         // 弹窗逻辑
         // ==========================================
-function populateModalDropdowns(selectedTags = []) {
+function populateModalDropdowns(catId, tierId, selectedTags) {
     const tierSelect = document.getElementById('input-item-tier');
     tierSelect.innerHTML = gameInfo.globalTiers.map(t => 
         `<option value="${t.id}" style="color:${t.color}; font-weight:bold;">${getLocalizedTierName(t)}</option>`
@@ -838,6 +843,8 @@ function populateModalDropdowns(selectedTags = []) {
         `<option value="${c.id}" data-icon="${escapeEditorAttribute(c.icon || '')}">${getLocalizedCatName(c)}</option>`
     ).join('');
 
+    catSelect.value = catId;
+    tierSelect.value = tierId;
     const tagsBox = document.getElementById('modal-tags-container');
     const tagDefs = getActiveTagDefinitions();
     let cbsHtml = '';
@@ -874,12 +881,10 @@ function populateModalDropdowns(selectedTags = []) {
     if (galleryPreviewLock.isLocked()) return;
             itemImageUploader?.cancelPending();
             editingItemRef = null;
-            populateModalDropdowns(['up']);
+            populateModalDropdowns(catId, tierId, ['up']);
 
             document.getElementById('modal-title').innerText = window.getTrans ? window.getTrans('cs_modal_add_item') : "➕ 添加新图鉴物品";
             document.getElementById('modal-cat-id').value = catId;
-            document.getElementById('input-item-cat-select').value = catId;
-            document.getElementById('input-item-tier').value = tierId;
             document.getElementById('input-item-name').value = '';
             document.getElementById('input-item-short').value = '';
             window.GalleryBilingual?.setItemDraft();
@@ -898,14 +903,12 @@ function populateModalDropdowns(selectedTags = []) {
             if (!item) return;
 
             editingItemRef = { catId, itemId };
-            populateModalDropdowns(item.tags || ['std']);
+            populateModalDropdowns(catId, item.tierId, item.tags || ['std']);
 
             const isEn = getLang() === 'en';
 
             document.getElementById('modal-title').innerText = window.getTrans ? window.getTrans('cs_modal_edit_item') : "✏️ 编辑图鉴物品";
             document.getElementById('modal-cat-id').value = catId;
-            document.getElementById('input-item-cat-select').value = catId;
-            document.getElementById('input-item-tier').value = item.tierId;
             document.getElementById('input-item-name').value = getLocalizedItemName(item);
             
             // ★ 根据语言载入对应的简称：英文显示 eshort，中文显示 short
@@ -959,7 +962,7 @@ function populateModalDropdowns(selectedTags = []) {
                         if (!item.en) item.en = name;
                         if (!item.eshort) item.eshort = short || name;
                     }
-                    item.tierId = tierId;
+                    placeGalleryItem(item, editingItemRef.catId, targetCatId, tierId);
                     item.tags = checkedTags;
                     item.img = tempBase64Img;
                     // Explicit local edits remain local overrides of preset presentation.
@@ -971,11 +974,6 @@ function populateModalDropdowns(selectedTags = []) {
                         if (oldNames.length) item.aliases = [...new Set([...(item.aliases || []), ...oldNames])];
                     }
 
-                    if (editingItemRef.catId !== targetCatId) {
-                        catalog[editingItemRef.catId] = oldList.filter(i => i.id !== editingItemRef.itemId);
-                        if (!catalog[targetCatId]) catalog[targetCatId] = [];
-                        catalog[targetCatId].push(item);
-                    }
                 }
             } else {
                 if (!catalog[targetCatId]) catalog[targetCatId] = [];
@@ -1110,6 +1108,7 @@ function executeSaveAll(showFeedback = true) {
             if (document.body.classList.contains('preview-mode') || document.body.classList.contains('is-preset-game')) return;
             
             if (executeSaveAll(true)) {
+                updateImportVisibility();
                 const current = new URL(window.location.href);
                 current.searchParams.set('gameId', gameId);
                 window.history.replaceState({}, '', current);
@@ -1292,6 +1291,82 @@ window.deleteEntireGame = async function() {
             markPageDirty();
             renderCategories();
         };
+
+        function placeGalleryItem(item, fromCategory, toCategory, tierId, anchorId = null, before = false) {
+            item.tierId = tierId;
+            if (fromCategory === toCategory && !anchorId) return;
+            const source = catalog[fromCategory];
+            source.splice(source.indexOf(item), 1);
+            const target = catalog[toCategory] ||= [];
+            const index = anchorId ? target.findIndex(entry => entry.id === anchorId) : -1;
+            target.splice(index < 0 ? target.length : index + (before ? 0 : 1), 0, item);
+            if (Object.hasOwn(item, 'category')) item.category = toCategory;
+        }
+
+        // 同分区内仍由 DragSort 决定插入位置；跨分区允许直接放到折叠标题或空分区上。
+        let draggedGalleryCard = null;
+        let highlightedTier = null;
+        let highlightedCard = null;
+        function dropBeforeCard(event, card) {
+            const rect = card.getBoundingClientRect();
+            return event.clientX < rect.left + rect.width / 2;
+        }
+        function highlightDropTier(tier, card = null, before = false) {
+            if (highlightedCard !== card) highlightedCard?.classList.remove('drag-over-left', 'drag-over-right');
+            highlightedCard = card;
+            if (card) {
+                card.classList.toggle('drag-over-left', before);
+                card.classList.toggle('drag-over-right', !before);
+            }
+            if (highlightedTier === tier) return;
+            highlightedTier?.classList.remove('tier-drop-target');
+            highlightedTier = tier;
+            tier?.classList.add('tier-drop-target');
+        }
+        function galleryDropTier(event) {
+            if (!draggedGalleryCard?.isConnected || galleryPreviewLock.isLocked()) return null;
+            const tier = event.target.closest('.tier-accordion[data-drop-tier]');
+            return tier && tier !== draggedGalleryCard.closest('.tier-accordion') ? tier : null;
+        }
+        document.addEventListener('dragstart', event => {
+            draggedGalleryCard = galleryPreviewLock.isLocked() ? null : event.target.closest('.char-card[data-cat]');
+        }, true);
+        document.addEventListener('dragover', event => {
+            const tier = galleryDropTier(event);
+            const card = tier && event.target.closest('.char-card[data-id]');
+            highlightDropTier(tier, card, card && dropBeforeCard(event, card));
+            if (!tier) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }, true);
+        document.addEventListener('dragleave', event => {
+            if (highlightedTier && !highlightedTier.contains(event.relatedTarget)) highlightDropTier(null);
+        });
+        document.addEventListener('dragend', () => {
+            draggedGalleryCard = null;
+            highlightDropTier(null);
+        }, true);
+        document.addEventListener('drop', event => {
+            const tier = galleryDropTier(event);
+            const source = draggedGalleryCard;
+            draggedGalleryCard = null;
+            highlightDropTier(null);
+            if (!tier) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const from = source.dataset.cat;
+            const to = tier.closest('.category-box').dataset.id;
+            const tierId = tier.dataset.dropTier;
+            const item = catalog[from]?.find(entry => entry.id === source.dataset.id);
+            if (!item) return;
+            const card = event.target.closest('.char-card[data-id]');
+            placeGalleryItem(item, from, to, tierId, card?.dataset.id, card && dropBeforeCard(event, card));
+            const key = `${to}_${tierId}`;
+            tierOpenState[key] = true;
+            if (!item.tags?.includes(tierFilterState[key])) tierFilterState[key] = 'all';
+            markPageDirty();
+            renderCategories();
+        }, true);
 
         window.toggleCategoryBox = function(catId) {
             categoryOpenState[catId] = !categoryOpenState[catId];
@@ -1708,15 +1783,78 @@ window.deleteCustomPool = async function(pId) {
     showToast((window.getTrans('cs_pools_del_toast') || '').replace('{name}', poolName), "danger");
 };
 
+function hasSavedGallery() {
+    return Boolean(gameId && localStorage.getItem('GM_Info_' + gameId));
+}
+
+function getImportOptions() {
+    const options = document.getElementById('config-import-options');
+    const selected = Object.fromEntries([...options.querySelectorAll('input:checked')].map(input => [input.name, input.value]));
+    if (!hasSavedGallery()) selected.mode = 'latest';
+    return selected;
+}
+
+function refreshImportOptions() {
+    const options = getImportOptions();
+    const creating = !hasSavedGallery();
+    for (const radio of document.querySelectorAll('#config-import-options input[name="mode"]')) {
+        if (radio.value === 'latest') {
+            if (creating) radio.checked = true;
+        } else {
+            radio.disabled = creating || galleryPreviewLock.isLocked();
+        }
+    }
+    const visible = { mode: true, match: options.mode !== 'latest',
+        identity: options.mode === 'overwrite' && options.match === 'name', blanks: options.mode === 'add',
+        overwriteBlanks: options.mode === 'overwrite' };
+    for (const group of document.querySelectorAll('#config-import-options fieldset')) {
+        const name = group.dataset.group;
+        group.hidden = !visible[name];
+        const hint = group.querySelector('.tools-hint');
+        hint.dataset.i18n = 'cs_tools_' + options[name] + '_hint';
+        if (creating && name === 'mode') hint.dataset.i18n = 'cs_tools_first_save_hint';
+        hint.textContent = window.getTrans(hint.dataset.i18n);
+    }
+}
+
+function toggleGalleryTool(button) {
+    if (button.hidden || (button.id !== 'btn-ai-catalog' && galleryPreviewLock.isLocked())) return;
+    const panel = document.getElementById(button.getAttribute('aria-controls'));
+    const opening = panel.hidden;
+    for (const trigger of document.querySelectorAll('.gallery-tools button[aria-controls]')) {
+        const active = opening && trigger === button;
+        document.getElementById(trigger.getAttribute('aria-controls')).hidden = !active;
+        trigger.setAttribute('aria-expanded', String(active));
+    }
+    if (opening && panel.id === 'config-import-options') refreshImportOptions();
+    if (opening && panel.id === 'ai-catalog-panel') window.showGalleryAi(panel);
+}
+
+function savedEnginePackage() {
+    const read = key => JSON.parse(localStorage.getItem(key));
+    const info = read('GM_Info_' + gameId) || {};
+    const rosterPools = read('GM_RosterPools_' + gameId) || info.rosterPools || [];
+    const poolRules = Object.fromEntries(rosterPools.map(pool => [pool.id, read(`GM_Rules_${gameId}_${pool.id}`)])
+        .filter(([, rule]) => rule));
+    return { info, catalog: read('GM_Catalog_' + gameId) || {}, rosterPools, poolRules,
+        poolOrder: read('GM_Pool_Order_' + gameId) || [] };
+}
+
 window.handleEngineConfigImport = async function(event) {
     // 预览与官方预设都只读，不能通过残留按钮或直接调用修改数据。
     if (galleryPreviewLock.isLocked()) return;
-    // 读取/校验/确认后直接应用到表单，完成后刷新界面，不增加额外操作步骤。
+    const options = getImportOptions();
     return ImportExport.importInput(event.target, {
         read: ImportExport.readEnginePackage,
         validate({ data }) {
             if (!ImportExport.isObject(data) || (!data.catalog && !data.info) ||
                 (data.info && !ImportExport.isObject(data.info)) ||
+                (data.poolRules && !ImportExport.isObject(data.poolRules)) ||
+                [data.info?.globalTiers, data.info?.categories, data.rosterPools, data.info?.rosterPools].some(rows =>
+                    rows != null && (!Array.isArray(rows) || rows.some(row => !row || typeof row.id !== 'string'))) ||
+                (data.poolOrder != null && !Array.isArray(data.poolOrder)) ||
+                (data.info?.tagDefinitions && (!ImportExport.isObject(data.info.tagDefinitions) ||
+                    Object.values(data.info.tagDefinitions).some(tag => !ImportExport.isObject(tag)))) ||
                 (data.catalog && (!ImportExport.isObject(data.catalog) ||
                     Object.values(data.catalog).some(items => !Array.isArray(items) ||
                         items.some(item => !ImportExport.isObject(item)))))) {
@@ -1725,14 +1863,23 @@ window.handleEngineConfigImport = async function(event) {
         },
         confirm: () => showConfirmModal({
             title: window.getTrans('cs_modal_import_cfg_title'),
-            msg: window.getTrans('cs_modal_import_cfg_msg'),
+            msg: window.getTrans('cs_tools_' + options.mode + '_hint') + '<br>' + window.getTrans('cs_modal_import_cfg_msg'),
             okText: window.getTrans('cs_btn_confirm_import'),
             theme: "primary"
         }),
         apply: ({ data, imagesMap }) => {
             // 文件读取/确认是异步的，应用时再次确认没有进入预览。
             if (galleryPreviewLock.isLocked()) throw new Error('PREVIEW_LOCKED');
-            applyImportedEngineConfig(data, imagesMap);
+            for (const item of Object.values(data.catalog || {}).flat()) {
+                if (Object.hasOwn(imagesMap, item.img)) item.img = imagesMap[item.img];
+                if (item.tag != null || (item.tags != null && !Array.isArray(item.tags))) {
+                    item.tags = CatalogUtils.getTags(item);
+                    delete item.tag;
+                }
+            }
+            const saved = savedEnginePackage();
+            const draft = GalleryImport.prepare(saved, data, { ...options, language: getLang() });
+            applyImportedEngineConfig(draft, saved);
         },
         afterImport: () => {
             // 只重渲染而不重载网页，避免尚未保存的图鉴被丢弃。
@@ -1748,6 +1895,7 @@ window.handleEngineConfigImport = async function(event) {
         onError: err => {
             if (err.message === 'JSZIP_UNAVAILABLE') alert(getLang() === 'en' ? 'JSZip library not loaded!' : '未加载 JSZip 库，无法解压！');
             else if (err.message === 'ZIP_CONFIG_MISSING') alert(getLang() === 'en' ? 'Missing config.json in ZIP!' : 'ZIP 压缩包内缺少 config.json 配置文件！');
+            else if (err.message === 'CATALOG_CONFLICT') alert(window.getTrans('cs_tools_conflict'));
             else if (err.message === 'INVALID_ENGINE') alert(window.getTrans('cs_alert_invalid_json'));
             else alert(window.getTrans('cs_alert_parse_json_fail') + err.message);
         }
@@ -1755,66 +1903,45 @@ window.handleEngineConfigImport = async function(event) {
 };
 
 // 导入结果如何写入游戏设定、表单和卡池存储属于本页业务，不放入文件工具。
-function applyImportedEngineConfig(data, imagesMap) {
-        beginEngineImport(); // 导入只创建编辑草稿，不立即覆盖正式数据。
-        const isEn = getLang() === 'en';
-        // 1. 分配或保留 gameId
-        if (!gameId) {
-            gameId = 'g_' + Date.now();
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('gameId', gameId);
-            window.history.replaceState({}, '', currentUrl.toString());
-        }
-
-        // 2. 还原游戏基础设定与名称
-        if (data.info) {
-            gameInfo = Object.assign(gameInfo, data.info);
-            // 老版包没有经济配置时清空上一份草稿，避免串入其他游戏规则。
-            gameInfo.economy = data.info.economy || null;
-            pendingCurrencyImport = true;
-            const finalGameName = (isEn && gameInfo.enGameName) ? gameInfo.enGameName : (gameInfo.gameName || gameInfo.enName || '');
-            const nameInput = document.getElementById('input-game-name');
-            if (nameInput) nameInput.value = finalGameName;
-
-        }
-
-        // 3. 还原图鉴数据（映射回 Base64）
-        if (data.catalog) {
-            catalog = data.catalog;
-            // 遍历如果发现 img 指向 images/xxx，且在 zip 里提取到了 Base64，则还原回去
-            for (let catId in catalog) {
-                (catalog[catId] || []).forEach(item => {
-                    if (item.img && imagesMap[item.img]) {
-                        item.img = imagesMap[item.img];
-                    }
-                    // 若 item.img 是 "img/ZZZ/..."，imagesMap 里没有，自动保留该路径，指向网站服务器自带图片
-                });
+function applyImportedEngineConfig(data, saved) {
+    const info = { ...structuredClone(defaultGameInfo), ...data.info };
+    const importedCatalog = data.catalog || {};
+    const pools = data.rosterPools || info.rosterPools || [];
+    const rules = data.poolRules || {};
+    if (![info.categories, info.globalTiers, pools].every(rows =>
+        Array.isArray(rows) && rows.every(row => ImportExport.isObject(row) && typeof row.id === 'string')) ||
+        (data.poolOrder && !Array.isArray(data.poolOrder)) || !ImportExport.isObject(rules)) throw Error('INVALID_ENGINE');
+    // 兼容只有 catalog 的旧文件，让缺少定义的分类和星级仍可在页面编辑。
+    info.categories = [...info.categories];
+    info.globalTiers = [...info.globalTiers];
+    for (const [category, items] of Object.entries(importedCatalog)) {
+        if (!info.categories.some(row => row.id === category)) info.categories.push({ id: category, name: category, icon: '📚' });
+        for (const item of items) {
+            if (item.tierId && !info.globalTiers.some(tier => tier.id === item.tierId)) {
+                info.globalTiers.push({ id: item.tierId, name: item.tierId, color: DEFAULT_COLORS[0] });
             }
         }
-
-        // 4. 还原卡池列表与排序
-        const importedPools = data.rosterPools || (data.info && data.info.rosterPools) || [];
-        if (Array.isArray(importedPools) && importedPools.length > 0) {
-            const formattedPools = importedPools.map(p => ({
-                id: p.id,
-                name: p.name || p.id,
-                en: p.en || p.name || p.id,
-                icon: p.icon || '✨',
-                type: p.type || 'up',
-                isStandalone: p.isStandalone !== false
-            }));
-            writeEngineEdit('GM_RosterPools_' + gameId, JSON.stringify(formattedPools));
-            const poolOrder = data.poolOrder || formattedPools.map(p => p.id);
-            writeEngineEdit(`GM_Pool_Order_${gameId}`, JSON.stringify(poolOrder));
-        }
-
-        // 5. 还原卡池规则
-        if (data.poolRules && typeof data.poolRules === 'object') {
-            Object.entries(data.poolRules).forEach(([pId, rule]) => {
-                writeEngineEdit(`GM_Rules_${gameId}_${pId}`, JSON.stringify(rule));
-            });
-        }
-
+    }
+    const id = gameId || 'g_' + Date.now();
+    const writes = new Map();
+    writes.set('GM_RosterPools_' + id, JSON.stringify(pools));
+    writes.set('GM_Pool_Order_' + id, JSON.stringify(data.poolOrder || pools.map(pool => pool.id)));
+    for (const pool of saved.rosterPools) {
+        if (!Object.hasOwn(rules, pool.id)) writes.set(`GM_Rules_${id}_${pool.id}`, null);
+    }
+    for (const [poolId, rule] of Object.entries(rules)) writes.set(`GM_Rules_${id}_${poolId}`, JSON.stringify(rule));
+    if (!gameId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('gameId', id);
+        window.history.replaceState({}, '', url);
+        gameId = id;
+    }
+    sessionStorage.removeItem(`GM_Pending_Deleted_Pools_${id}`);
+    pendingEngineWrites = writes;
+    pendingCurrencyImport = true;
+    gameInfo = info;
+    catalog = importedCatalog;
+    document.getElementById('input-game-name').value = (getLang() === 'en' && info.enGameName) || info.gameName || info.enGameName || '';
 }
 
 // 2. 从已有官方预设一键导入/克隆到当前新建库（包含名称、规则、卡池及物品图鉴）
@@ -1945,7 +2072,7 @@ window.importFromExistingPreset = async function() {
     renderCustomTags();
     renderCustomPoolsList();   // 刷新卡池列表
     renderCategories();        // 刷新图鉴网格
-    updateImportVisibility();  // 自动隐藏初始化栏与导入配置按钮，显示导出配置按钮
+    updateImportVisibility();
 
     if (typeof renderSidebar === 'function') renderSidebar();
 
@@ -1971,24 +2098,21 @@ function updateImportVisibility() {
     const isPreset = typeof PRESET_GAME_IDS !== 'undefined' && PRESET_GAME_IDS.includes(gameId);
     const hasItems = !isCatalogEmpty();
 
-    const importBtn = document.getElementById('btn-import-config');
+    const tools = document.querySelector('.gallery-tools');
     const exportBtn = document.getElementById('btn-export-config');
-    const presetBar = document.getElementById('preset-import-bar');
-
-    // 1. 只有纯空白、未录入数据的自定义新建游戏，才允许导入
-    const canImport = !isPreset && !hasItems;
-
-    // 2. 只要是有数据的游戏（预设游戏 或 已录入/保存数据的自定义游戏），才允许导出配置
-    const canExport = isPreset || hasItems;
-
-    if (importBtn) {
-        importBtn.style.display = canImport ? 'inline-flex' : 'none';
+    if (isPreset) {
+        tools.before(exportBtn);
+        exportBtn.classList.add('preset-export');
+        tools.hidden = true;
+        return;
     }
-    if (presetBar) {
-        presetBar.style.display = canImport ? 'flex' : 'none';
-    }
-    if (exportBtn) {
-        exportBtn.style.display = canExport ? 'inline-flex' : 'none';
+    exportBtn.hidden = !hasItems;
+    if (!document.getElementById('config-import-options').hidden) refreshImportOptions();
+    const quick = document.getElementById('btn-quick-init');
+    quick.hidden = Boolean(gameId) || hasItems;
+    if (quick.hidden) {
+        document.getElementById('preset-import-bar').hidden = true;
+        quick.setAttribute('aria-expanded', 'false');
     }
 }
 

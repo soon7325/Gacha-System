@@ -67,6 +67,7 @@ Gacha System Update/
 │  ├─ app_preferences.js           跨页面偏好读取与联动规则
 │  ├─ list_order.js                按已保存的 ID 顺序排列列表
 │  └─ import_export.js             JSON、ZIP 与图片的导入导出
+│  ├─ gallery_import.js            合并导入图鉴与已保存的配置
 │
 ├─ ui/                            公共界面组件、展示行为与样式
 │  ├─ style.css                    全站基础样式

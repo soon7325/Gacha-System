@@ -37,7 +37,7 @@ const input = text => ({ files: [{ name: 'backup.json', text: async () => text }
 
 async function main() {
     for (const page of ['settings', 'dashboard', 'gallery_setup']) {
-        const html = fs.readFileSync(path.join(__dirname, '../..', page + '.html'), 'utf8')
+        const html = fs.readFileSync(path.join(__dirname, '../../html', page + '.html'), 'utf8')
             .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<!--[\s\S]*?-->/g, '');
         const scripts = [...html.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*>/gi)].map(m => m[1].split(/[?#]/)[0]);
         assert(scripts.includes('logic/import_export.js'));

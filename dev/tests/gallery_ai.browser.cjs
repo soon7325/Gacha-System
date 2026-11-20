@@ -3,6 +3,7 @@ const {chromium}=require(path.join(process.env.USERPROFILE,'.cache/codex-runtime
 (async()=>{const b=await chromium.launch({channel:'chrome',headless:true});try{
 const p=await b.newPage({viewport:{width:1280,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
 await p.goto(require('url').pathToFileURL(path.join(process.cwd(),'html/gallery_setup.html')).href);await p.waitForTimeout(600);
+await p.locator('.gallery-tools summary').click();
 await p.locator('#btn-ai-catalog').click();await p.locator('#ai-catalog-game').fill('测试游戏');await p.locator('#ai-catalog-scope').fill('仅角色');
 assert.equal(await p.locator('#ai-catalog-language').inputValue(),'zh');
 assert.equal(await p.locator('#ai-catalog-sources').inputValue(),'');
@@ -39,19 +40,48 @@ for(const language of ['zh','en','both']){
 await p.locator('#ai-catalog-language').selectOption('zh');
 const prompt=await p.locator('#ai-catalog-preview').inputValue();assert.ok(prompt.includes('测试游戏'));assert.ok(prompt.includes('仅角色'));
 await p.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('denied')}}}));
-await p.getByRole('button',{name:'复制提示词与模板',exact:true}).click();assert.match(await p.locator('#ai-catalog-dialog [role=status]').textContent(),/自动复制失败/);
+await p.getByRole('button',{name:'复制提示词与模板',exact:true}).click();assert.match(await p.locator('#ai-catalog-panel [role=status]').textContent(),/自动复制失败/);
 await p.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copiedPrompt=text}}}));
 await p.getByRole('button',{name:'复制提示词与模板',exact:true}).click();assert.equal(await p.evaluate(()=>window.copiedPrompt),prompt);
 const download=p.waitForEvent('download');await p.getByRole('button',{name:'下载示例模板',exact:true}).click();const d=await download;const data=JSON.parse(fs.readFileSync(await d.path(),'utf8'));assert.equal(data.catalog.char[0].tierId,data.info.globalTiers[0].id);
 fs.mkdirSync('dev/output',{recursive:true});await p.screenshot({path:'dev/output/gallery_ai_desktop.png'});
-await p.keyboard.press('Escape');assert.equal(await p.locator('#ai-catalog-dialog').count(),0);
+await p.locator('.gallery-tools summary').click();
+await p.locator('.gallery-tools summary').click();
+assert.equal(await p.locator('#ai-catalog-game').inputValue(),'测试游戏');
+await p.locator('#btn-quick-init').click();
+assert.ok(await p.locator('#preset-import-bar').isVisible());
+assert.equal(await p.locator('#ai-catalog-panel').isVisible(),false);
+await p.locator('#btn-import-config').click();
+assert.equal(await p.locator('#preset-import-bar').isVisible(),false);
+const mergeModes=p.locator('#config-import-options input[name=mode]:not([value=latest])');
+assert.equal(await mergeModes.evaluateAll(inputs=>inputs.length===2 && inputs.every(input=>input.disabled)),true);
+assert.ok(await p.locator('input[name=mode][value=latest]').isChecked());
 await p.locator('#file-import-config').setInputFiles({name:'catalog.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});await p.waitForTimeout(150);
 // Existing confirmation flow remains in charge of applying imports.
 await p.locator('#btn-confirm-ok').click();await p.waitForTimeout(200);assert.equal(await p.locator('#input-game-name').inputValue(),'示例游戏');assert.equal(await p.evaluate(()=>catalog.char[0].id),'example_char_001');
+assert.equal(await mergeModes.evaluateAll(inputs=>inputs.every(input=>input.disabled)),true);
+await p.locator('#btn-save-all').click();
+assert.equal(await mergeModes.evaluateAll(inputs=>inputs.every(input=>!input.disabled)),true);
 await p.evaluate(()=>{localStorage.setItem('GM_Lang','en');applyTranslations()});
-await p.locator('#btn-ai-catalog').click();assert.match(await p.locator('#ai-catalog-title').textContent(),/your own AI/);assert.equal(await p.locator('#ai-catalog-language').inputValue(),'en');assert.match(await p.locator('label[for=ai-catalog-identity]').textContent(),/Gender/);
+assert.equal(await p.locator('#btn-quick-init').isVisible(),false);
+await p.locator('#btn-ai-catalog').click();
+assert.equal(await p.locator('#ai-catalog-game').inputValue(),'测试游戏');
+assert.equal(await p.locator('#ai-catalog-language').inputValue(),'zh');
+assert.equal(await p.locator('#ai-catalog-scope').inputValue(),'仅角色');
+assert.match(await p.locator('label[for=ai-catalog-identity]').textContent(),/Gender/);
 await p.setViewportSize({width:390,height:844});
-await p.locator('#ai-catalog-body').evaluate(e=>e.scrollTop=e.scrollHeight);
-assert.ok(await p.locator('#ai-catalog-dialog header').isVisible());
-const layout=await p.locator('#ai-catalog-dialog').evaluate(e=>{const r=e.getBoundingClientRect(),h=e.querySelector('header').getBoundingClientRect(),a=e.lastElementChild.getBoundingClientRect();return h.top>=r.top&&a.bottom<=r.bottom;});assert.ok(layout);await p.screenshot({path:'dev/output/gallery_ai_mobile.png'});const fits=await p.locator('#ai-catalog-dialog').evaluate(e=>e.scrollWidth<=e.clientWidth);assert.ok(fits);assert.deepEqual(errors,[]);console.log('PASS: three output languages, interface defaults, acquisition tags, abbreviations, clipboard, import, mobile layout');
+const layout=await p.locator('#ai-catalog-panel').evaluate(panel=>{
+ const body=panel.querySelector('#ai-catalog-body'),output=panel.querySelector('textarea');
+ return panel.scrollWidth<=panel.clientWidth && body.scrollHeight<=body.clientHeight+1 &&
+    output.scrollHeight>output.clientHeight && panel.firstElementChild.querySelectorAll('button').length===2;
+});
+assert.ok(layout);
+await p.locator('#btn-ai-catalog').scrollIntoViewIfNeeded();
+await p.screenshot({path:'dev/output/gallery_ai_mobile.png'});
+await p.goto(require('url').pathToFileURL(path.join(process.cwd(),'html/gallery_setup.html')).href+'?gameId=hsr');
+assert.ok(await p.locator('#btn-export-config').isVisible());
+assert.equal(await p.locator('.gallery-tools').isVisible(),false);
+assert.equal(await p.locator('#btn-ai-catalog').isVisible(),false);
+assert.deepEqual(errors,[]);
+console.log('PASS: inline tools, retained fields, preset export, mobile layout and AI output');
 }finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

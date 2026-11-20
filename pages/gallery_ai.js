@@ -39,35 +39,22 @@
         }
         return data;
     }
-    document.getElementById('btn-ai-catalog').addEventListener('click', () => {
-        const dialog = document.createElement('dialog');
-        dialog.id = 'ai-catalog-dialog';
-        dialog.setAttribute('aria-labelledby', 'ai-catalog-title');
-        dialog.style.cssText = 'width:min(780px,calc(100vw - 24px));height:90dvh;max-height:920px;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--primary);border-radius:14px;padding:0;background:var(--card-bg,#20232b);color:var(--text,#eee);line-height:1.65;';
-        const header = document.createElement('header');
-        header.style.cssText = 'display:flex;align-items:center;gap:12px;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border,#555);flex-shrink:0;';
+    window.showGalleryAi = function(panel) {
+        if (panel.childElementCount) {
+            panel.dispatchEvent(new Event('refresh-preview'));
+            return;
+        }
         const body = document.createElement('div');
         body.id = 'ai-catalog-body';
-        body.style.cssText = 'padding:16px 20px;overflow:auto;min-height:0;flex:1;';
-        dialog.append(header, body);
+        panel.append(body);
         const add = (tag, key) => {
             const node = document.createElement(tag);
+            node.dataset.i18n = keys[key];
             node.textContent = t(key);
             body.append(node);
             return node;
         };
-        const title = add('h2', 'title');
-        title.id = 'ai-catalog-title';
-        title.style.cssText = 'font-size:clamp(16px,3vw,22px);margin:0;line-height:1.35;';
-        header.append(title);
-        const topClose = document.createElement('button');
-        topClose.type = 'button';
-        topClose.className = 'btn btn-action-gray';
-        topClose.textContent = '×';
-        topClose.setAttribute('aria-label', t('close'));
-        topClose.style.cssText = 'font-size:24px;padding:0;width:36px;height:36px;flex-shrink:0;';
-        topClose.onclick = () => dialog.close();
-        header.append(topClose);
+
         const cost = add('p', 'cost');
         cost.style.cssText = 'padding:12px;border-left:3px solid var(--primary);background:rgba(128,128,128,.12);';
         add('p', 'disclaimer');
@@ -78,7 +65,7 @@
             const input = document.createElement(tag);
             input.id = 'ai-catalog-' + key;
             label.htmlFor = input.id;
-            input.style.cssText = 'display:block;width:100%;box-sizing:border-box;margin:6px 0 14px;padding:10px;border:1px solid #888;border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px;min-width:0;';
+            input.className = 'input-box';
             body.append(input);
             return input;
         }
@@ -104,6 +91,7 @@
         for (const value of ['zh', 'en', 'both']) {
             const option = document.createElement('option');
             option.value = value;
+            option.dataset.i18n = keys[value];
             option.textContent = t(value);
             option.style.cssText = 'background:var(--card-bg,#20232b);color:var(--text,#eee);';
             language.append(option);
@@ -112,9 +100,7 @@
         const preview = field('preview', 'textarea');
         preview.readOnly = true;
         preview.rows = 8;
-        // 与弹窗的 90dvh / 920px 高度上限对应，预览约占其三分之二。
-        preview.style.height = 'min(60dvh, 613px)';
-        preview.style.resize = 'vertical';
+
         const status = document.createElement('p');
 
         status.textContent = '';
@@ -124,24 +110,18 @@
                 .replace('{template}', () => JSON.stringify(template(language.value), null, 2));
             status.textContent = '';
         }
-        game.addEventListener('input', refresh);
-        scope.addEventListener('input', refresh);
-        version.addEventListener('input', refresh);
-        server.addEventListener('input', refresh);
-        sources.addEventListener('input', refresh);
-        identity.addEventListener('input', refresh);
-        order.addEventListener('input', refresh);
-        language.addEventListener('change', refresh);
+        body.addEventListener('input', refresh);
+        body.addEventListener('change', refresh);
+        panel.addEventListener('refresh-preview', refresh);
         refresh();
         const actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;padding:12px 20px;border-top:1px solid var(--border,#555);';
-        status.style.cssText = 'width:100%;margin:0;font-size:13px;';
-        actions.append(status);
-        dialog.append(actions);
+        actions.className = 'tools-row';
+        panel.prepend(actions, status);
         function button(key, run) {
             const node = document.createElement('button');
             node.type = 'button';
             node.className = 'btn btn-action-gray';
+            node.dataset.i18n = keys[key];
             node.textContent = t(key);
             node.addEventListener('click', run);
             actions.append(node);
@@ -157,9 +137,5 @@
             }
         });
         button('download', () => ImportExport.exportJSON(template(language.value), 'catalog_example.json'));
-        dialog.addEventListener('close', () => dialog.remove());
-        document.body.append(dialog);
-        dialog.showModal();
-        game.focus();
-    });
+    };
 })();
