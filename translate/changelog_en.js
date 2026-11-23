@@ -30,7 +30,7 @@ Other Previews:
 `
     },
     {
-        version: "v0.3.7.24",
+        version: "v0.3.7.18",
         title: "Catalog import merging and drag-and-drop editing",
         date: "20/11/2026",
         tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }],
@@ -45,7 +45,7 @@ Other Previews:
 4. Locking preview disables the save button in place. Unlocking preview enables it again.`
     },
     {
-        version: "v0.3.7.23",
+        version: "v0.3.7.17",
         title: "Create game catalogs with your own AI",
         date: "18/11/2026",
         tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }, { scope: "Home", type: ["Fix"] }],
@@ -66,7 +66,7 @@ Notes and outstanding issues:
 5. Results may vary by AI service, model version, and browsing capabilities. Fully accurate, consistent, and omission-free output cannot be guaranteed. Review results before importing, and export a backup before importing into an existing catalog.`
     },
     {
-        version: "v0.3.6.23",
+        version: "v0.3.6.17",
         title: "Homepage layout improvements and privacy policy",
         date: "16/11/2026",
         tag: [{ scope: "Home", type: ["Improvement", "Update"] }],
@@ -80,7 +80,7 @@ Notes and outstanding issues:
 4.1 Replaced the unhelpful linked email address with plain text and added a Copy email button beside it. Successful copying displays “Copied”; if copying fails, it displays “Could not copy automatically. Please select and copy the email address.”`
     },
     {
-        "version": "v0.3.6.22",
+        "version": "v0.3.6.16",
         "title": "First-visit language guide and replay",
         "date": "09/11/2026",
         "tag": [
@@ -94,7 +94,7 @@ Notes and outstanding issues:
         4. Replay preserves bilingual hints if already enabled. Otherwise it enables them temporarily until you leave Settings. The original first-visit automatic shutoff is unchanged. Replay keeps the current language, start page, other preferences, and user data.`
     },
     {
-        version: "v0.3.6.21",
+        version: "v0.3.6.15",
         title: "Unified interface and custom colors",
         date: "06/11/2026",
         tag: [
@@ -123,7 +123,7 @@ Notes and outstanding issues:
 7.1: AI generated some icons for the test-only gallery for use.`
     },
     {
-        version: "v0.3.6.20",
+        version: "v0.3.6.14",
         title: "Single-panel presentation",
         date: "05/11/2026",
         tag: [{ scope: "Display", type: ["Update"] }],
@@ -142,7 +142,7 @@ Notes and outstanding issues:
 9. For new users, Results and Version Details headers follow the content width and position, and Pool Rules defaults to one column. Simulator defaults and previously saved display preferences are preserved.`
     },
     {
-        version: "v0.3.6.19",
+        version: "v0.3.6.13",
         title: "Fixed distributions and independent scrolling",
         date: "04/11/2026",
         tag: [{ scope: "Display", type: ["Update"] }],
@@ -158,7 +158,7 @@ Notes and outstanding issues:
 6. These options appear in Display Settings, ordered by browsing mode, column count, arrangement, and related options. Only currently available options appear; global changes still require confirmation.`
     },
     {
-        version: "v0.3.6.18",
+        version: "v0.3.6.12",
         title: "Continuous Columns and Display Settings",
         date: "03/11/2026",
         tag: [{ scope: "Display", type: ["Update"] }, { scope: "Simulator", type: ["Fix"] }, { scope: "Settings", type: ["Update"] }],
@@ -173,7 +173,7 @@ Notes and outstanding issues:
 8. Narrowing the window reduces the number of columns, falling back to one column when needed.`
     },
     {
-        version: "v0.3.6.17",
+        version: "v0.3.6.11",
         title: "Shared display settings",
         date: "02/11/2026",
         tag: [{ scope: "Display", type: ["Update"] }],
@@ -185,7 +185,7 @@ Notes and outstanding issues:
 5. Global settings takes the former Results position. Results moves below Simulator; Data Entry takes the former global position. Currency Rules stays below Player Data.`
     },
     {
-        version: "v0.3.6.16",
+        version: "v0.3.6.10",
         title: "Default Panel Expansion",
         date: "30/10/2026",
         tag: [{ scope: "Collapsible Panels", type: ["Update"] }],
@@ -201,7 +201,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.3.6.15",
+        version: "v0.3.6.9",
         title: "Image Icons",
         date: "29/10/2026",
         tag: [{ scope: "Icons", type: ["Update"] }],
@@ -212,7 +212,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.3.6.14",
+        version: "v0.3.6.8",
         title: "Pool Rule Improvements",
         date: "28/10/2026",
         tag: [{ scope: "Rule Configuration Page", type: ["Update"] }],
@@ -225,7 +225,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.3.6.13",
+        version: "v0.3.6.7",
         title: "Number Input Improvements & Gallery IDs",
         date: "27/10/2026",
         tag: ["Visual Polish"],
@@ -238,7 +238,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.3.6.12",
+        version: "v0.3.6.6",
         title: "Home Showcase & Gallery Updates",
         date: "26/10/2026",
         tag: [
@@ -264,7 +264,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.3.5.12",
+        version: "v0.3.5.6",
         title: "Currency System & Player Data",
         date: "23/10/2026",
         tag: [
@@ -328,7 +328,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.5.12",
+        version: "v0.2.5.6",
         title: "Bilingual Update",
         date: "16/10/2026",
         tag: [
@@ -364,7 +364,7 @@ Notes and outstanding issues:
 `
     },
     {
-    "version": "v0.2.5.11",
+    "version": "v0.2.5.5",
     "title": "New Quick Settings Popover",
     "date": "15/10/2026",
     "tag": [
@@ -410,7 +410,7 @@ Notes and outstanding issues:
 `
 },
     {
-        version: "v0.2.4.11",
+        version: "v0.2.4.5",
         title: "Multi-Patch Update",
         date: "13/10/2026",
         tag: [
@@ -469,7 +469,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.3.11",
+        version: "v0.2.3.5",
         title: "(Personal) Code Modularization",
         date: "12/10/2026",
         tag: [{ scope: "Code", type: ["Modularization", "Organization"] }],
@@ -478,7 +478,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.3.10",
+        version: "v0.2.3.4",
         title: "Version Titles & Dual-Tier Tags",
         date: "12/10/2026",
         tag: [{ scope: "Changelog Page", type: ["Patch"] }],
@@ -491,7 +491,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.3.9",
+        version: "v0.2.3.3",
         title: "Version Navigation & Style Tweaks",
         date: "09/10/2026",
         tag: [{ scope: "Version Page", type: ["Patch"] }],
@@ -501,7 +501,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.3.8",
+        version: "v0.2.3.2",
         title: "Engine Setup & Optimization Fixes",
         date: "09/10/2026",
         tag: [{ scope: "Engine Setup", type: ["Optimization", "Fixes"] }],
@@ -513,7 +513,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.3.7",
+        version: "v0.2.3.1",
         title: "New Release Notes & History Page",
         date: "08/10/2026",
         tag: [{ scope: "Changelog Page", type: ["New Feature"] }],
@@ -526,7 +526,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.2.7",
+        version: "v0.2.2.1",
         title: "Patch: Results Showcase Page",
         date: "06/10/2026",
         tag: [{ scope: "Results Page", type: ["Removal", "Text Revisions", "Responsive Fix"] }],
@@ -537,7 +537,7 @@ Notes and outstanding issues:
 `
     },
     {
-        version: "v0.2.2.6",
+        version: "v0.2.2.0",
         title: "Core System Overhaul",
         date: "03/10/2026",
         tag: [{ scope: "Core Engine", type: ["Major Refactor"] }, { scope: "Archive", type: ["Update"] }],
@@ -618,7 +618,7 @@ Populated most baseline content (too extensive to list in detail). Rule logic is
 `
     },
     {
-        version: "v0.1.2.6",
+        version: "v0.1.2.0",
         title: "Multi-Feature Expansion",
         date: "19/09/2026",
         tag: [{ scope: "Core Engine", type: ["Update"] }, { scope: "Archive", type: ["Update"] }],
@@ -670,7 +670,7 @@ Added low-rarity archives and select limited archives for Zenless Zone Zero and 
 `
     },
     {
-        version: "v0.0.2.6",
+        version: "v0.0.2.0",
         title: "Interface Optimizations",
         date: "08/09/2026",
         tag: [
@@ -690,7 +690,7 @@ Roster / Gallery: Please allow me not to update this, thank you.
 `
     },
     {
-        version: "v0.0.1.6",
+        version: "v0.0.1.0.f",
         title: "Archive Update",
         date: "26/05/2026",
         tag: [{ scope: "Archive", type: ["Update"] }],
@@ -707,7 +707,7 @@ Arknights: Endfield: Mi Fu, Camille | Official art
 `
     },
     {
-        version: "v0.0.1.5",
+        version: "v0.0.1.0.e",
         title: "Archive Update",
         date: "22/05/2026",
         tag: [{ scope: "Archive", type: ["Update"] }],
@@ -719,7 +719,7 @@ Arknights: Endfield: Mi Fu, Camille, Amaranthine Tassel, Blessing Of Lustrous Ca
 `
     },
     {
-        version: "v0.0.1.4",
+        version: "v0.0.1.0.d",
         title: "Archive Update",
         date: "26/04/2026",
         tag: [{ scope: "Archive", type: ["Update"] }],
@@ -731,7 +731,7 @@ Arknights: Kal'tsit Esperanta, Closure (screenshot)
 `
     },
     {
-        version: "v0.0.1.3",
+        version: "v0.0.1.0.c",
         title: "Archive Update",
         date: "11/04/2026",
         tag: [{ scope: "Archive", type: ["Update"] }],
@@ -740,7 +740,7 @@ Arknights: Kal'tsit Esperanta, Closure (screenshot)
 `
     },
     {
-        version: "v0.0.1.2",
+        version: "v0.0.1.0.b",
         title: "Archive Update",
         date: "10/04/2026",
         tag: [{ scope: "Archive", type: ["Update"] }],
@@ -749,7 +749,7 @@ Arknights: Kal'tsit Esperanta, Closure (screenshot)
 `
     },
     {
-        version: "v0.0.1.1",
+        version: "v0.0.1.0.a",
         title: "Archive Update",
         date: "08/04/2026",
         tag: [{ scope: "Archive", type: ["Update"] }],

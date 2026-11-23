@@ -30,7 +30,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.3.7.24",
+        version: "v0.3.7.18",
         title: "图鉴配置导入融合与卡片拖拽编辑",
         date: "20/11/2026",
         tag: [{ scope: "图鉴配置", type: ["新增","优化"] }],
@@ -45,7 +45,7 @@ window.CHANGELOG_ZH = [
 4：锁定预览时，“保存游戏配置”按钮在原位禁用，解锁后恢复可用。`
     },
     {
-        version: "v0.3.7.23",
+        version: "v0.3.7.17",
         title: "使用自己的 AI 制作游戏图鉴",
         date: "18/11/2026",
         tag: [{ scope: "图鉴配置", type: ["新增","优化"] }, { scope: "首页", type: ["修复"] }],
@@ -66,7 +66,7 @@ window.CHANGELOG_ZH = [
 5：不同 AI、模型版本与联网能力可能影响输出，不能保证生成结果完全准确、一致或无遗漏。请在导入前核对；导入已有图鉴前建议先导出备份。`
     },
     {
-        version: "v0.3.6.23",
+        version: "v0.3.6.17",
         title: "首页排版优化与隐私政策",
         date: "16/11/2026",
         tag: [{ scope: "首页", type: ["优化", "更新"] }],
@@ -80,7 +80,7 @@ window.CHANGELOG_ZH = [
 4.1：邮箱不再是无效的链接化文本，改为普通文字。同时旁边新增“复制邮箱”按钮。复制成功显示“已复制”，失败时显示“未能自动复制，请选中邮箱文字手动复制。”`
     },
     {
-        "version": "v0.3.6.22",
+        "version": "v0.3.6.16",
         "title": "首次语言引导与重新体验入口",
         "date": "09/11/2026",
         "tag": [
@@ -94,7 +94,7 @@ window.CHANGELOG_ZH = [
 4：重新体验时，双语提示原已开启则保持开启；原未开启则临时开启，并在离开设置页后自动关闭。真正首次进入的自动关闭行为保持不变。当前语言、启动页及其他偏好保留，不清除用户数据。`
     },
     {
-        version: "v0.3.6.21",
+        version: "v0.3.6.15",
         title: "界面风格统一与自定义配色",
         date: "06/11/2026",
         tag: [
@@ -122,7 +122,7 @@ window.CHANGELOG_ZH = [
 7.1：AI为测试专用图鉴生成了部分icon作为使用`
     },
     {
-        version: "v0.3.6.20",
+        version: "v0.3.6.14",
         title: "单面板展示",
         date: "05/11/2026",
         tag: [{ scope: "展示方式", type: ["更新"] }],
@@ -141,7 +141,7 @@ window.CHANGELOG_ZH = [
 9：首次使用时，抽卡结果页与版本详情页的顶栏默认跟随内容宽度与位置，卡池规则页默认单列；模拟器保持原有默认展示，已保存的个人展示偏好继续保留。`
     },
     {
-        version: "v0.3.6.19",
+        version: "v0.3.6.13",
         title: "平分排布与各列独立滚动",
         date: "04/11/2026",
         tag: [{ scope: "展示方式", type: ["更新"] }],
@@ -157,7 +157,7 @@ window.CHANGELOG_ZH = [
 6：这些选项都放在“展示方式设置”里，按浏览方式、显示列数、排布方式和相关细项的顺序排列。只显示当前能用的选项；全局修改仍会先弹窗确认。`
     },
     {
-        version: "v0.3.6.18",
+        version: "v0.3.6.12",
         title: "连续分栏与展示设置整合",
         date: "03/11/2026",
         tag: [{ scope: "展示方式", type: ["更新"] }, { scope: "模拟页面", type: ["修复"] }, { scope: "设置页面", type: ["更新"] }],
@@ -172,7 +172,7 @@ window.CHANGELOG_ZH = [
 8：窗口变窄时，会自动减少列数；宽度不够就改成单列。`
     },
     {
-        version: "v0.3.6.17",
+        version: "v0.3.6.11",
         title: "全局共用展示方式",
         date: "02/11/2026",
         tag: [{ scope: "展示方式", type: ["更新"] }],
@@ -184,7 +184,7 @@ window.CHANGELOG_ZH = [
 5：全局设置框放在原抽卡结果位置；抽卡结果移至模拟器下方，录入数据移至原全局位置，货币规则保留在玩家数据下方。`
     },
     {
-        version: "v0.3.6.16",
+        version: "v0.3.6.10",
         title: "折叠面板默认展开设置",
         date: "30/10/2026",
         tag: [{ scope: "折叠面板", type: ["更新"] }],
@@ -200,7 +200,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.3.6.15",
+        version: "v0.3.6.9",
         title: "图标支持图片",
         date: "29/10/2026",
         tag: [{ scope: "图标", type: ["更新"] }],
@@ -211,7 +211,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.3.6.14",
+        version: "v0.3.6.8",
         title: "卡池规则完善",
         date: "28/10/2026",
         tag: [{ scope: "规则配置页", type: ["更新"] }],
@@ -222,7 +222,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.3.6.13",
+        version: "v0.3.6.7",
         title: "数字填写优化与图鉴 ID 关联",
         date: "27/10/2026",
         tag: ["美化"],
@@ -235,7 +235,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.3.6.12",
+        version: "v0.3.6.6",
         title: "首页展示与图鉴更新",
         date: "26/10/2026",
         tag: [
@@ -261,7 +261,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.3.5.12",
+        version: "v0.3.5.6",
         title: "货币系统与玩家数据",
         date: "23/10/2026",
         tag: [
@@ -325,7 +325,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-    version: "v0.2.5.12",
+    version: "v0.2.5.6",
     title: "双语更新",
     date: "16/10/2026",
     tag: [
@@ -360,7 +360,7 @@ window.CHANGELOG_ZH = [
 `
 },
     {
-    version: "v0.2.5.11",
+    version: "v0.2.5.5",
     title: "新建设定弹窗",
     date: "15/10/2026",
     tag: [
@@ -406,7 +406,7 @@ window.CHANGELOG_ZH = [
 `
 },
     {
-    version: "v0.2.4.11",
+    version: "v0.2.4.5",
     title: "多补丁更新",
     date: "13/10/2026",
     tag: [
@@ -465,7 +465,7 @@ window.CHANGELOG_ZH = [
 `
 },
     {
-        version: "v0.2.3.11",
+        version: "v0.2.3.5",
         title: "（个人向）代码拆分分类",
         date: "12/10/2026",
         tag: [{ scope: "代码", type: ["拆分","分类"] }],
@@ -474,7 +474,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.2.3.10",
+        version: "v0.2.3.4",
         title: "版本更新标题与标签",
         date: "12/10/2026",
         tag: [{ scope: "版本详情页", type: ["补丁"] },"美化"],
@@ -487,7 +487,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.2.3.9",
+        version: "v0.2.3.3",
         title: "版本导航与样式微调",
         date: "09/10/2026",
         tag: [{ scope: "版本详情页", type: ["补丁"] },],
@@ -497,7 +497,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.2.3.8",
+        version: "v0.2.3.2",
         title: "游戏配置与优化修复",
         date: "09/10/2026",
         tag: [{ scope: "游戏配置页", type: ["优化","修复"] }],
@@ -509,7 +509,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.2.3.7",
+        version: "v0.2.3.1",
         title: "新增版本预告与详情页面",
         date: "08/10/2026",
         tag: [{ scope: "版本详情页", type: ["新增"] }],
@@ -522,7 +522,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.2.2.7",
+        version: "v0.2.2.1",
         title: "补丁：结果展示页",
         date: "06/10/2026",
         tag: [{ scope: "结果展示页", type: ["删除","修改文本","小页面适配"] }],
@@ -533,7 +533,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.2.2.6",
+        version: "v0.2.2.0",
         title: "系统重构",
         date: "03/10/2026",
         tag: [{ scope: "核心系统", type: ["重构"] }, { scope: "图鉴", type: ["更新"] }],
@@ -617,7 +617,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.1.2.6",
+        version: "v0.1.2.0",
         title: "低星图鉴+多更新版本",
         date: "19/09/2026",
         tag:[{ scope: "核心系统", type: ["更新"] },{ scope: "图鉴", type: ["更新"] }],
@@ -666,7 +666,7 @@ window.CHANGELOG_ZH = [
 只更新绝区零以及明日方舟：终末地的低星图鉴以及部分限定图鉴。`
     },
     {
-        version: "v0.0.2.6",
+        version: "v0.0.2.0",
         title: "更新优化",
         date: "08/09/2026",
         tag:[{ scope: "侧栏", type: ["优化"]},{ scope: "结果展示页", type: ["优化"]},{ scope: "抽卡模拟页", type: ["小页面适配"]},{ scope: "主页", type: ["文本更新"]}],
@@ -681,7 +681,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.0.1.6",
+        version: "v0.0.1.0.f",
         title: "图鉴更新",
         date: "26/05/2026",
         tag:[{ scope: "图鉴", type: ["更新"]}],
@@ -698,7 +698,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.0.1.5",
+        version: "v0.0.1.0.e",
         title: "图鉴更新",
         date: "22/05/2026",
         tag:[{ scope: "图鉴", type: ["更新"]}],
@@ -710,7 +710,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.0.1.4",
+        version: "v0.0.1.0.d",
         title: "图鉴更新",
         date: "26/04/2026",
         tag:[{ scope: "图鉴", type: ["更新"]}],
@@ -722,7 +722,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.0.1.3",
+        version: "v0.0.1.0.c",
         title: "图鉴更新",
         date: "11/04/2026",
         tag:[{ scope: "图鉴", type: ["更新"]}],
@@ -731,7 +731,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.0.1.2",
+        version: "v0.0.1.0.b",
         title: "图鉴更新",
         date: "10/04/2026",
         tag:[{ scope: "图鉴", type: ["更新"]}],
@@ -740,7 +740,7 @@ window.CHANGELOG_ZH = [
 `
     },
     {
-        version: "v0.0.1.1",
+        version: "v0.0.1.0.a",
         title: "图鉴更新",
         date: "08/04/2026",
         tag:[{ scope: "图鉴", type: ["更新"]}],
