@@ -55,7 +55,7 @@ window.UI_LIB.zh = {
     sim_empty_desc: "选好目标，开始第一次抽卡。你的抽卡轨迹将在这里展开。",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "当前版本:Beta",
-    idx_version_title_number: "v0.3.7.24",
+    idx_version_title_number: "v0.3.7.18",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "更新：<br>" +
