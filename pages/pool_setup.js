@@ -82,6 +82,7 @@ const urlParams = new URLSearchParams(window.location.search);
             globalTiers.forEach(t => { poolTierState[t.id] = { enabled: false, prob: 0, subProbs: null }; });
 
             loadRescueLabel();
+            setRescueAppearance();
             loadPoolConfig();
 
             const presetRules = GameData.getPreset(gameId)?.rules;
@@ -1168,6 +1169,24 @@ function initDefaultAssemblyRules() {
             }
         }
 
+        let rescueAppearance;
+        function setRescueAppearance(config) {
+            rescueAppearance = ColorStyle.rescueAppearance(config);
+            document.documentElement.style.setProperty('--rescue-color', rescueAppearance.color);
+            document.getElementById('input-rescue-color').style.background = ColorStyle.background(rescueAppearance);
+        }
+        window.editRescueAppearance = function() {
+            if (poolPreviewLock.isLocked()) return;
+            ColorPicker.open({
+                value: rescueAppearance, title: getTrans('rescue_color_label'),
+                isLocked: () => poolPreviewLock.isLocked(),
+                onApply: value => {
+                    if (poolPreviewLock.isLocked()) return;
+                    setRescueAppearance(value);
+                    markPageDirty();
+                }
+            });
+        };
         let specAppearance = { color: '#e74c3c' };
         setSpecAppearance();
         function setSpecAppearance(value = {}) {
@@ -2116,6 +2135,7 @@ function initDefaultAssemblyRules() {
                 }
 
                 loadRescueLabel(savedConfig.secondaryRescue);
+                setRescueAppearance(savedConfig.secondaryRescue);
                 if (savedConfig.secondaryRescue && savedConfig.secondaryRescue.enabled) {
                     document.getElementById('input-enable-rescue').checked = true;
                     document.getElementById('rescue-settings-panel').style.display = 'block';
@@ -2334,6 +2354,7 @@ function initDefaultAssemblyRules() {
             }
 
             loadRescueLabel(rules.secondaryRescue);
+            setRescueAppearance(rules.secondaryRescue);
             if (rules.secondaryRescue && rules.secondaryRescue.enabled) {
                 const rescueEnable = document.getElementById('input-enable-rescue');
                 if (rescueEnable) rescueEnable.checked = true;
@@ -2775,6 +2796,7 @@ function initDefaultAssemblyRules() {
                     triggerRate: parseFloat(document.getElementById('input-rescue-rate')?.value) || 10,
                     hardGuaranteeLosses: parseInt(document.getElementById('input-rescue-hard-loss')?.value) || 1,
                     ...getRescueLabelConfig(),
+                    ...rescueAppearance,
                     onHitUpStrategy: document.getElementById('input-rescue-up-strategy')?.value || 'reset',
                     strategyValue: parseInt(document.getElementById('input-rescue-strategy-value')?.value) || 1
                 },
@@ -3051,7 +3073,7 @@ function initDefaultAssemblyRules() {
                 }
                 const pitiesCount = document.querySelectorAll('.unified-pity-row').length;
                 const subDrawersCount = document.querySelectorAll('.sub-condition-slice').length;
-                return JSON.stringify({ poolAssembly, activeTiers, pitiesCount, subDrawersCount, rescueLabelDraft, specAppearance });
+                return JSON.stringify({ poolAssembly, activeTiers, pitiesCount, subDrawersCount, rescueLabelDraft, rescueAppearance, specAppearance });
             } catch(e) {
                 return "";
             }

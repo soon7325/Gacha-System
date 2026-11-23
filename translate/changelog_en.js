@@ -30,12 +30,23 @@ Other Previews:
 `
     },
     {
+        version: "v0.3.7.19",
+        title: "Low-rarity short names, target rarity colours and Capturing Radiance colours",
+        date: "23/11/2026",
+        tag: [{ scope: "Simulator", type: ["Addition","Improvement"] }, { scope: "Pool Setup", type: ["Addition"] }],
+        author: "ChatGPT & Zhi Siong",
+        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
+        content: `1. Choose “Solid colour + short name” to show the catalog short name in the centre of each low-rarity card on its rarity colour. Switching display modes updates existing results immediately.
+2. The Selected summary lists only tiers configured with separate rate-up and off-banner groups. Each tier and its selected items use that tier’s colours. The summary is hidden when all tiers use a flat pool.
+3. Jumping to a high-rarity drop highlights its row in the target drop’s tier colour or gradient. Drop counts, ordinal numbers, navigation buttons and spark rewards also use the pool’s target rarity colours.
+4. Pool Setup now offers solid colours and gradients for Capturing Radiance. The rescue badge and the loss counter’s label, value and border can all display the full gradient.`
+    },
+    {
         version: "v0.3.7.18",
         title: "Catalog import merging and drag-and-drop editing",
         date: "20/11/2026",
         tag: [{ scope: "Gallery Setup", type: ["Addition","Improvement"] }],
         author: "ChatGPT & Zhi Siong",
-        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
         content: `1. New catalogs can initially use only the configuration from the imported file. After the first save, Overwrite matches and Add differences become available. Both merge against the last saved configuration and keep entries unique to either side.
 1.1 Overwrite matches uses incoming values and can fill empty incoming fields from saved entries. Add differences keeps saved values and can either fill empty fields from the file or skip matched entries entirely.
 1.2 Entries match by name within the same category by default, with ID matching also available. Name matching uses full names in the interface language and checks the other language only when either name is missing. When overwriting by name, you can keep the original ID or use the incoming ID.

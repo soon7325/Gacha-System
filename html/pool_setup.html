@@ -349,26 +349,27 @@
             </div>
 
             <!-- 卡片 3: 歪出挽救机制 (原卡片 6) -->
-            <div class="setup-card" id="card-section-3" style="border-color: #e056fd; margin-top: 20px;">
+            <div class="setup-card" id="card-section-3" style="border-color: var(--rescue-color,#e056fd); margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleCardSection(3)">
-                    <h2 class="setup-title" style="color: #e056fd; border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec6_title">
+                    <h2 class="setup-title" style="color: var(--rescue-color,#e056fd); border-bottom: none; padding-bottom: 0; margin-bottom: 0;" data-i18n="cp_sec6_title">
                         ✨ 4. 开启歪出挽救机制 (原神“捕获明光”/二次保底逆转)
                     </h2>
-                    <span id="card-3-arrow" style="color: #e056fd; font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
+                    <span id="card-3-arrow" style="color: var(--rescue-color,#e056fd); font-weight: bold; font-size: 13px;" data-i18n="collapse">▲ 收起</span>
                 </div>
 
                 <div id="card-3-body" style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
                     <div class="toggle-row" style="margin-bottom: 12px; border-bottom: none; padding: 0;">
-                        <label class="toggle-label" style="font-weight: bold; color: #e056fd; font-size: 1rem;">
+                        <label class="toggle-label" style="font-weight: bold; color: var(--rescue-color,#e056fd); font-size: 1rem;">
                             <input type="checkbox" id="input-enable-rescue" class="toggle-checkbox" onchange="toggleRescuePanel()"> 
                             <span data-i18n="cp_sec6_enable">开启歪出挽救机制 (二次判定保护)</span>
                         </label>
                     </div>
 
                     <div id="rescue-settings-panel" style="display: none; background: rgba(0,0,0,0.18); padding: 18px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px;">
+                        <div class="spec-color-setting"><strong data-i18n="rescue_color_label">捕获明光标识配色</strong><button type="button" id="input-rescue-color" class="paint-swatch" onclick="editRescueAppearance()" data-i18n-aria-label="rescue_color_label" aria-label="捕获明光标识配色"></button></div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
                             <div class="input-group">
-                                <label style="color: #e056fd; font-size: 13px;" data-i18n="cp_sec3_rate_label">常态挽救概率 (二次判定 %)</label>
+                                <label style="color: var(--rescue-color,#e056fd); font-size: 13px;" data-i18n="cp_sec3_rate_label">常态挽救概率 (二次判定 %)</label>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <input type="number" id="input-rescue-rate" class="input-box" value="10" style="width: 100%;">
                                     <span style="color: #888; font-size: 13px;">%</span>
@@ -376,7 +377,7 @@
                             </div>
 
                             <div class="input-group">
-                                <label style="color: #e056fd; font-size: 13px;" data-i18n="cp_sec3_hard_loss_label">防连歪硬保底阈值</label>
+                                <label style="color: var(--rescue-color,#e056fd); font-size: 13px;" data-i18n="cp_sec3_hard_loss_label">防连歪硬保底阈值</label>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <input type="number" id="input-rescue-hard-loss" class="input-box" value="1" min="1" style="width: 100%;">
                                     <span style="color: #888; font-size: 13px; white-space: nowrap;" data-i18n="cp_sec3_must_rescue_suffix">次必救</span>
@@ -393,7 +394,7 @@
                             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span style="font-size: 14px;">🎯</span>
-                                    <span style="color: #e056fd; font-weight: bold; font-size: 13px;" data-i18n="cp_sec3_strategy_label">命中 UP 时累计层数处置：</span>
+                                    <span style="color: var(--rescue-color,#e056fd); font-weight: bold; font-size: 13px;" data-i18n="cp_sec3_strategy_label">命中 UP 时累计层数处置：</span>
                                 </div>
 
                                 <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 460px; justify-content: flex-end;">
@@ -643,7 +644,7 @@
 
                                 <label id="wrap-inherit-rescue-losses" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                     <input type="checkbox" id="input-inherit-rescue-losses" class="toggle-checkbox" checked>
-                                    <span style="color: #e056fd;" data-i18n="cp_sec13_inherit_rescue">保留捕获明光层数 (跨期继承)</span>
+                                    <span style="color: var(--rescue-color,#e056fd);" data-i18n="cp_sec13_inherit_rescue">保留捕获明光层数 (跨期继承)</span>
                                 </label>
 
                                 <label id="wrap-reset-early-up" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">

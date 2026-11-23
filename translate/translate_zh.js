@@ -49,13 +49,14 @@ window.UI_LIB.zh = {
     updates_unread: "有尚未查看的版本更新",
 
     color_edit: "编辑配色",
+    rescue_color_label: "捕获明光标识配色",
     spec_color_label: "特限标识配色",
     spec_color_hint: "用于干预规则边框、模拟器特限候选与角标，不改变抽卡概率。",
     sim_empty_title: "每一次相遇，都从这里开始",
     sim_empty_desc: "选好目标，开始第一次抽卡。你的抽卡轨迹将在这里展开。",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "当前版本:Beta",
-    idx_version_title_number: "v0.3.7.18",
+    idx_version_title_number: "v0.3.7.19",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "更新：<br>" +
@@ -71,8 +72,8 @@ window.UI_LIB.zh = {
         "2：支持语言、收录范围、偏好设置与资料链接。<br>" +
         "<br>" +
         "小版本更新：<br>" +
-        "1：新增图鉴配置工具，导入图鉴支持按名称或 ID 融合导入，可优先采用新内容或保留旧内容。<br>" +
-        "2：支持拖拽卡片更改星级与所属图鉴库；锁定预览时保存按钮保持原位。<br>" +
+        "1：低星卡片支持纯色底加简称，顶部摘要只显示区分 UP 与可歪的星级。<br>" +
+        "2：寻金和奖励展示跟随目标金配色，捕获明光支持自定义纯色与渐变。<br>" +
         "<br>" +
         "图鉴更新：<br>" +
         "1：四个正式游戏图鉴补充固定 ID 与旧数据兼容。<br>" +
@@ -292,6 +293,7 @@ window.UI_LIB.zh = {
     set_lang: "界面语言",
     set_language_first_visit: "在这里切换界面语言",
     set_low_tier_color: "极简纯色（低星仅展示星级颜色，突出目标金）",
+    set_low_tier_color_short: "纯色＋角色简称",
     set_low_tier_display: "模拟器低星展示风格",
     set_low_tier_full: "完整展示（显示所有低星头像与名字）",
     set_non_gold_color: "关闭手动选取：仅显示纯色背景色块（不选角色）",
@@ -890,6 +892,7 @@ window.UI_LIB.zh = {
     sim_tier_gold_title: "【 {tier} 出金配置 】 (按规则需指定 {range} 个 UP 目标)",
     sim_tier_sub_title: "【 {tier} 副产物配置 】 (按规则需指定 {range} 个 UP 目标)",
     sim_tip_color_mode: "🎨 已开启「极简纯色」展示。前往设置中心可切换角色立绘。",
+    sim_tip_color_short_mode: "🎨 低星结果以稀有度为底色，中央显示简称。",
     sim_tip_full_mode: "💡 觉得出金不够醒目？可前往设置中心将低星副产物设为「极简纯色」。",
     sim_title: "✨ 自定义抽卡模拟器",
     sim_toast_cat_all_reset: "「类型定向」已全部重置！从第 1 金重新生效",
@@ -906,8 +909,8 @@ window.UI_LIB.zh = {
     sim_toast_spark_all_reset: "所有「井」限制已成功重置！",
     sim_toast_spark_single_reset: "井 #{n} 限制已重置！",
     sim_top_drawer_title: "调整本期卡池与定轨目标",
-    sim_top_summary_prefix: "(已选: {gold}、{minor})",
-    sim_top_summary_gold_only: "(已选: {gold})",
+    sim_top_summary: "(已选: {tiers})",
+    sim_top_summary_separator: "、",
     sim_top_summary_reading: "(已选: 正在读取...)",
 
     // === 更新日志页面 ===

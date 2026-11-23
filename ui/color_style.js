@@ -17,6 +17,12 @@
         if (stops.length < 2) return { color };
         return { color: stops[0].color, paint: { type: paint.type, angle: clamp(paint.angle, 0, 360, 135), stops } };
     }
+    function rescueAppearance(config) {
+        if (config?.color || config?.paint) return normalize(config);
+        return normalize({ color: '#e056fd', paint: { type: 'linear', angle: 45, stops: [
+            { color: '#e056fd', position: 0 }, { color: '#f0932b', position: 100 }
+        ] } });
+    }
     function background(value) {
         const n = normalize(value);
         if (!n.paint) return n.color;
@@ -40,5 +46,5 @@
         return luminance > .32 ? '#151b24' : '#ffffff';
     }
     const alpha = (value, opacity) => hex(typeof value === 'string' ? value : value?.color) + Math.round(clamp(opacity, 0, 1) * 255).toString(16).padStart(2, '0');
-    window.ColorStyle = Object.freeze({ hex, normalize, background, text, frame, contrast, alpha });
+    window.ColorStyle = Object.freeze({ hex, normalize, rescueAppearance, background, text, frame, contrast, alpha });
 })();

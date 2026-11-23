@@ -24,8 +24,8 @@ test('custom color field converts between hex and HSV for primaries, neutrals an
     for(const hex of ['#000000','#ffffff','#ff0000','#00ff00','#0000ff','#ff9900','#824cab','#dfbf88']){const hsv=c.ColorPicker.toHSV(hex);assert.equal(c.ColorPicker.fromHSV(hsv.h,hsv.s,hsv.v),hex);}
 });
 test('all current pages load the paint renderer; editors load the custom picker; Arknights specifies its own special accent',()=>{
-    const root=path.join(__dirname,'../..');for(const file of fs.readdirSync(root).filter(f=>f.endsWith('.html'))){const html=fs.readFileSync(path.join(root,file),'utf8');assert.ok(html.includes('ui/color_style.js'),file);}
-    for(const file of ['gallery_setup','pool_setup']){const html=fs.readFileSync(path.join(root,file+'.html'),'utf8');assert.ok(html.includes('ui/color_picker.js'));}
+    const root=path.join(__dirname,'../..'), pages=path.join(root,'html');for(const file of fs.readdirSync(pages).filter(f=>f.endsWith('.html'))){const html=fs.readFileSync(path.join(pages,file),'utf8');assert.ok(html.includes('ui/color_style.js'),file);}
+    for(const file of ['gallery_setup','pool_setup']){const html=fs.readFileSync(path.join(pages,file+'.html'),'utf8');assert.ok(html.includes('ui/color_picker.js'));}
     assert.doesNotMatch(fs.readFileSync(path.join(root,'pages/gallery_setup.js'),'utf8'),/type="color"/);
     const preset=fs.readFileSync(path.join(root,'Preset_Data/db_ark.js'),'utf8');assert.equal((preset.match(/specRate:\s*\{\s*color: "#e74c3c"/g)||[]).length,3);
 });

@@ -27,4 +27,25 @@ const config = source.slice(source.indexOf('function renderTopConfigDrawer'), so
 assert.ok(!config.includes('if (isColorOnly) return isGoldTier'));
 assert.ok(config.includes('data-low-tier="${!isGoldTier}"'));
 assert.ok(!refresh.includes('renderTopConfigDrawer()'), '切换不能重建候选并清空勾选');
+const renderSource = source.slice(source.indexOf('function buildSingleItemHtml'), source.indexOf('function resetSim()'));
+const renderContext = {
+    localStorage: context.localStorage, targetGoldIds: ['gold'],
+    activeTiers: [{ id: 'low', name: '3星', color: 'blue' }],
+    findInRoster: pull => pull.itemId ? { short: '青雀', img: 'portrait.png' } : null,
+    getItemShort: item => item.short || item.name,
+    ColorStyle: { background: tier => tier.color, contrast: () => 'white', frame: () => '' }
+};
+const render = vm.runInNewContext('(' + renderSource.trim() + ')', renderContext);
+const item = { ...record, itemId: 'qingque' };
+mode = 'color_short';
+const shortCard = render(item);
+assert.match(shortCard, /background:blue/);
+assert.match(shortCard, />青雀<\/div>/);
+assert.doesNotMatch(shortCard, /<img|3星/);
+assert.match(render(record), />Original item<\/div>/);
+assert.match(render({ ...item, tierId: 'gold', isGold: true }), /<img/);
+mode = 'color_only';
+assert.match(render(item), />3星<\/div>/);
+mode = 'show';
+assert.match(render(item), /<img/);
 console.log('PASS：即时切换重用原始结果、不重新抽取，低星候选仅隐藏并保留勾选');

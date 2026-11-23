@@ -36,6 +36,11 @@ function focusGoldRow(targetRow, shouldScroll = false) {
     if (foundIdx === -1) return;
 
     currentGoldFocusIndex = foundIdx;
+    const goldCard = targetRow.querySelector('.sim-item[data-target-gold]');
+    const pull = simRenderedPulls.get(goldCard?.dataset.total);
+    const tier = activeTiers.find(t => t.id === pull?.tierId);
+    targetRow.style.setProperty('--focus-paint', ColorStyle.background(tier));
+    targetRow.style.setProperty('--focus-color', ColorStyle.hex(tier?.color));
 
     if (shouldScroll) {
         targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -100,6 +105,12 @@ function getGoldRowsList() {
         let gameInfo = gameContext.gameInfo;
         let allCatalogItems = GameData.flattenCatalog(pureCatalog);
         let rules = gameContext.rules;
+        const rescueAppearance = ColorStyle.rescueAppearance(rules.secondaryRescue);
+        document.documentElement.style.setProperty('--rescue-color', rescueAppearance.color);
+        document.documentElement.style.setProperty('--rescue-paint', ColorStyle.background(rescueAppearance));
+        document.documentElement.style.setProperty('--rescue-ink', ColorStyle.contrast(rescueAppearance));
+        document.getElementById('box-stat-rescue').style.cssText += ';' + ColorStyle.frame(rescueAppearance, 'var(--art-inset, #17191d)');
+        document.getElementById('sim-rescue-progress').style.cssText = ColorStyle.text(rescueAppearance);
         const specialAppearance = ColorStyle.normalize({ color: rules.specRate?.color || '#e74c3c', paint: rules.specRate?.paint });
         document.documentElement.style.setProperty('--spec-color',specialAppearance.color);
         document.documentElement.style.setProperty('--spec-background',ColorStyle.background(specialAppearance));
@@ -124,6 +135,13 @@ function getGoldRowsList() {
 
 
         const { activeTiers, targetGoldIds, minorPities } = GameData.describePool(rules, globalTiers);
+
+        const poolGoldTier = globalTiers.find(t => t.id === targetGoldIds[0]);
+        const goldStyle = document.documentElement.style;
+        const goldPaint = ColorStyle.normalize(poolGoldTier);
+        goldStyle.setProperty('--sim-gold', goldPaint.color);
+        goldStyle.setProperty('--sim-gold-image', goldPaint.paint ? ColorStyle.background(goldPaint) : `linear-gradient(${goldPaint.color}, ${goldPaint.color})`);
+        goldStyle.setProperty('--sim-gold-ink', ColorStyle.contrast(goldPaint));
 
         // 初始状态与重置共用同一工厂，避免遗漏新增计数器。
         let simData = GachaEngine.createState(minorPities.length);
@@ -366,7 +384,7 @@ function getGoldRowsList() {
                 const isGoldTier = targetGoldIds.includes(tierId) || idx === 0;
                 const tierColor = tier.color || (isGoldTier ? '#f1c40f' : '#9b59b6');
                 const tRule = assemblyRules[tierId] || {
-                    mode: isGoldTier ? 'up_split' : 'up_split',
+                    mode: 'up_split',
                     upCats: ['char'],
                     offrateCats: ['char', 'wep'],
                     flatCats: ['char', 'wep'],
@@ -434,7 +452,7 @@ function getGoldRowsList() {
                 const subSpecHeader = window.getTrans('sim_sub_spec_title');
 
                 html += `
-                <div class="config-tier-block" data-low-tier="${!isGoldTier}" style="border-left: 4px solid ${tierColor}; ${ColorStyle.frame(tier)}">
+                <div class="config-tier-block" data-low-tier="${!isGoldTier}" ${tRule.mode === 'up_split' ? `data-summary-tier="${tierId}"` : ''} style="border-left: 4px solid ${tierColor}; ${ColorStyle.frame(tier)}">
                     <div style="font-size: 13px; font-weight: bold; ${ColorStyle.text(tier)} margin-bottom: 8px;">${tierTitle}</div>
     
                     <!-- 1. UP 目标 -->
@@ -569,37 +587,41 @@ function getGoldRowsList() {
 };
 
         function updateHeaderSummary() {
-            const goldTierId = targetGoldIds[0] || globalTiers[0]?.id;
-            const minorTierId = globalTiers[1]?.id;
-            const goldTierObj = globalTiers.find(t => t.id === goldTierId) || { name: '6', en: '6-Star' };
-            const minorTierObj = globalTiers.find(t => t.id === minorTierId) || { name: '5', en: '5-Star' };
-
-            const selectedGoldUps = Array.from(document.querySelectorAll(`.sim-up-cb-${goldTierId}:checked`)).map(cb => {
-                let it = findInRoster(cb.value);
-                return getItemName(it);
-            });
-            const selectedMinorUps = minorTierId ? Array.from(document.querySelectorAll(`.sim-up-cb-${minorTierId}:checked`)).map(cb => {
-                let it = findInRoster(cb.value);
-                return getItemName(it);
-            }) : [];
-
-            let goldPrefix = getLocalizedTierName(goldTierObj);
-            let minorPrefix = getLocalizedTierName(minorTierObj);
-
-            let goldStr = selectedGoldUps.length > 0 
-                ? `${goldPrefix} [${selectedGoldUps.join(' / ')}]` 
-                : (window.getTrans('sim_gold_not_selected') || '').replace('{tier}', goldPrefix);
-            let minorStr = selectedMinorUps.length > 0 
-                ? `${minorPrefix} [${selectedMinorUps.join(' / ')}]` 
-                : (window.getTrans('sim_gold_not_selected') || '').replace('{tier}', minorPrefix);
-
             const summaryEl = document.getElementById('top-selected-summary');
-            if (summaryEl) {
-                const summaryKey = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only' ? 'sim_top_summary_gold_only' : 'sim_top_summary_prefix';
-                summaryEl.innerText = (window.getTrans(summaryKey) || '')
-                    .replace('{gold}', goldStr)
-                    .replace('{minor}', minorStr);
-            }
+            if (!summaryEl) return;
+            const goldOnly = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only';
+            const selector = goldOnly ? '[data-summary-tier][data-low-tier="false"]' : '[data-summary-tier]';
+            const blocks = document.querySelectorAll('#dynamic-tier-config-container ' + selector);
+            summaryEl.replaceChildren();
+            summaryEl.hidden = blocks.length === 0;
+            if (summaryEl.hidden) return;
+
+            const [prefix, suffix] = window.getTrans('sim_top_summary').split('{tiers}');
+            summaryEl.append(prefix);
+            blocks.forEach((block, index) => {
+                const tier = globalTiers.find(t => t.id === block.dataset.summaryTier);
+                const upGrid = document.getElementById(`grid-up-${tier.id}`);
+                const names = Array.from(upGrid?.querySelectorAll('input:checked') || [], cb =>
+                    getItemName(findInRoster(cb.dataset.itemId || cb.value)));
+                const badge = document.createElement('span');
+                badge.style.cssText = ColorStyle.text(tier);
+                badge.textContent = getLocalizedTierName(tier);
+                if (index) summaryEl.append(window.getTrans('sim_top_summary_separator'));
+                if (names.length) {
+                    summaryEl.append(badge, ' [');
+                    names.forEach((name, i) => {
+                        if (i) summaryEl.append(' / ');
+                        const itemLabel = badge.cloneNode(false);
+                        itemLabel.textContent = name;
+                        summaryEl.append(itemLabel);
+                    });
+                    summaryEl.append(']');
+                } else {
+                    const [before, after] = window.getTrans('sim_gold_not_selected').split('{tier}');
+                    summaryEl.append(before, badge, after || '');
+                }
+            });
+            summaryEl.append(suffix);
         }
 
         async function validatePreSelect() {
@@ -748,7 +770,7 @@ function getGoldRowsList() {
 
             slot.insertAdjacentHTML('beforeend', `
                 <div class="spark-gift-card" data-sim-gold-gift="${gift.isToken ? '0' : '1'}" data-gift-total="${gift.atTotal}" title="井兑换产物: ${info ? getItemName(info) : gift.name}">
-                    <div style="position:absolute; top:0; left:0; width:100%; background:#f1c40f; color:#000; font-size:10px; font-weight:bold; text-align:center; z-index:5; line-height:1.2; border-radius:4px 4px 0 0;">${gift.isToken ? (simulatorLang==='en'?'Token':'信物') : window.getTrans('sim_spark_badge')}</div>
+                    <div style="position:absolute; top:0; left:0; width:100%; background:var(--sim-gold-image); color:var(--sim-gold-ink); font-size:10px; font-weight:bold; text-align:center; z-index:5; line-height:1.2; border-radius:4px 4px 0 0;">${gift.isToken ? (simulatorLang==='en'?'Token':'信物') : window.getTrans('sim_spark_badge')}</div>
                     ${imgHtml}
                     <div style="position:absolute; bottom:0; left:0; width:100%; height:60%; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); z-index:2; border-radius:0 0 4px 4px;"></div>
                     <div style="position:relative; z-index:3; color:#fff; text-align:center; font-size:10px; font-weight:bold; padding-bottom:3px; text-shadow:1px 1px 2px #000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${info ? getItemShort(info) : gift.name}</div>
@@ -937,7 +959,7 @@ function getGoldRowsList() {
             const probTitleSpan = document.getElementById('sim-prob-title-text');
             if (probTitleSpan) {
                 const titleTemplate = window.getTrans ? window.getTrans('sim_h_prob_live') : "📊 下一抽实时概率 (当前已垫: {pity})";
-                probTitleSpan.innerHTML = titleTemplate.replace('{pity}', `<span id="sim-stat-pity" style="color: #f1c40f; font-weight: bold;">${simData.pity}</span>`);
+                probTitleSpan.innerHTML = titleTemplate.replace('{pity}', `<span id="sim-stat-pity" style="color: var(--sim-gold); font-weight: bold;">${simData.pity}</span>`);
             }
 
             // 🌟 2. 动态设置右侧展开/收起文本
@@ -1012,14 +1034,14 @@ function getGoldRowsList() {
 
 function buildSingleItemHtml(p) {
     let isGold = p.isGold && targetGoldIds.includes(p.tierId);
-    let isColorOnly = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only';
+    const lowMode = localStorage.getItem('GM_Sim_Hide_Low');
     let tierObj = activeTiers.find(t => t.id === p.tierId) || { name: '?', color: '#555' };
     
     let info = findInRoster(p);
     let imgPath = info?.img || "";
 
-    let hideImg = isColorOnly ? !isGold : false;
-    let dName = hideImg ? tierObj.name : (info ? getItemShort(info) : p.name);
+    const hideImg = !isGold && (lowMode === 'color_only' || lowMode === 'color_short');
+    const dName = hideImg && lowMode === 'color_only' ? tierObj.name : getItemShort(info || p);
     let boxShadow = isGold ? `0 0 14px ${tierObj.color}cc` : 'none';
 
     // 🌟 1. 提升抽数/井角标层级至 z-index: 7（高于明光标签），确保抽数永远处于最上层
@@ -1038,8 +1060,8 @@ function buildSingleItemHtml(p) {
     if (p.isRescued && isGold) {
         let tagName = ItemFormat.getRescueName(rules.secondaryRescue);
         tagName = String(tagName).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        rescueTagHtml = `<span style="position:absolute; top:2px; right:2px; max-width:32px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:linear-gradient(45deg, #e056fd, #f0932b); color:#fff; font-size:8px; font-weight:900; padding:1px 3px; border-radius:3px; z-index:5; box-shadow:0 0 6px #e056fd; line-height:1.1;" title="${tagName}">${tagName}</span>`;
-        boxShadow = '0 0 16px #e056fd, 0 0 6px #f1c40f';
+        rescueTagHtml = `<span style="position:absolute; top:2px; right:2px; max-width:32px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:var(--rescue-paint); color:var(--rescue-ink); font-size:8px; font-weight:900; padding:1px 3px; border-radius:3px; z-index:5; box-shadow:0 0 6px var(--rescue-color); line-height:1.1;" title="${tagName}">${tagName}</span>`;
+        boxShadow = '0 0 16px var(--rescue-color), 0 0 6px var(--sim-gold)';
     }
 
     let textStyle = hideImg 
@@ -1053,7 +1075,7 @@ function buildSingleItemHtml(p) {
     }
 
     return `
-        <div class="sim-item" data-total="${p.total}" style="background:${bgColor}; border-color:${borderColor}; box-shadow:${boxShadow}; color:#fff; ${hideImg ? `background:${ColorStyle.background(tierObj)};color:${ColorStyle.contrast(tierObj)};` : ColorStyle.frame(tierObj,'#222')}">
+        <div class="sim-item" data-total="${p.total}" ${isGold ? 'data-target-gold' : ''} style="background:${bgColor}; border-color:${borderColor}; box-shadow:${boxShadow}; color:#fff; ${hideImg ? `background:${ColorStyle.background(tierObj)};color:${ColorStyle.contrast(tierObj)};` : ColorStyle.frame(tierObj,'#222')}">
             <span class="pull-num" style="${numStyle}">${displayPityText}</span>
             ${imgHtml}${gradientHtml}${rescueTagHtml}
             <div style="${textStyle}">${dName}</div>
@@ -1213,10 +1235,10 @@ function buildSingleItemHtml(p) {
                 return `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:10px 14px; border-radius:6px; border:1px solid #444;">
                         <div>
-                            <span style="color:#f1c40f; font-weight:bold;">Gold #${targetOrder}: UP Rate ${rule.upRate}%</span>
+                            <span style="color:var(--sim-gold); font-weight:bold;">Gold #${targetOrder}: UP Rate ${rule.upRate}%</span>
                             <div style="font-size:11px; color:#aaa; margin-top:2px;">${window.getTrans('sim_reset_status_label')}${statusText}</div>
                         </div>
-                        <button class="btn btn-action-gray" style="padding:4px 10px; font-size:12px; color:#f1c40f; border-color:#f1c40f;" onclick="setEarlyUpTargetOrder(${targetOrder})">${window.getTrans('sim_reset_btn_from_order')}</button>
+                        <button class="btn btn-action-gray" style="padding:4px 10px; font-size:12px; color:var(--sim-gold); border-color:var(--sim-gold);" onclick="setEarlyUpTargetOrder(${targetOrder})">${window.getTrans('sim_reset_btn_from_order')}</button>
                     </div>`;
             }).join('');
 
@@ -1460,7 +1482,7 @@ function buildSingleItemHtml(p) {
                         guaText.innerText = currentRate >= 100 
                             ? window.getTrans('sim_stat_guar_prog_hit')
                             : (window.getTrans('sim_stat_guar_prog_next') || '').replace('{rate}', currentRate).replace('{lost}', simData.guaranteeLosses || 0);
-                        guaText.style.color = currentRate >= 100 ? '#2ecc71' : ((simData.guaranteeLosses || 0) > 0 ? '#f1c40f' : '#aaa');
+                        guaText.style.color = currentRate >= 100 ? '#2ecc71' : ((simData.guaranteeLosses || 0) > 0 ? 'var(--sim-gold)' : '#aaa');
                     } else {
                         const limit = goldPityRule.guaranteeLimit || 1;
                         if (simData.guaranteeCount >= limit) {
@@ -1498,10 +1520,9 @@ function buildSingleItemHtml(p) {
         function updateHideLowTip() {
             const tipEl = document.getElementById('tip-hide-low-text');
             if (!tipEl) return;
-            const isColorOnly = localStorage.getItem('GM_Sim_Hide_Low') === 'color_only';
-            tipEl.innerHTML = isColorOnly 
-                ? window.getTrans('sim_tip_color_mode') 
-                : window.getTrans('sim_tip_full_mode');
+            const mode = localStorage.getItem('GM_Sim_Hide_Low');
+            const tips = { color_only: 'sim_tip_color_mode', color_short: 'sim_tip_color_short_mode' };
+            tipEl.textContent = window.getTrans(tips[mode] || 'sim_tip_full_mode');
         }
 
         async function scrollToGold(direction) {
@@ -1608,7 +1629,7 @@ function buildSingleItemHtml(p) {
                         : `<div style="color:#fff; font-weight:bold; font-size:14px;">${displayShort}</div>`;
 
                     return `
-                        <div class="char-select-card" style="height:90px; opacity:1; filter:none; border-color:#f1c40f;" onclick="onPickSparkReward('${CatalogUtils.getIdentity(item) || item.name}')">
+                        <div class="char-select-card" style="height:90px; opacity:1; filter:none; ${ColorStyle.frame(poolGoldTier)}" onclick="onPickSparkReward('${CatalogUtils.getIdentity(item) || item.name}')">
                             <div class="char-select-img-wrap" style="height:65px;">${imgHtml}</div>
                             <div class="char-select-name" title="${displayName}">${displayName}</div>
                         </div>`;

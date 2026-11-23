@@ -49,13 +49,14 @@ window.UI_LIB.en = {
     updates_unread: "Unread release notes available",
 
     color_edit: "Edit colors",
+    rescue_color_label: "Capturing Radiance accent",
     spec_color_label: "Special-rate accent",
     spec_color_hint: "Colors the rule border, Simulator candidates, and badges without changing draw probabilities.",
     sim_empty_title: "Every encounter starts here",
     sim_empty_desc: "Choose your targets and make your first pull. Your pull history will unfold here.",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "Current Version :Beta",
-    idx_version_title_number: "v0.3.7.18",
+    idx_version_title_number: "v0.3.7.19",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "Updates:<br>" +
@@ -71,8 +72,8 @@ window.UI_LIB.en = {
         "2. Supports language, scope, preferences, and source links.<br>" +
         "<br>" +
         "Minor update:<br>" +
-        "1. New catalog configuration tools let you merge entries by name or ID and choose whether to use incoming values or keep existing ones.<br>" +
-        "2. Drag cards to change their rarity and catalog category. The save button stays in place when you lock the preview.<br>" +
+        "1. Low-rarity cards can show short names on rarity colours. The Selected summary lists only tiers with separate rate-up and off-banner groups.<br>" +
+        "2. Drop navigation and rewards use the target rarity colours. Capturing Radiance supports custom solid colours and gradients.<br>" +
         "<br>" +
         "Gallery updates:<br>" +
         "1. Added fixed IDs and legacy-data compatibility to all four supported game galleries.<br>" +
@@ -292,6 +293,7 @@ window.UI_LIB.en = {
     set_lang: "Interface Language",
     set_language_first_visit: "Change your interface language here",
     set_low_tier_color: "Minimal colour (show only tier colours, emphasizing target gold)",
+    set_low_tier_color_short: "Solid colour + short name",
     set_low_tier_display: "Simulator low-tier display style",
     set_low_tier_full: "Full display (show every low-tier portrait and name)",
     set_non_gold_color: "Automatic: show only tier-colour blocks (no item selected)",
@@ -890,6 +892,7 @@ window.UI_LIB.en = {
     sim_tier_gold_title: "[ {tier} Grand Prize Config ] (Required: {range} Rate-Up target(s))",
     sim_tier_sub_title: "[ {tier} Secondary Config ] (Required: {range} Rate-Up target(s))",
     sim_tip_color_mode: "🎨 Minimal color mode enabled. Visit Settings to show portraits.",
+    sim_tip_color_short_mode: "🎨 Low-rarity cards show short names on their rarity colours.",
     sim_tip_full_mode: "💡 Want gold to stand out more? Set low-tier drops to 'Minimal Color' in Settings.",
     sim_title: "✨ Custom Gacha Simulator",
     sim_toast_cat_all_reset: "Targeted sequences reset! Reactivated starting from Gold #1.",
@@ -906,8 +909,8 @@ window.UI_LIB.en = {
     sim_toast_spark_all_reset: "All spark limits have been reset successfully!",
     sim_toast_spark_single_reset: "Spark #{n} limit has been reset!",
     sim_top_drawer_title: "Configure Current Banner & Rate-Up Targets",
-    sim_top_summary_prefix: "(Selected: {gold}, {minor})",
-    sim_top_summary_gold_only: "(Selected: {gold})",
+    sim_top_summary: "(Selected: {tiers})",
+    sim_top_summary_separator: ", ",
     sim_top_summary_reading: "(Selected: Loading...)",
 
     // === 更新日志页面 ===

@@ -112,7 +112,7 @@
             select(panel, 'distribution', 'GM_Dashboard_Distribution', 'show', [['show','visible'],['hide','hidden']], 'data-distribution');
         }
         if (file === 'dashboard.html') select(panel, 'manual', 'GM_Non_Gold_Input_Mode', 'allow_manual_no_up', [['allow_manual_no_up','flat'],['allow_manual_with_up','up'],['auto_random','random'],['pure_color','pure']]);
-        if (file === 'simulator.html') select(panel, 'low', 'GM_Sim_Hide_Low', 'show', [['show','show'],['color_only','color']]);
+        if (file === 'simulator.html') select(panel, 'low', 'GM_Sim_Hide_Low', 'show', [['show','show'],['color_only','color'],['color_short',label('set_low_tier_color_short')]]);
         if (file === 'simulator.html') {
             toggleRow(panel, 'currency', 'GM_Sim_Currency_Mode', () => window.refreshSimulatorEconomy?.(), false);
             const remember=document.createElement('div');

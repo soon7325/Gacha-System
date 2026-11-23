@@ -1,4 +1,4 @@
-.sim-batch-gold-ordinal { flex:0 0 auto;margin-left:5px;color:#b4a16e;font:12px ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;visibility:hidden;pointer-events:none; }
+.sim-batch-gold-ordinal { flex:0 0 auto;margin-left:5px;color:var(--sim-gold);background-image:var(--sim-gold-image);background-clip:text;-webkit-text-fill-color:transparent;font:12px ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;visibility:hidden;pointer-events:none; }
 [data-gold-ordinal-mode="show"] .sim-batch-gold-ordinal,
 [data-gold-ordinal-mode="hover"] .sim-pull-row:hover .sim-batch-gold-ordinal,
 [data-gold-ordinal-mode="hover"] .sim-pull-row:focus-visible .sim-batch-gold-ordinal,

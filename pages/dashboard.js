@@ -1351,7 +1351,7 @@ window.openRuleUpdateModal = function() {
         const inheritRescue = matrix.inheritRescueLosses !== false;
         html += `
             <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                <span style="color:#e056fd;">${getTrans('cd_rotation_rescue')}</span>
+                <span style="${ColorStyle.text(ColorStyle.rescueAppearance(window.rules?.secondaryRescue))}">${getTrans('cd_rotation_rescue')}</span>
                 <span style="font-weight:bold; color:${inheritRescue ? '#2ecc71' : '#ff4757'};">
                 ${inheritRescue ? getTrans('cd_rotation_inherit') : getTrans('cd_rotation_reset')}
                 </span>
