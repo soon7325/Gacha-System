@@ -1,0 +1,10 @@
+.pool-sync-dialog{box-sizing:border-box;width:min(560px,94vw);max-height:85vh;overflow:auto;padding:22px;color:var(--text,#eee);background:var(--card-bg,#20242b);border:1px solid var(--border,#555);border-radius:12px}
+.pool-sync-dialog::backdrop{background:#0009}
+.pool-sync-dialog h3{margin:0 0 14px}
+.pool-sync-dialog section{display:grid;gap:8px;padding:14px 0;border-bottom:1px solid var(--border,#555)}
+.pool-sync-dialog select{max-width:100%;padding:6px;color:inherit;background:var(--bg-dark,#191c21)}
+.pool-sync-dialog label{display:flex;align-items:center;gap:8px}
+.pool-sync-dialog p{white-space:pre-line;font-size:13px;line-height:1.5}
+.pool-sync-dialog section p{margin:0}
+.pool-sync-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.pool-sync-actions [hidden]{display:none}

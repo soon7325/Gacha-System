@@ -45,7 +45,22 @@ test('非法录入仅保存记录与红色同步标记，玩家进度和持有�
     assert.deepEqual(plain(row.pools),h.row.pools);assert.deepEqual(plain(row.owned),h.row.owned);assert.deepEqual(plain(row.balances),h.row.balances);
     assert.equal(row.dashboardRecords.pool.records.length,2);assert.equal(row.dashboardRecords.pool.syncBlocked.reason,'invalid_history');
     h.save([gold,gold],false);row=h.c.UserDataProfiles.read('game').items[0];assert.ok(row.dashboardRecords.pool.syncBlocked);
-    assert.equal(h.save([gold,{...gold,isLost:false}]).synced,true);
+    const status=()=>h.api.status(h.api.read('game','pool','a').row,'pool',()=>h.context);
+    assert.equal(status().recordNumber,2);
+    // 已有存档可能仍有旧标记：读取时按现行规则复核，保留玩家数据。
+    h.context.rules.pities[0].useGuarantee=false;
+    const stored=h.store.get('GM_Sim_Profiles_game');
+    assert.equal(status().reason,'pending');
+    assert.equal(h.store.get('GM_Sim_Profiles_game'),stored);
+    h.context.rules.pities[0].useGuarantee=true;
+    h.save([gold,{...gold,isLost:false}],false);
+    assert.equal(status().reason,'pending');
+    row=h.api.read('game','pool','a').row;
+    assert.equal(row.dashboardRecords.pool.syncBlocked,undefined);
+    assert.deepEqual(plain(row.owned),h.row.owned);
+    assert.deepEqual(plain(row.pools),h.row.pools);
+    assert.equal(h.save(row.dashboardRecords.pool.records).synced,true);
+    assert.equal(status(),null);
     row=h.c.UserDataProfiles.read('game').items[0];assert.equal(row.dashboardRecords.pool.syncBlocked,undefined);
     assert.equal(row.pools.pool.total,22);assert.equal(row.owned['["char","hero"]'],4);
     h.save([gold,{...gold,isLost:false}]);assert.equal(h.c.UserDataProfiles.read('game').items[0].owned['["char","hero"]'],4);
@@ -213,4 +228,25 @@ test('初始歪数0录入UP后不会变为1；初始快照和当前状态分别�
         assert.equal(h.c.SimulatorStart.summaryErrors(h.context,start,profiles.summary(saved,'pool')).length,0);
         h.save(records);assert.equal(profiles.initial(profiles.read('game').items[0],'pool',1).guaranteeCount,losses);
     }
+});
+
+test('自动同步只处理合法待同步记录，关闭、异常和重复进入均不写入',()=>{
+    const h=setup();
+    vm.runInContext(read('logic/app_preferences.js'),h.c);
+    h.c.AppPreferences=h.c.window.AppPreferences;
+    const run=()=>h.api.syncPending('game','pool','a',()=>h.context);
+    const stored=()=>h.store.get('GM_Sim_Profiles_game');
+    h.save([low],false);
+    h.store.set('GM_Dashboard_Sync_Player','false');
+    const pending=stored();
+    run();assert.equal(stored(),pending);
+    h.store.delete('GM_Dashboard_Sync_Player');
+    assert.equal(run().synced,true);
+    assert.equal(h.api.read('game','pool','a').row.pools.pool.total,21);
+    const synced=stored();run();assert.equal(stored(),synced);
+    h.save([low,{...gold,short:'?'}],false);
+    const invalid=stored();run();assert.equal(stored(),invalid);
+    h.save([gold],false);
+    const conflict=stored();run();assert.equal(stored(),conflict);
+    assert.equal(h.api.status(h.api.read('game','pool','a').row,'pool',()=>h.context).reason,'baseline_changed');
 });

@@ -56,7 +56,7 @@ window.UI_LIB.zh = {
     sim_empty_desc: "选好目标，开始第一次抽卡。你的抽卡轨迹将在这里展开。",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "当前版本:Beta",
-    idx_version_title_number: "v0.3.7.19",
+    idx_version_title_number: "v0.3.7.20",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "更新：<br>" +
@@ -72,8 +72,8 @@ window.UI_LIB.zh = {
         "2：支持语言、收录范围、偏好设置与资料链接。<br>" +
         "<br>" +
         "小版本更新：<br>" +
-        "1：低星卡片支持纯色底加简称，顶部摘要只显示区分 UP 与可歪的星级。<br>" +
-        "2：寻金和奖励展示跟随目标金配色，捕获明光支持自定义纯色与渐变。<br>" +
+        "1：修复卡池录入候选超出图鉴装配范围的问题。<br>" +
+        "2：修复玩家数据同步误报，合法记录默认自动同步，冲突可按卡池修复。<br>" +
         "<br>" +
         "图鉴更新：<br>" +
         "1：四个正式游戏图鉴补充固定 ID 与旧数据兼容。<br>" +
@@ -943,7 +943,7 @@ window.UI_LIB.zh = {
     cl_toc_title_channels: "旧版本通道",
     cl_toc_title_versions: "更新日志定位",
     cl_tooltip_visual_line: "包含空间自适应折行后的真实视觉行数",
-    set_dashboard_sync_player: "录入记录同步至玩家数据",
+    set_dashboard_sync_player: "自动同步录入记录至玩家数据",
     set_dashboard_sync_history: "首次同步时包含已有记录",
     // Homepage presentation and game archive.
     home_welcome: "欢迎来到 Gacha System",

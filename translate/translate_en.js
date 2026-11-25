@@ -56,7 +56,7 @@ window.UI_LIB.en = {
     sim_empty_desc: "Choose your targets and make your first pull. Your pull history will unfold here.",
     // === 常改版本信息：先版本标题，后更新内容 ===
     idx_version_title: "Current Version :Beta",
-    idx_version_title_number: "v0.3.7.19",
+    idx_version_title_number: "v0.3.7.20",
     // 各行通过 + 连接；代码分行不会改变页面显示。
     idx_version_content:
         "Updates:<br>" +
@@ -72,8 +72,8 @@ window.UI_LIB.en = {
         "2. Supports language, scope, preferences, and source links.<br>" +
         "<br>" +
         "Minor update:<br>" +
-        "1. Low-rarity cards can show short names on rarity colours. The Selected summary lists only tiers with separate rate-up and off-banner groups.<br>" +
-        "2. Drop navigation and rewards use the target rarity colours. Capturing Radiance supports custom solid colours and gradients.<br>" +
+        "1. Fixed record entry offering items outside the configured pool.<br>" +
+        "2. Fixed stale sync warnings. Valid records sync automatically by default, and conflicts can be repaired per pool.<br>" +
         "<br>" +
         "Gallery updates:<br>" +
         "1. Added fixed IDs and legacy-data compatibility to all four supported game galleries.<br>" +
@@ -943,7 +943,7 @@ window.UI_LIB.en = {
     cl_toc_title_channels: "Legacy Channels",
     cl_toc_title_versions: "Changelog Index",
     cl_tooltip_visual_line: "Actual visual lines after responsive auto-wrapping",
-    set_dashboard_sync_player: "Sync entered records to Player data",
+    set_dashboard_sync_player: "Automatically sync entered records to Player data",
     set_dashboard_sync_history: "Include existing records on the first sync",
     // Homepage presentation and game archive.
     home_welcome: "Welcome to Gacha System",

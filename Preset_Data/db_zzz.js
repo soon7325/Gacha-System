@@ -838,7 +838,9 @@ const ZZZ_POOL_RULES = {
                 tier_A: { stdMin: 0, stdMax: 999 },
                 tier_B: { stdMin: 0, stdMax: 999 }
             },
-        }
+        },
+
+        lifecycle: {allowRotation: false,}
     },
 
     bangboo_up: {

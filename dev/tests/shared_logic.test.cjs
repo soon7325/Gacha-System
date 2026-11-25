@@ -27,7 +27,7 @@ test('保存顺序没有999项限制，大清单仍把新增条目放最后', ()
 test('偏好默认值一致，依赖选项隐藏时保留记住起点和历史同步选择', () => {
     const values={},api=load('logic/app_preferences.js',values).AppPreferences;
     assert.deepEqual({...api.simulator()},{currency:false,start:false,records:false,remember:true,showRemember:false});
-    assert.deepEqual({...api.playerData()},{mode:'single',lowOverflow:true,sync:false,history:false,showHistory:false});
+    assert.deepEqual({...api.playerData()},{mode:'single',lowOverflow:true,sync:true,history:false,showHistory:true});
     for(const start of [false,true])for(const records of [false,true])for(const remember of [false,true]){
         Object.assign(values,{GM_Sim_Start_Setup:String(start),GM_Sim_Keep_Records:String(records),GM_Sim_Remember_Start:String(remember)});
         assert.equal(api.simulator().showRemember,start&&!records);

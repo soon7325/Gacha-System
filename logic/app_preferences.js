@@ -13,7 +13,7 @@
         return { currency, start, records, remember, showRemember: start && !records };
     }
     function playerData() {
-        const sync = enabled('GM_Dashboard_Sync_Player');
+        const sync = enabled('GM_Dashboard_Sync_Player', true);
         return {
             mode: localStorage.getItem('GM_Player_Data_Mode') === 'multi' ? 'multi' : 'single',
             lowOverflow: enabled('GM_Sim_Start_Auto_Low_Overflow', true),

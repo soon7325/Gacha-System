@@ -30,12 +30,23 @@ Other Previews:
 `
     },
     {
+        version: "v0.3.7.20",
+        title: "Fixes for pool item selection and player data sync",
+        date: "25/11/2026",
+        tag: [{ scope: "Results Dashboard", type: ["Fix","Improvement"] }, { scope: "Player Data Page", type: ["Fix","Addition"] }],
+        author: "ChatGPT & Zhi Siong",
+        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
+        content: `1. Fixed limited items appearing during standard pool record entry. Manual selection and random low-rarity fills now use the catalog categories and tags configured for that tier. Flat tiers show their configured items directly. Split tiers use separate rate-up and off-banner lists, including on limited and collaboration pools.
+2. Fixed an invalid-record warning that could remain on the Player Data page after a correction. Valid records now sync automatically by default. Reopening a page does not count pulls or owned copies twice. An existing preference to disable sync is respected.
+2.1. Invalid records are identified by position and can sync after correction. If the sync baseline or inventory conflicts, repair just the affected pool by keeping player data or recalculating progress from Dashboard records. Player Data also lets you check the current game or all games and select individual pools.
+3. Rarity distribution now has its own row on the Dashboard, with sync messages in the bottom action area. Sync, Merge and New Data now sit below the Player Data header so switching account modes keeps the header in place.`
+    },
+    {
         version: "v0.3.7.19",
         title: "Low-rarity short names, target rarity colours and Capturing Radiance colours",
         date: "23/11/2026",
         tag: [{ scope: "Simulator", type: ["Addition","Improvement"] }, { scope: "Pool Setup", type: ["Addition"] }],
         author: "ChatGPT & Zhi Siong",
-        channel: { enabled: true, targetVer: "0.3", text: "Go to the latest v0.3 channel", path: "index.html" },
         content: `1. Choose “Solid colour + short name” to show the catalog short name in the centre of each low-rarity card on its rarity colour. Switching display modes updates existing results immediately.
 2. The Selected summary lists only tiers configured with separate rate-up and off-banner groups. Each tier and its selected items use that tier’s colours. The summary is hidden when all tiers use a flat pool.
 3. Jumping to a high-rarity drop highlights its row in the target drop’s tier colour or gradient. Drop counts, ordinal numbers, navigation buttons and spark rewards also use the pool’s target rarity colours.

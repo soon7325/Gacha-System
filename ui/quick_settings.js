@@ -132,7 +132,7 @@
             note(panel,'set_player_data_note');
             const history=document.createElement('div');
             const dependencies=()=>{history.hidden=!window.AppPreferences.playerData().showHistory;position();};
-            toggleRow(panel,'set_dashboard_sync_player','GM_Dashboard_Sync_Player',dependencies,false);
+            toggleRow(panel,'set_dashboard_sync_player','GM_Dashboard_Sync_Player',()=>{dependencies();window.syncPendingPlayerRecords?.();},true);
             toggleRow(history,'set_dashboard_sync_history','GM_Dashboard_Sync_Existing',null,false);
             panel.append(history);dependencies();
             toggleRow(panel,'set_sim_auto_low_overflow','GM_Sim_Start_Auto_Low_Overflow');

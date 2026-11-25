@@ -41,27 +41,7 @@ const urlParams = new URLSearchParams(window.location.search);
         let selectedGoldIds = [];
         let pureCatalog = {};
 
-        let poolAssembly = {
-            tierRules: {
-                tier_S: {
-                    mode: 'up_split',
-                    cats: ['char'],
-                    upTags: ['up', 'reup'],
-                    offrateTags: ['std', 'custom_offrate']
-                },
-                tier_A: {
-                    mode: 'up_split',
-                    cats: ['char', 'wep'],
-                    upTags: ['custom_offrate'],
-                    offrateTags: ['normal', 'std']
-                },
-                tier_B: {
-                    mode: 'flat',
-                    cats: ['wep'],
-                    tags: ['normal']
-                }
-            }
-        };
+        let poolAssembly = CatalogUtils.defaultPoolAssembly();
 
         window.addEventListener('DOMContentLoaded', initPage);
 
@@ -273,32 +253,7 @@ const urlParams = new URLSearchParams(window.location.search);
         }
 
 function initDefaultAssemblyRules() {
-    if (!poolAssembly.tierRules) poolAssembly.tierRules = {};
-    const allTags = ['up', 'reup', 'custom_offrate', 'std', 'gift', 'normal'];
-    // 🌟 动态获取全部大类 ID
-    const availableCats = getAvailableCategories().map(c => c.id);
-    const defaultCats = availableCats.length > 0 ? availableCats : ['char', 'wep'];
-
-    globalTiers.forEach((tier, idx) => {
-        if (!poolAssembly.tierRules[tier.id]) {
-            poolAssembly.tierRules[tier.id] = {
-                mode: (idx === 0) ? 'up_split' : (idx === globalTiers.length - 1 ? 'flat' : 'up_split'),
-                upCats: [...defaultCats],
-                offrateCats: [...defaultCats],
-                flatCats: [...defaultCats],
-                upTags: ['up', 'custom_offrate'],
-                offrateTags: ['std', 'normal'],
-                tags: [...allTags]
-            };
-        } else {
-            const rule = poolAssembly.tierRules[tier.id];
-            if (rule.cats && !rule.upCats) {
-                rule.upCats = [...rule.cats];
-                rule.offrateCats = [...rule.cats];
-                rule.flatCats = [...rule.cats];
-            }
-        }
-    });
+    CatalogUtils.initAssemblyRules(poolAssembly,globalTiers,getAvailableCategories().map(c=>c.id));
 }
 
         function renderCardZeroAssembly() {
@@ -476,18 +431,12 @@ function initDefaultAssemblyRules() {
             };
 
             if (rule.mode === 'up_split') {
-                const upItems = getItemsByCats(rule.upCats || []).filter(i => 
-                    i.tierId === tierId && CatalogUtils.hasAnyTag(i, rule.upTags)
-                );
-                const offItems = getItemsByCats(rule.offrateCats || []).filter(i => 
-                    i.tierId === tierId && CatalogUtils.hasAnyTag(i, rule.offrateTags)
-                );
+                const upItems = CatalogUtils.assemblyItems(pureCatalog,tierId,rule,'up');
+                const offItems = CatalogUtils.assemblyItems(pureCatalog,tierId,rule,'offrate');
                 renderChipList(`preview-${tierId}-up-chips`, `preview-${tierId}-up-count`, upItems, tier);
                 renderChipList(`preview-${tierId}-offrate-chips`, `preview-${tierId}-offrate-count`, offItems, '#3498db');
             } else {
-                const flatItems = getItemsByCats(rule.flatCats || []).filter(i => 
-                    i.tierId === tierId && CatalogUtils.hasAnyTag(i, rule.tags)
-                );
+                const flatItems = CatalogUtils.assemblyItems(pureCatalog,tierId,rule,'flat');
                 renderChipList(`preview-${tierId}-flat-chips`, `preview-${tierId}-flat-count`, flatItems, tier);
             }
         }

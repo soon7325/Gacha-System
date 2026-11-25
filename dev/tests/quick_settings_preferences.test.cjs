@@ -28,7 +28,7 @@ test('玩家数据快捷设定包含管理方式、三个勾选和两条提示�
     assert.deepEqual(h.all().filter(node=>node.dataset?.quickPreference).map(node=>node.dataset.quickPreference),[
         'GM_Player_Data_Mode','GM_Dashboard_Sync_Player','GM_Dashboard_Sync_Existing','GM_Sim_Start_Auto_Low_Overflow']);
     const history=h.panel.children.find(node=>node.children?.some(child=>child.children?.includes(h.control('GM_Dashboard_Sync_Existing'))));
-    assert.equal(history.hidden,true);assert.equal(h.control('GM_Sim_Start_Auto_Low_Overflow').checked,true);
+    assert.equal(history.hidden,false);assert.equal(h.control('GM_Dashboard_Sync_Player').checked,true);assert.equal(h.control('GM_Sim_Start_Auto_Low_Overflow').checked,true);
     await h.change('GM_Dashboard_Sync_Player',true);assert.equal(history.hidden,false);
     await h.change('GM_Dashboard_Sync_Existing',true);await h.change('GM_Dashboard_Sync_Player',false);
     assert.equal(history.hidden,true);assert.equal(h.store.get('GM_Dashboard_Sync_Existing'),'true');

@@ -926,12 +926,6 @@ body.is-delete-mode .box-add-more {
 
                 <!-- 🌟 始终贴紧浏览器视口最底端的底栏 -->
                 <div class="dashboard-fixed-footer">
-                    <!-- 左下角：导出记录按钮 -->
-                    <button class="btn btn-action-gray" style="flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; padding: 0 16px; border: 1px solid var(--border); border-radius: 8px;" onclick="exportGachaData()">
-                        <span>💾</span> <span data-i18n="cd_btn_export_record">导出记录</span>
-                    </button>
-
-                    <!-- 左下角隔壁：星级出货分布分析卡片 (动态自适应当前游戏/DB星级) -->
                     <div id="tier-distribution-panel" style="flex: 1; min-width: 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; box-sizing: border-box;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px;">
                             <span style="font-weight: bold; color: #eee; display: flex; align-items: center; gap: 6px;">
@@ -942,6 +936,11 @@ body.is-delete-mode .box-add-more {
                         </div>
                         <!-- 🌟 动态自适应颜色的百分比比例条 -->
                         <div id="dist-tier-bars" style="display: flex; height: 10px; background: rgba(0,0,0,0.4); border-radius: 5px; overflow: hidden; width: 100%; border: 1px solid rgba(255,255,255,0.05);"></div>
+                    </div>
+                    <div id="dashboard-sync-status" role="status" hidden></div>
+                    <div class="dashboard-record-actions">
+                        <button class="btn btn-action-gray" onclick="exportGachaData()">💾 <span data-i18n="cd_btn_export_record">导出记录</span></button>
+                        <button type="button" class="btn btn-action-gray" id="dashboard-sync-action" hidden></button>
                     </div>
                 </div>
             </div>
@@ -1088,6 +1087,7 @@ body.is-delete-mode .box-add-more {
     <script src="logic/simulator_start.js?v=progress-validation-labels"></script>
     <script src="logic/user_data_profiles.js?v=empty-pool-edit"></script>
     <script src="logic/dashboard_accounts.js"></script>
+    <link rel="stylesheet" href="ui/pool_sync.css"><script src="ui/pool_sync.js"></script>
     <script src="logic/user_data_tools.js?v=legacy-validation-audit"></script>
     <link rel="stylesheet" href="ui/dashboard_accounts.css">
     <script src="ui/item_format.js"></script>

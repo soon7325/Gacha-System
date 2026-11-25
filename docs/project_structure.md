@@ -124,6 +124,7 @@ Gacha System Update/
 │  ├─ simulator_wallet.js          模拟器余额与资源管理界面
 │  ├─ simulator_wallet.css         余额与资源管理界面样式
 │  ├─ user_data_accounts.js        玩家账号管理界面
+│  ├─ pool_sync.js / pool_sync.css   看板与玩家资料共用的卡池同步、修复预览与操作面板
 │  ├─ user_data_merge.js           玩家资料融合预览与确认
 │  └─ user_data.css                玩家数据页样式
 │

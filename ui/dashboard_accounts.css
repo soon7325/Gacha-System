@@ -9,3 +9,8 @@
 #dashboard-account-bar label{width:100%;min-width:0}
 #dashboard-account-bar .custom-select-ui{width:100%!important;min-width:0}
 @media(max-width:600px){.dashboard-account-bar label,.dashboard-account-bar select{width:100%;max-width:none}.dashboard-account-bar select{min-width:0;flex:1}}
+.dashboard-fixed-footer{flex-direction:column}
+.dashboard-record-actions{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dashboard-record-actions button{width:auto;padding:6px 14px}
+#dashboard-sync-status{font-size:13px;color:var(--text);overflow-wrap:anywhere}
+.dashboard-record-actions [hidden],#dashboard-sync-status[hidden]{display:none}

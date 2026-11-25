@@ -264,7 +264,7 @@ test('历史同步选项默认关闭，随同步开关显示隐藏并保留用�
     vm.runInContext(read('logic/app_preferences.js'),c);
     vm.runInContext(source.slice(source.indexOf('        function syncPlayerDataPrefs()'),source.indexOf('        function initPrefs()')),c);
     vm.runInContext(source.slice(source.indexOf('        window.updatePref ='),source.indexOf('        window.exportLocalData')),c);
-    c.syncPlayerDataPrefs();assert.equal(nodes.dashboardSyncHistoryToggle.checked,false);assert.equal(nodes.dashboardSyncHistoryOptions.hidden,true);
+    c.syncPlayerDataPrefs();assert.equal(nodes.dashboardSyncHistoryToggle.checked,false);assert.equal(nodes.dashboardSyncHistoryOptions.hidden,false);
     c.window.updatePref('GM_Dashboard_Sync_Player','true');assert.equal(nodes.dashboardSyncHistoryOptions.hidden,false);
     c.window.updatePref('GM_Dashboard_Sync_Existing','true');assert.equal(nodes.dashboardSyncHistoryToggle.checked,true);
     c.window.updatePref('GM_Dashboard_Sync_Player','false');assert.equal(nodes.dashboardSyncHistoryOptions.hidden,true);assert.equal(nodes.dashboardSyncHistoryToggle.checked,true);

@@ -97,10 +97,36 @@
         titleInput.addEventListener('focus',()=>{if(multi)card.open=true;});
         const state={row,element:card,purpose:UserDataProfiles.purpose(row),dirty:false,names:{name:row?.name??(multi?'':'我的账号'),en:row?.en??(!row&&!multi?'My account':'')}};cards.push(state);
         state.updateSyncWarning=(source=state.row)=>{
-            const blocked=Object.entries(source?.dashboardRecords||{}).filter(([,entry])=>entry.syncBlocked?.reason==='invalid_history');
-            syncWarning.hidden=!blocked.length;card.classList.toggle('has-sync-warning',!!blocked.length);
-            const pools=blocked.map(([id])=>{const meta=context.poolContexts[id]?.label;return (localStorage.getItem('GM_Lang')==='en'?meta?.en:meta?.name)||meta?.name||meta?.en||id;}).join('、');
-            syncWarning.textContent=blocked.length?tr(`⚠️ ${pools}：抽卡记录含非法数据，本次未同步至玩家数据，原有进度与持有已保留。修正记录并成功同步后清除。`,`⚠️ ${pools}: Invalid pull records blocked synchronization. Saved progress and owned items are unchanged. Correct the records and sync successfully to clear this warning.`):'';
+            const lines=[];
+            let hasError=false,catalog;
+            for(const id of Object.keys(source?.dashboardRecords||{})){
+                const pool=context.poolContexts[id];
+                const status=DashboardAccounts.status(source,id,()=>{
+                    catalog??=GameData.loadCatalog(game);
+                    return DashboardAccounts.validationContext(id,pool.rules,pool.globalTiers,catalog);
+                });
+                if(!status||status.reason==='pending')continue;
+                const name=UserDataProfiles.label(pool?.label||{})||id;
+                hasError||=status.reason!=='pending';
+                let message=tr('记录已保存，可在录入数据页立即同步。','Records saved. Choose Sync now on the input page.');
+                if(status.reason==='invalid_history')message=tr('第 '+status.recordNumber+' 条记录未通过校验，请在录入数据页查看原因。','Record '+status.recordNumber+' failed validation. See the input page for details.');
+                else if(status.reason==='owned_conflict')message=tr('当前持有不足以撤回旧同步数量。','Current inventory cannot cover the previous sync contribution.');
+                else if(status.reason==='baseline_changed')message=tr(`当前有 ${status.recordCount} 条记录，与同步基准的 ${status.baselineCount} 条历史不一致。玩家进度和持有已保留。`,`The current ${status.recordCount} records differ from the sync baseline of ${status.baselineCount} records. Saved progress and inventory are preserved.`);
+                else if(status.reason!=='pending')message=tr('无法核对同步基准，请检查账号进度和历史记录。','Check the account progress and history before syncing.');
+                const line=document.createElement('span');
+                line.textContent=name+' · '+message;
+                if(['baseline_changed','owned_conflict'].includes(status.reason)){
+                    const repair=document.createElement('button');repair.type='button';repair.className='btn btn-action-gray';
+                    repair.textContent=tr('修复此卡池','Repair this pool');
+                    repair.onclick=event=>{event.preventDefault();event.stopPropagation();openSync(source.id,id);};
+                    line.append(' ',repair);
+                }
+                lines.push(line);
+            }
+            syncWarning.hidden=!lines.length;
+            syncWarning.classList.toggle('sync-pending',!hasError);
+            card.classList.toggle('has-sync-warning',hasError);
+            syncWarning.replaceChildren(...lines);
         };
         const purposeLabel=document.createElement('span');purposeLabel.className='player-account-purpose';heading.append(purposeLabel);
         const updateHeader=()=>{
@@ -207,6 +233,29 @@
         if(cards.length)return;
         const empty=document.createElement('p');empty.className='user-data-empty';empty.textContent=tr('还没有玩家数据。点击“新建数据”添加账号。','No player data yet. Choose New data to add an account.');node('data-list').append(empty);
     }
+    window.syncPendingPlayerRecords=()=>{
+        if(!context||!AppPreferences.playerData().sync||preview.isLocked()||hasDrafts())return;
+        const rows=UserDataProfiles.visibleRows(UserDataProfiles.read(game).items.filter(row=>UserDataProfiles.purpose(row)==='record'));
+        let changed=false,catalog;
+        const errors=[];
+        for(const row of rows)for(const pool of Object.keys(row.dashboardRecords||{})){
+            const config=context.poolContexts[pool];
+            if(!config)continue;
+            try{
+                const result=DashboardAccounts.syncPending(game,pool,row.id,()=>{
+                    catalog??=GameData.loadCatalog(game);
+                    return DashboardAccounts.validationContext(pool,config.rules,config.globalTiers,catalog);
+                });
+                if(result?.synced)changed=true;
+            }catch(error){errors.push(error.message);}
+        }
+        if(changed)render();
+        if(errors.length)report(Error(errors.join(' · ')));
+    };
+    function openSync(account,pool){
+        if(hasDrafts()){showToast(tr('请先保存当前账号编辑。','Save your account edits first.'),'info');return;}
+        PoolSyncUI.open({game,account,pool,afterSave:render,canWrite:()=>!preview.isLocked()&&!hasDrafts()});
+    }
     function render(){
         node('data-error').textContent='';node('data-list').replaceChildren();cards=[];
         const data=UserDataProfiles.read(game);revision=data.revision;items=data.items;
@@ -220,7 +269,7 @@
         node('data-preview-toggle').onclick=()=>{
             BilingualInput.close();
             node('data-preview-fields').dispatchEvent(new Event('close'));
-            if(preview.toggle())syncPreview();
+            if(preview.toggle()){syncPreview();window.syncPendingPlayerRecords();}
         };
         // 自定义下拉使用额外节点；只阻止编辑控件，折叠标题仍可操作。
         node('data-preview-fields').addEventListener('click',event=>{
@@ -235,11 +284,12 @@
             UserDataAccountsUI.initialize(game);
             const info=context.info;node('data-game-name').textContent=(ItemFormat.getLanguage()==='en'?info.enGameName||info.enName:null)||info.gameName||game;
             node('data-title').textContent=tr('📁 玩家数据','📁 Player data');node('data-new').textContent=tr('＋ 新建数据','＋ New data');
+            node('data-sync').textContent=tr('同步与修复','Sync and repair');node('data-sync').onclick=()=>openSync();
             node('data-merge').textContent=tr('融合数据','Merge data');
             const merger=UserDataMergeUI.mount({gameId:game,hasDrafts,afterSave:render});node('data-merge').onclick=()=>{if(!preview.isLocked())merger.open();};
             node('data-rules').textContent=window.getTrans('nav_currency_setup');node('data-rules').href='html/currency_setup.html?'+new URLSearchParams({gameId:game});
             node('data-note').textContent=tr('填写整个游戏账号的货币与持有，各卡池进度按启用的规则分别填写。','Enter shared account currencies and copies, plus progress for each pool’s enabled rules.');
-            node('data-new').onclick=()=>{if(preview.isLocked()||UserDataProfiles.mode()!=='multi')return;node('data-list').querySelector('.user-data-empty')?.remove();addEditor(null,true);};render();
+            node('data-new').onclick=()=>{if(preview.isLocked()||UserDataProfiles.mode()!=='multi')return;node('data-list').querySelector('.user-data-empty')?.remove();addEditor(null,true);};render();window.syncPendingPlayerRecords();
         }catch(error){node('data-new').disabled=true;report(error);}
     });
     window.addEventListener('beforeunload',event=>{if(hasDrafts()){event.preventDefault();event.returnValue='';}});

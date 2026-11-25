@@ -75,6 +75,65 @@
         });
     }
 
-    window.CatalogUtils = Object.freeze({ getItemsByCategories, findItem, getIdentity,
+    function defaultPoolAssembly() {
+        return {
+            tierRules: {
+                tier_S: {
+                    mode: 'up_split',
+                    cats: ['char'],
+                    upTags: ['up', 'reup'],
+                    offrateTags: ['std', 'custom_offrate']
+                },
+                tier_A: {
+                    mode: 'up_split',
+                    cats: ['char', 'wep'],
+                    upTags: ['custom_offrate'],
+                    offrateTags: ['normal', 'std']
+                },
+                tier_B: {
+                    mode: 'flat',
+                    cats: ['wep'],
+                    tags: ['normal']
+                }
+            }
+        };
+    }
+
+    function initAssemblyRules(poolAssembly,globalTiers,availableCats) {
+        if (!poolAssembly.tierRules) poolAssembly.tierRules = {};
+        const allTags = ['up', 'reup', 'custom_offrate', 'std', 'gift', 'normal'];
+        const defaultCats = availableCats.length > 0 ? availableCats : ['char', 'wep'];
+
+        globalTiers.forEach((tier, idx) => {
+            if (!poolAssembly.tierRules[tier.id]) {
+                poolAssembly.tierRules[tier.id] = {
+                    mode: (idx === 0) ? 'up_split' : (idx === globalTiers.length - 1 ? 'flat' : 'up_split'),
+                    upCats: [...defaultCats],
+                    offrateCats: [...defaultCats],
+                    flatCats: [...defaultCats],
+                    upTags: ['up', 'custom_offrate'],
+                    offrateTags: ['std', 'normal'],
+                    tags: [...allTags]
+                };
+            } else {
+                const rule = poolAssembly.tierRules[tier.id];
+                if (Array.isArray(rule.cats)) {
+                    rule.upCats ??= [...rule.cats];
+                    rule.offrateCats ??= [...rule.cats];
+                    rule.flatCats ??= [...rule.cats];
+                }
+            }
+        });
+
+        return poolAssembly.tierRules;
+    }
+
+    function assemblyItems(catalog,tierId,rule,group){
+        const cats=group==='up'?rule.upCats:group==='offrate'?rule.offrateCats:rule.flatCats;
+        const tags=group==='up'?rule.upTags:group==='offrate'?rule.offrateTags:rule.tags;
+        return getItemsByCategories(catalog,cats||[]).filter(item=>item.tierId===tierId && hasAnyTag(item,tags));
+    }
+
+    window.CatalogUtils = Object.freeze({ defaultPoolAssembly, initAssemblyRules, assemblyItems, getItemsByCategories, findItem, getIdentity,
         getTags, hasAnyTag, filterByTags, uniqueBy });
 })();

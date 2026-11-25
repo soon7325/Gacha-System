@@ -24,7 +24,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
         let dashboardAccountId=null,dashboardAccountRows=[],dashboardInputSnapshot=null;
         const accountText=(zh,en)=>sysLang==='en'?en:zh;
-        const inputSyncEnabled=()=>localStorage.getItem('GM_Dashboard_Sync_Player')==='true';
+        const inputSyncEnabled=()=>AppPreferences.playerData().sync;
         window.openDashboardSimulator=()=>{
             const params=new URLSearchParams({gameId:currentGameId,pool:currentPool});if(dashboardAccountId)params.set('data',dashboardAccountId);
             window.location.href='html/simulator.html?'+params;
@@ -35,7 +35,8 @@ const urlParams = new URLSearchParams(window.location.search);
                 account_missing:accountText('此账号已被删除，请刷新后选择其他账号。','This account was deleted. Refresh and select another account.'),
                 baseline_changed:accountText('修改涉及同步基准之前的历史，无法准确回退玩家进度。请关闭“录入记录同步至玩家数据”后保存此历史修改。','This edits history before the sync baseline. Turn off record sync to save these history edits without changing player data.'),
                 owned_conflict:accountText('物品持有已被调整，无法安全撤回同步数量，请关闭录入同步后保存。','Copy counts changed. Turn off record sync to save these edits safely.')};
-            showToast(messages[error.message]||accountText('无法读取或保存账号记录，请检查本机存储。','Unable to read or save account records. Check local storage.'),'danger');
+            const message=error.name==='QuotaExceededError'?accountText('本机存储空间不足，保存失败。腾出空间后可重试。','Storage is full. Free up space and retry saving.'):messages[error.message];
+            showToast(message||accountText('无法读取或保存账号记录，请检查本机存储。','Unable to read or save account records. Check local storage.'),'danger');
         }
         function initDashboardAccount(){
             UserDataAccountsUI.initialize(currentGameId);
@@ -65,14 +66,13 @@ const urlParams = new URLSearchParams(window.location.search);
             label.append(select);root.append(label);
             window.refreshCustomDropdowns?.(root,true);
         }
-        let roster = {};
+        let assemblyRules = {};
         let gameInfo = {};
         let pureCatalog = {};
         let rules = {};
         let globalTiers = [];
         let currentTiers = [];
         let selectedGoldIds = [];
-        let currentEditingBox = null;
 
         // ==========================================
 // 🌟 删除模式核心状态机与回退历史栈
@@ -275,6 +275,7 @@ window.handleDeleteWholeRow = function(delBtn) {
             loadBaseConfigs();
             try{initDashboardAccount();}catch(error){accountError(error);document.querySelectorAll('[onclick="openModal()"]').forEach(button=>button.disabled=true);return;}
             renderHeader();
+            try{DashboardAccounts.syncPending(currentGameId,currentPool,dashboardAccountId,recordContext);}catch(error){accountError(error);}
             renderDashboard();
         }
 
@@ -285,25 +286,19 @@ window.handleDeleteWholeRow = function(delBtn) {
             gameInfo = context.gameInfo;
             rules = context.rules;
             globalTiers = context.globalTiers;
-            roster = context.roster;
+
             pureCatalog = context.catalog;
+            const assembly=rules.assembly?.tierRules ? {tierRules:structuredClone(rules.assembly.tierRules)} : CatalogUtils.defaultPoolAssembly();
+            assemblyRules=CatalogUtils.initAssemblyRules(assembly,globalTiers,GameData.loadCategories(currentGameId,{catalog:pureCatalog}).map(c=>c.id));
             // 同步规则到 window，供需要访问它的脚本读取。
             window.rules = rules;
 
-            const description = GameData.describePool(rules, globalTiers, { missingColor: '#555', englishFallbackToName: true });
+            const description = recordContext();
             currentTiers = description.activeTiers;
             selectedGoldIds = description.targetGoldIds;
-            if (currentTiers.length === 0) {
-                globalTiers.forEach((gt, idx) => {
-                    currentTiers.push({ id: gt.id, name: gt.name, en: gt.en || gt.name, color: gt.color, ...(gt.paint ? {paint:gt.paint} : {}), prob: idx === 0 ? 0.6 : (idx === 1 ? 9.4 : 90.0) });
-                });
-            }
 
         }
 
-        function getItemsByCategories(cats = []) {
-            return CatalogUtils.getItemsByCategories(pureCatalog, cats || []);
-        }
 
         function findInCatalog(name) {
             if (!name) return null;
@@ -340,12 +335,51 @@ function renderHeader() {
     if (infoEl) infoEl.innerText = poolName;
 }
 
+        function recordContext(){
+            return DashboardAccounts.validationContext(currentPool,rules,globalTiers,pureCatalog);
+        }
+        function saveRecords(records,snapshot,sync){
+            return DashboardAccounts.save(currentGameId,currentPool,dashboardAccountId,records,snapshot,recordContext(),sync,
+                {includeExisting:localStorage.getItem('GM_Dashboard_Sync_Existing')==='true'});
+        }
+        function renderSyncStatus(snapshot){
+            const root=document.getElementById('dashboard-sync-status');
+            const button=document.getElementById('dashboard-sync-action');
+            const status=DashboardAccounts.status(snapshot.row,currentPool,recordContext);
+            root.hidden=!status||status.reason==='pending';button.hidden=root.hidden;
+            if(root.hidden)return;
+            button.onclick=()=>PoolSyncUI.open({game:currentGameId,account:dashboardAccountId,pool:currentPool,afterSave:renderDashboard});
+            button.textContent=accountText('修复此卡池','Repair this pool');
+            if(status.reason==='owned_conflict'){
+                root.textContent=accountText('当前持有不足以撤回旧同步数量。','Current inventory cannot cover the previous sync contribution.');
+                return;
+            }
+            if(status.reason==='baseline_changed'){
+                root.textContent=accountText('当前记录与上次同步的历史不一致。','Current records differ from the last sync baseline.');
+                return;
+            }
+            if(status.reason==='invalid_history'){
+                const detail=status.errors.map(error=>Object.entries(error.params||{}).reduce((msg,[k,v])=>msg.replaceAll('{'+k+'}',String(v)),getTrans(error.key))).join(' · ');
+                root.textContent=accountText('第 '+status.recordNumber+' 条记录：','Record '+status.recordNumber+': ')+detail;
+                button.textContent=accountText('查看异常记录','View invalid record');
+                button.onclick=()=>{
+                    window.openModal();
+                    const target=document.querySelectorAll('#edit-body .boxes-group .box,#edit-body .rule-node-item')[status.recordNumber-1];
+                    target?.scrollIntoView({block:'center'});target?.classList.add('highlight-flash');
+                };
+                return;
+            }
+            root.textContent=accountText('暂时无法确认同步状态。','Sync status is unavailable.');
+            button.hidden=true;
+
+        }
         function renderDashboard() {
             const wrap = document.getElementById('list-wrap');
             if (!wrap) return;
             wrap.innerHTML = '';
 
             let saved,accountSnapshot;try{accountSnapshot=DashboardAccounts.read(currentGameId,currentPool,dashboardAccountId);saved=accountSnapshot.records;}catch(error){accountError(error);return;}
+            renderSyncStatus(accountSnapshot);
             let totalPulls = 0, goldCount = 0, winCount = 0, lostCount = 0;
             let freeCount = 0;
 
@@ -356,10 +390,9 @@ function renderHeader() {
 
             // 历史检测先独立完成；页面只将原因翻译为文字并生成展示条。
             const isStdPool = currentPool.includes('std') || currentPool === 'mixed_std';
+            const context = recordContext();
             const validationReport = DashboardValidation.validateHistory(saved, {
-                rules, activeTiers: currentTiers, targetGoldIds: selectedGoldIds,
-                catalog: pureCatalog, findItem: findInCatalog,
-                isStdPool, allowRotation: isRotationAllowed(),initialState:accountSnapshot.row?UserDataProfiles.initial(accountSnapshot.row,currentPool,GameData.describePool(rules,globalTiers).minorPities.length):null
+                ...context,initialState:accountSnapshot.row?UserDataProfiles.initial(accountSnapshot.row,currentPool,context.minorPities.length):null
             });
             const hardPity = validationReport.hardPity;
 
@@ -1034,10 +1067,10 @@ function createEditRowContainer(isFree = false) {
         b.dataset.short = short;
         applyImageToBox(b, short);
     } else if (nonGoldMode === 'auto_random' && !selectedGoldIds.includes(currentTier.id)) {
-        const randName = getRandomPoolItem(currentTier.id);
-        if (randName) {
-            b.dataset.short = randName;
-            applyImageToBox(b, randName);
+        const item = getRandomPoolItem(currentTier.id);
+        if (item) {
+            b.dataset.short = item.name;
+            applyImageToBox(b, item);
             b.dataset.autoRandom='true';
         } else {
             b.innerText = getTierDisplayName(currentTier);
@@ -1065,13 +1098,12 @@ function createEditRowContainer(isFree = false) {
             resetBoxContent(b, nextTier);
             openCharPicker(e, b, nextTier);
         } else if (currentMode === 'auto_random') {
-            const randName = getRandomPoolItem(nextTier.id);
-            if (randName) {
-                b.dataset.short = randName;
-                applyImageToBox(b, randName);
+            resetBoxContent(b, nextTier);
+            const item = getRandomPoolItem(nextTier.id);
+            if (item) {
+                b.dataset.short = item.name;
+                applyImageToBox(b, item);
                 b.dataset.autoRandom='true';
-            } else {
-                resetBoxContent(b, nextTier);
             }
         } else {
             resetBoxContent(b, nextTier);
@@ -1112,10 +1144,18 @@ function applyImageToBox(box, name) {
     `;
 }
 
-        function getRandomPoolItem(tierId) {
-            const list = getItemsByCategories(['char', 'wep']).filter(i => i.tierId === tierId);
-            if (list.length > 0) return list[Math.floor(Math.random() * list.length)].name;
-            return "";
+        function recordingCandidates(tierId,group){
+            const rule=assemblyRules[tierId];
+            if(!rule)return [];
+            const items=source=>CatalogUtils.assemblyItems(pureCatalog,tierId,rule,source);
+            if(rule.mode!=='up_split')return items('flat');
+            if(group)return items(group);
+            return CatalogUtils.uniqueBy([...items('up'),...items('offrate')],item=>CatalogUtils.getIdentity(item)||item.name);
+        }
+
+        function getRandomPoolItem(tierId){
+            const candidates=recordingCandidates(tierId);
+            return candidates[Math.floor(Math.random()*candidates.length)];
         }
 
         // ==========================================
@@ -1123,49 +1163,18 @@ function applyImageToBox(box, name) {
         // ==========================================
 function openCharPicker(e, box, tierObj) {
     e.stopPropagation();
-    currentEditingBox = box;
     const picker = document.getElementById('charPicker');
     const targetTierId = tierObj.id;
     const isTargetGold = selectedGoldIds.includes(targetTierId);
 
     const nonGoldMode = localStorage.getItem('GM_Non_Gold_Input_Mode') || 'allow_manual_no_up';
-    const assembly = rules.assembly?.tierRules?.[targetTierId] || {};
-
-    let currentLossMode = isTargetGold 
-        ? 'win' 
-        : (nonGoldMode === 'allow_manual_with_up' ? 'lost' : 'all_flat');
+    const showGroups=assemblyRules[targetTierId]?.mode==='up_split' &&
+        (isTargetGold || nonGoldMode==='allow_manual_with_up');
+    let currentLossMode=showGroups?(isTargetGold?'win':'lost'):'all_flat';
 
     function renderPickerContent() {
-        let candidateList = [];
-
-        if (currentLossMode === 'win') {
-            const upCats = assembly.upCats || (targetTierId === 'tier_S' ? ['char'] : ['char', 'wep']);
-            const upTags = assembly.upTags || ['up', 'custom_offrate'];
-
-            candidateList = getItemsByCategories(upCats).filter(i => 
-                i.tierId === targetTierId && CatalogUtils.hasAnyTag(i, upTags)
-            );
-
-            if (candidateList.length === 0 && roster[currentPool]) {
-                candidateList = roster[currentPool].filter(i => (i.tierId === targetTierId || ('tier_' + i.star) === targetTierId));
-            }
-        } else if (currentLossMode === 'lost') {
-            const offCats = assembly.offrateCats || ['char', 'wep'];
-            const offTags = assembly.offrateTags || ['std', 'custom_offrate', 'normal'];
-
-            candidateList = getItemsByCategories(offCats).filter(i => 
-                i.tierId === targetTierId && CatalogUtils.hasAnyTag(i, offTags)
-            );
-        } else {
-            const allCats = assembly.cats || [...new Set([...(assembly.upCats || []), ...(assembly.offrateCats || []), ...(assembly.flatCats || ['char', 'wep'])])];
-            const allTags = [...new Set([...(assembly.upTags || []), ...(assembly.offrateTags || []), ...(assembly.tags || ['normal', 'std', 'custom_offrate'])])];
-
-            candidateList = getItemsByCategories(allCats).filter(i => 
-                i.tierId === targetTierId && CatalogUtils.hasAnyTag(i, allTags)
-            );
-        }
-
-        candidateList = CatalogUtils.uniqueBy(candidateList, item => CatalogUtils.getIdentity(item) || item.name);
+        const group=currentLossMode==='win'?'up':currentLossMode==='lost'?'offrate':null;
+        const candidateList=recordingCandidates(targetTierId,group);
 
         // 🌟 核心：生成卡片时展示对应语言的名字和简称，并严格锁定单项宽度，超长截断省略号
         const itemsHtml = candidateList.map(item => {
@@ -1176,7 +1185,7 @@ function openCharPicker(e, box, tierObj) {
                 : `<div style="width:34px; height:34px; border-radius:4px; background:#333; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; margin-bottom:4px; border:1px solid #555;">${shortName}</div>`;
 
             return `
-                <div class="picker-item-card" onclick="selectItem('${CatalogUtils.getIdentity(item) || item.name}', ${currentLossMode === 'lost'})" 
+                <div class="picker-item-card"
                      style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 2px; background:#2a2e38; border-radius:6px; cursor:pointer; transition:0.2s; min-width:0; width:100%; box-sizing:border-box; overflow:hidden;" 
                      onmouseover="this.style.background='#373d4b'" onmouseout="this.style.background='#2a2e38'">
                     ${imgHtml}
@@ -1186,7 +1195,7 @@ function openCharPicker(e, box, tierObj) {
         }).join('') || `<div style="grid-column: 1 / -1; text-align:center; color:#777; font-size:12px; padding:20px 0;">${getTrans('cd_picker_empty')}</div>`;
 
         let toggleBarHtml = '';
-        if (isTargetGold || nonGoldMode === 'allow_manual_with_up') {
+        if (showGroups) {
             toggleBarHtml = `
             <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; font-size:12px;">
                 <label style="cursor:pointer; display:flex; align-items:center; gap:4px; color:${currentLossMode==='win' ? '#2ecc71' : '#aaa'}; font-weight:${currentLossMode==='win' ? 'bold' : 'normal'};">
@@ -1216,20 +1225,20 @@ function openCharPicker(e, box, tierObj) {
                ${itemsHtml}
             </div>
         `;
+        picker.querySelectorAll('.picker-item-card').forEach((card,index)=>{
+            card.onclick=()=>{
+                const item=candidateList[index];
+                box.dataset.short=item.name;
+                box.dataset.isLost=String(currentLossMode==='lost');
+                applyImageToBox(box,item);
+                picker.style.display='none';
+            };
+        });
     }
 
     window.onLossModeChanged = function(mode) {
         currentLossMode = mode;
         renderPickerContent();
-    };
-
-    window.selectItem = function(name, isLost) {
-        if (currentEditingBox) {
-            currentEditingBox.dataset.short = findInCatalog(name)?.name || name;
-            currentEditingBox.dataset.isLost = isLost ? 'true' : 'false';
-            applyImageToBox(currentEditingBox, name);
-        }
-        picker.style.display = 'none';
     };
 
     renderPickerContent();
@@ -1286,13 +1295,15 @@ function openCharPicker(e, box, tierObj) {
 
             try{
                 if(!dashboardInputSnapshot)throw Error('conflict');
-                const context=UserDataProfiles.context(currentGameId,currentPool);
-                const result=DashboardAccounts.save(currentGameId,currentPool,dashboardAccountId,dataToSave,dashboardInputSnapshot,{
-                    rules,activeTiers:currentTiers,targetGoldIds:selectedGoldIds,catalog:pureCatalog,minorPities:context.minorPities,
-                    isStdPool:currentPool.includes('std')||currentPool==='mixed_std',allowRotation:isRotationAllowed()
-                },inputSyncEnabled(),{includeExisting:localStorage.getItem('GM_Dashboard_Sync_Existing')==='true'});
+                let result;
+                try{result=saveRecords(dataToSave,dashboardInputSnapshot,inputSyncEnabled());}
+                catch(error){
+                    if(!['baseline_changed','owned_conflict'].includes(error.message))throw error;
+                    saveRecords(dataToSave,dashboardInputSnapshot,false);
+                    result={repair:true};
+                }
                 if(result.blocked)showToast(accountText('抽卡记录已保存，但含非法数据；本次未同步，玩家数据保持原样。请修正红色异常记录后重新保存。','Pull records saved, but invalid data blocked synchronization. Player data is unchanged. Correct the red errors and save again.'),'danger');
-                else showToast(result.synced?accountText('记录已保存，已同步玩家进度与明确物品持有。','Records saved and player progress and named copies updated.'):accountText('账号抽卡记录已保存，玩家数据未修改。','Account history saved. Player data unchanged.'),'success');
+                else if(result.repair)showToast(accountText('记录已保存，请在页面底部修复此卡池。','Records saved. Use Repair this pool at the bottom of the page.'),'danger');
             }catch(error){accountError(error);return false;}
 
 
